@@ -1,0 +1,4 @@
+node_modules/
+allure-report/
+tests/apps/
+.env
