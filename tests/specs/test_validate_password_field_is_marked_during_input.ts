@@ -12,10 +12,10 @@ describe("Authentication - Password field masking and visibility toggle", () => 
         // ---------- Verify welcome screen is loaded ----------
         await loginPage.waitUntilVisibleWithRetry(loginPage.loginButton);
 
-        await loginPage.isElementDisplayed(loginPage.welcomeHeading);
-        await loginPage.isElementDisplayed(loginPage.createAccountOrRegisterProfile);
-        await loginPage.isElementDisplayed(loginPage.followTeamOrLeague);
-        await loginPage.isElementDisplayed(loginPage.loginButton);
+        await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
+        await loginPage.assertElementDisplayed(loginPage.createAccountOrRegisterProfile);
+        await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
+        await loginPage.assertElementDisplayed(loginPage.loginButton);
 
 
         // ---------- Navigate to login screen ----------
@@ -23,8 +23,8 @@ describe("Authentication - Password field masking and visibility toggle", () => 
 
 
         // ---------- Verify login screen elements ----------
-        await loginPage.isElementDisplayed(loginPage.backButton);
-        await loginPage.isElementDisplayed(loginPage.loginHeading);
+        await loginPage.assertElementDisplayed(loginPage.backButton);
+        await loginPage.assertElementDisplayed(loginPage.loginHeading);
 
 
         // ---------- Get login button reference ----------

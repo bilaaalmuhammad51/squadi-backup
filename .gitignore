@@ -3,3 +3,4 @@ allure-results/
 tests/apps/
 .env
 .idea
+.DS_Store

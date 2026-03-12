@@ -1,5 +1,6 @@
 import BasePage from "./base.page";
 import { selector } from '../factories/page.factory'
+import {generateInvalidEmail} from "../utils/helpers";
 
 export class LoginPage extends BasePage {
     public createAccountOrRegisterProfile = selector(
@@ -94,6 +95,16 @@ export class LoginPage extends BasePage {
     async addPassword(password: string) {
         await this.click(this.password)
         await this.type(this.password, password)
+    }
+    async testMultipleInvalidEmails(element:any){
+        for (let i = 0; i < 10; i++) {
+            const email = generateInvalidEmail(8);
+            await this.addUserName(email);
+            await this.addPassword("rwkzvo4cd");
+
+            // Expect login button to stay disabled for invalid emails
+            await this.expectElementState(element, "disabled");
+        }
     }
 
 

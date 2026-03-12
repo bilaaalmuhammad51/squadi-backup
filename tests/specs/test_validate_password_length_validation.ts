@@ -1,5 +1,6 @@
-import { invalidLoginData, LoginData } from "../data/login.data";
+import { LoginData } from "../data/login.data";
 import { LoginPage } from "../pages/login.page";
+import { generateInvalidPassword} from "../utils/helpers";
 
 describe("Authentication - Password length Validation", () => {
     it("should validate login button state for password length boundaries", async () => {
@@ -8,17 +9,17 @@ describe("Authentication - Password length Validation", () => {
 
         // Assert, verify welcome screen is loaded
         await loginPage.waitUntilVisibleWithRetry(loginPage.loginButton);
-        await loginPage.isElementDisplayed(loginPage.welcomeHeading);
-        await loginPage.isElementDisplayed(loginPage.createAccountOrRegisterProfile);
-        await loginPage.isElementDisplayed(loginPage.followTeamOrLeague);
-        await loginPage.isElementDisplayed(loginPage.loginButton);
+        await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
+        await loginPage.assertElementDisplayed(loginPage.createAccountOrRegisterProfile);
+        await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
+        await loginPage.assertElementDisplayed(loginPage.loginButton);
 
         // Act, navigate to login screen
         await loginPage.click(loginPage.loginButton);
 
         // Assert, verify login screen elements
-        await loginPage.isElementDisplayed(loginPage.backButton);
-        await loginPage.isElementDisplayed(loginPage.loginHeading);
+        await loginPage.assertElementDisplayed(loginPage.backButton);
+        await loginPage.assertElementDisplayed(loginPage.loginHeading);
 
         const loginBtn = await loginPage.getElement(loginPage.login);
 
@@ -29,20 +30,18 @@ describe("Authentication - Password length Validation", () => {
         await loginPage.addUserName(LoginData.email);
         await loginPage.expectElementState(loginBtn, "disabled");
 
-        // Assert, login button should remain disabled for password with 5 characters
-        await loginPage.addPassword(invalidLoginData.shortPasswords[0]);
-        await loginPage.expectElementState(loginBtn, "disabled");
+        // Test password lengths dynamically
+        for (let len = 5; len <= 8; len++) {
+            // Force exact length when testing valid password (len=8)
+            const password = len < 8 ? generateInvalidPassword(len) : generateInvalidPassword(len, true);
 
-        // Assert, login button should remain disabled for password with 6 characters
-        await loginPage.addPassword(invalidLoginData.shortPasswords[1]);
-        await loginPage.expectElementState(loginBtn, "disabled");
+            await loginPage.addPassword(password);
 
-        // Assert, login button should remain disabled for password with 7 characters
-        await loginPage.addPassword(invalidLoginData.shortPasswords[2]);
-        await loginPage.expectElementState(loginBtn, "disabled");
-
-        // Assert, login button should become enabled for password with 8 characters, meets minimum requirement
-        await loginPage.addPassword(invalidLoginData.shortPasswords[3]);
-        await loginPage.expectElementState(loginBtn, "enabled");
+            if (len < 8) {
+                await loginPage.expectElementState(loginBtn, "disabled");
+            } else {
+                await loginPage.expectElementState(loginBtn, "enabled");
+            }
+        }
     });
 });
