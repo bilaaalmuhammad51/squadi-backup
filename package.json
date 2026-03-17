@@ -4,29 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "appium": "appium",
-    "test:android": "PLATFORM=android wdio run wdio.conf.ts",
-    "test:ios": "PLATFORM=ios wdio run wdio.conf.ts",
-    "wdio": "wdio run ./wdio.conf.ts"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "private": true,
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@wdio/allure-reporter": "^9.25.0",
-    "@wdio/cli": "^9.25.0",
-    "@wdio/globals": "^9.23.0",
-    "@wdio/local-runner": "^9.25.0",
-    "@wdio/logger": "^9.18.0",
-    "@wdio/mocha-framework": "^9.25.0",
-    "@wdio/spec-reporter": "^9.25.0",
-    "@wdio/types": "^9.25.0",
-    "allure-commandline": "^2.37.0",
-    "tsx": "^4.21.0"
-  },
-  "dependencies": {
-    "dotenv": "^17.3.1"
-  }
+  "private": true
 }

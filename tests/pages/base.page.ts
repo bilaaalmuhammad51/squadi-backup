@@ -1,15 +1,15 @@
-import { $, browser } from '@wdio/globals'
+import {$, browser, expect} from '@wdio/globals'
 import { getPlatform } from '../factories/selector.factory'
 import type { DualSelector } from '../factories/page.factory'
 import Logger from '../utils/logger'
-
+import {Timeout} from "../utils/timers";
 export default class BasePage {
     async resolve(selector: DualSelector) {
         const platform = await getPlatform()
         return $(platform === 'android' ? selector.android : selector.ios)
     }
     async getElement(selector: DualSelector) {
-        Logger.info(`Getting element: ${JSON.stringify(selector)}`)
+        Logger.info(`Getting element: ${selector.name || JSON.stringify(selector)}`)
 
         const element = await this.resolve(selector)
 
@@ -18,34 +18,17 @@ export default class BasePage {
         return element
     }
 
-    async clickElement(selector: DualSelector) {
-        Logger.info(`Clicking element: ${JSON.stringify(selector)}`)
-
-        const element = await this.getElement(selector)
-
-        await element.click()
-    }
-
-    async typeText(selector: DualSelector, value: string) {
-        Logger.info(`Typing text into element: ${JSON.stringify(selector)} value: ${value}`)
-
-        const element = await this.getElement(selector)
-
-        await element.setValue(value)
-    }
-
-    async isDisplayed(selector: DualSelector) {
-        Logger.info(`Checking visibility of element: ${JSON.stringify(selector)}`)
-
-        const element = await this.resolve(selector)
-
-        return element.isDisplayed()
+    async isElementDisplayed(selector: DualSelector): Promise<void> {
+        Logger.info(`Checking visibility of element: ${selector.name || 'element'}`);
+        const element = await this.resolve(selector);
+        const visible = await element.isDisplayed();
+        expect(visible).toBe(true);
     }
 
     async waitUntilVisibleWithRetry(
         selector: DualSelector,
         maxAttempts: number = 50,
-        restTime: number = 3000
+        restTime: number = Timeout.THREE_SECONDS
     ) {
         let attempt = 1
 
@@ -77,8 +60,8 @@ export default class BasePage {
     async waitUntilInvisibleWithRetry(
         selector: DualSelector,
         maxAttempts: number = 10,
-        restTime: number = 1000,
-        minTotalWait: number = 6000
+        restTime: number = Timeout.ONE_SECOND,
+        minTotalWait: number = Timeout.SIX_SECONDS
     ) {
         let attempt = 1
         const startTime = Date.now()
@@ -117,16 +100,50 @@ export default class BasePage {
 
     }
 
-    async tap(selector: DualSelector) {
+    async click(selector: DualSelector) {
+        Logger.info(`Clicking element: ${selector.name || JSON.stringify(selector)}`)
         const element = await this.waitUntilVisibleWithRetry(selector)
+
         await element.click()
     }
 
     async type(selector: DualSelector, value: string) {
+        Logger.info(`Typing text into element: ${JSON.stringify(selector)} value: ${value}`)
         const element = await this.waitUntilVisibleWithRetry(selector)
         await element.setValue(value)
     }
+    async assertTextContains(selector: DualSelector, expected: string) {
+        const element = await this.resolve(selector);
+        const text = driver.isAndroid
+            ? await element.getAttribute('content-desc')
+            : await element.getText();
+        Logger.info(`Element text/content-desc: "${text}"`);
+        expect(text).toContain(expected);
+    }
+    async expectElementState(
+        element: any,
+        state: "enabled" | "disabled"
+    ) {
+        await browser.waitUntil(async () => {
+            const clickable = await element.getAttribute("clickable");
+            const enabled = await element.getAttribute("enabled");
 
+            if (state === "enabled") {
+                return clickable === "true" && enabled === "true";
+            }
+
+            return clickable === "false";
+        }, {
+            timeout: Timeout.FIVE_SECONDS,
+            timeoutMsg: `Element did not become ${state}`
+        });
+    }
+    async getText(selector: DualSelector):Promise<string> {
+        const element = await this.resolve(selector);
+        const text = await element.getText();
+        Logger.info(`Element text/content-desc: "${text}"`);
+        return text
+    }
 
     async pause(ms: number) {
         await browser.pause(ms)

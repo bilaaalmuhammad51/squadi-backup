@@ -1,4 +1,5 @@
 node_modules/
-allure-report/
+allure-results/
 tests/apps/
 .env
+.idea
