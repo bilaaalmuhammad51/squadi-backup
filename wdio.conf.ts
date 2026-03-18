@@ -6,25 +6,17 @@ import {browserstackAndroidCaps} from './tests/config/browserstack.android.capab
 import {browserstackIosCaps} from './tests/config/browserstack.ios.capabilities'
 import Logger from "./tests/utils/logger";
 import allureReporter from '@wdio/allure-reporter'
+import {Timeout} from "./tests/utils/timers";
 const ENV = (process.env.ENV || 'local').toLowerCase()
 const PLATFORM = (process.env.PLATFORM || 'android').toLowerCase()
 
 function getCapabilities() {
 
     if (ENV === 'browserstack') {
-
-        if (PLATFORM === 'ios') {
-            return [browserstackIosCaps]
-        }
-
-        return [browserstackAndroidCaps]
+        return getBrowserstackCaps();
     }
 
-    if (PLATFORM === 'ios') {
-        return [iosCaps]
-    }
-
-    return [androidCaps]
+    return getLocalCaps();
 }
 function getServerConfig() {
     if (ENV === 'browserstack') {
@@ -68,7 +60,7 @@ export const config: WebdriverIO.Config = {
 
     mochaOpts: {
         ui: 'bdd',
-        timeout: 120000
+        timeout: Timeout.TWO_MINUTES
     },
 
     capabilities: getCapabilities(),
@@ -130,4 +122,19 @@ export const config: WebdriverIO.Config = {
         }
     }
 
+}
+function getBrowserstackCaps() {
+    if (PLATFORM === 'ios') {
+        return [browserstackIosCaps];
+    }
+
+    return [browserstackAndroidCaps];
+}
+
+function getLocalCaps() {
+    if (PLATFORM === 'ios') {
+        return [iosCaps];
+    }
+
+    return [androidCaps];
 }
