@@ -18,3 +18,18 @@ export const generateInvalidEmail = (length: number = 5): string => {
 
     return cases[Math.floor(Math.random() * cases.length)]();
 };
+export const generateUniqueEmail = (): string => {
+    const randomStr = Math.random().toString(36).slice(2, 10)
+    const timestamp = Date.now()
+
+    return `test_qa_${randomStr}_${timestamp}@gmail.com`
+}
+export const generateUniqueNames = (): { firstName: string; lastName: string } => {
+    const randomStr = Math.random().toString(36).slice(2, 6)
+    const timestamp = Date.now().toString().slice(-4)
+
+    return {
+        firstName: `Test${randomStr}`,
+        lastName: `User${timestamp}`
+    }
+}

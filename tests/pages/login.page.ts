@@ -19,7 +19,7 @@ export class LoginPage extends BasePage {
         'Welcome'
     )
 
-    private username = selector(
+    protected username = selector(
         '-android uiautomator:new UiSelector().className("android.widget.EditText").instance(0)',
         '',
         'email'
