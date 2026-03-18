@@ -1,6 +1,6 @@
-import { emailLoginTestData } from "../data/login.data";
-import { LoginPage } from "../pages/login.page";
-import { HomePage } from "../pages/home.page";
+import { emailLoginTestData } from "../../data/login.data";
+import { LoginPage } from "../../pages/login.page";
+import { HomePage } from "../../pages/home.page";
 
 describe("Authentication - Email Validation", () => {
     it("should validate login button state for supported email formats and allow a registered user to log in successfully", async () => {

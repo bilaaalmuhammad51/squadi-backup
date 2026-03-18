@@ -9,7 +9,7 @@ export default class BasePage {
         return $(platform === 'android' ? selector.android : selector.ios)
     }
     async getElement(selector: DualSelector) {
-        Logger.info(`Getting element: ${selector.name || JSON.stringify(selector)}`)
+        Logger.info(`Getting element: ${selector.log}`)
 
         const element = await this.resolve(selector)
 
@@ -19,7 +19,7 @@ export default class BasePage {
     }
 
     async assertElementDisplayed(selector: DualSelector): Promise<void> {
-        Logger.info(`Checking visibility of element: ${selector.name || 'element'}`);
+        Logger.info(`Checking visibility of element: ${selector.log}`);
         const element = await this.resolve(selector);
         const visible = await element.isDisplayed();
         expect(visible).toBe(true);
@@ -27,14 +27,14 @@ export default class BasePage {
 
     async waitUntilVisibleWithRetry(
         selector: DualSelector,
-        maxAttempts: number = 50,
+        maxAttempts: number = 20,
         restTime: number = Timeout.THREE_SECONDS
     ) {
         let attempt = 1
 
         while (attempt <= maxAttempts) {
             try {
-                Logger.info(`[Attempt ${attempt}] waiting for element to be visible`)
+                Logger.info(`[Attempt ${attempt}] waiting for element ${selector.name} to be visible`)
 
                 const element = await this.resolve(selector)
 
@@ -101,14 +101,14 @@ export default class BasePage {
     }
 
     async click(selector: DualSelector) {
-        Logger.info(`Clicking element: ${selector.name || JSON.stringify(selector)}`)
+        Logger.info(`Clicking element: ${selector.log}`)
         const element = await this.waitUntilVisibleWithRetry(selector)
 
         await element.click()
     }
 
     async type(selector: DualSelector, value: string) {
-        Logger.info(`Typing text into element: ${JSON.stringify(selector)} value: ${value}`)
+        Logger.info(`Typing text into element: ${selector.log}`)
         const element = await this.waitUntilVisibleWithRetry(selector)
         await element.setValue(value)
     }
@@ -147,5 +147,29 @@ export default class BasePage {
 
     async pause(ms: number) {
         await browser.pause(ms)
+    }
+    async scrollDown(): Promise<void> {
+        const { height, width } = await driver.getWindowRect()
+
+        const startX = Math.floor(width / 2)
+        const startY = Math.floor(height * 0.8)
+        const endY = Math.floor(height * 0.3)
+
+        await driver.performActions([
+            {
+                type: 'pointer',
+                id: 'finger1',
+                parameters: { pointerType: 'touch' },
+                actions: [
+                    { type: 'pointerMove', duration: 0, x: startX, y: startY },
+                    { type: 'pointerDown', button: 0 },
+                    { type: 'pause', duration: 200 },
+                    { type: 'pointerMove', duration: 500, x: startX, y: endY },
+                    { type: 'pointerUp', button: 0 }
+                ]
+            }
+        ])
+
+        await driver.releaseActions()
     }
 }

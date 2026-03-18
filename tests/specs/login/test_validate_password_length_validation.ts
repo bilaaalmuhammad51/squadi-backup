@@ -1,6 +1,6 @@
-import { LoginData } from "../data/login.data";
-import { LoginPage } from "../pages/login.page";
-import { generateInvalidPassword} from "../utils/helpers";
+import { LoginData } from "../../data/login.data";
+import { LoginPage } from "../../pages/login.page";
+import { generateInvalidPassword} from "../../utils/helpers";
 
 describe("Authentication - Password length Validation", () => {
     it("should validate login button state for password length boundaries", async () => {

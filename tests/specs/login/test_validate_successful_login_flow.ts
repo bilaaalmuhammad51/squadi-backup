@@ -1,6 +1,6 @@
-import { LoginData } from "../data/login.data";
-import { LoginPage } from "../pages/login.page";
-import { HomePage } from "../pages/home.page";
+import { LoginData } from "../../data/login.data";
+import { LoginPage } from "../../pages/login.page";
+import { HomePage } from "../../pages/home.page";
 
 describe("Authentication - Login Flow", () => {
 

@@ -1,5 +1,5 @@
-import { LoginData } from "../data/login.data";
-import { LoginPage } from "../pages/login.page";
+import { LoginData } from "../../data/login.data";
+import { LoginPage } from "../../pages/login.page";
 
 describe("Authentication - Password field masking and visibility toggle", () => {
 

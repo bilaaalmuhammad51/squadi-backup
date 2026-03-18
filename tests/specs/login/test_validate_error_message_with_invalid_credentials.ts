@@ -1,5 +1,5 @@
-import { invalidLoginErrorData, LoginData } from "../data/login.data";
-import { LoginPage } from "../pages/login.page";
+import { invalidLoginErrorData, LoginData } from "../../data/login.data";
+import { LoginPage } from "../../pages/login.page";
 
 describe("Authentication - Invalid Login Flow with invalid credentials", () => {
 
