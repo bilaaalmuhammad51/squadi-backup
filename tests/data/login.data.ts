@@ -1,7 +1,7 @@
 export const LoginData = {
     loginHeading: 'Log In',
-    email:'dileepvarmauu+dev2@gmail.com',
-    password: 'rwkzvo4cd',
+    email:'shahshahbaz64@gmail.com',
+    password: 'Connect123',
 
 }
 export const emailLoginTestData = {
@@ -9,11 +9,6 @@ export const emailLoginTestData = {
         email: '',
         password: 'rwkzvo4cd'
     },
-    validEmailSamples: [
-        { email: 'test@gmail.com', password: 'rwkzvo4cd' },
-        { email: 'DILEEPVARMAU+DEV2@GMAIL.COM', password: 'rwkzvo4cd' },
-        { email: 'dileepvarmau+dev2@gmail.com', password: 'rwkzvo4cd' }
-    ]
 };
 export const invalidLoginErrorData = {
     invalidUsernameOrPassword: "Invalid username or password",

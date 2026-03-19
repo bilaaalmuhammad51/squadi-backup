@@ -81,7 +81,7 @@ PLATFORM=android npx wdio run wdio.conf.ts --spec <path-to-spec>
 ```
 Example:
 ```bash
-PLATFORM=android npx wdio run wdio.conf.ts --spec ./tests/specs/test_validate_successful_login_flow.ts
+PLATFORM=android npx wdio run wdio.conf.ts --spec tests/specs/login/test_validate_successful_login_flow.ts
 ```
 ## iOS Local
 Run a specific test:
@@ -90,7 +90,7 @@ PLATFORM=ios npx wdio run wdio.conf.ts --spec <path-to-spec>
 ```
 Example:
 ```bash
-PLATFORM=ios npx wdio run wdio.conf.ts --spec ./tests/specs/test_validate_successful_login_flow.ts
+PLATFORM=ios npx wdio run wdio.conf.ts --spec tests/specs/login/test_validate_successful_login_flow.ts
 ```
 ## Android BrowserStack
 ```bash
@@ -162,7 +162,7 @@ allure generate reports/allure-results -o reports/allure-report --clean
 Or if you want to open it directly:
 
 ```bash
-allure serve reports/allure-results
+allure serve allure-results
 ```
 # 🛡️ Best Practices
 

@@ -1,8 +1,12 @@
+import path from "path";
 export const iosCaps = {
     platformName: 'iOS',
     'appium:automationName': 'XCUITest',
-    'appium:deviceName': 'iPhone 15',
-    'appium:platformVersion': '17.5',
-    'appium:app': process.cwd() + '/apps/ios/MyApp.app',
-    'appium:autoAcceptAlerts': true
+    'appium:deviceName': 'iPhone SE',
+    'appium:platformVersion': '18.3',
+    "appium:udid": "00008110-001109290E11A01E",
+    "appium:app": path.resolve(__dirname, "../apps/squadi-dev.ipa"),
+    'appium:autoAcceptAlerts': true,
+    'appium:fullReset': true,
+    'appium:noReset': false,
 }

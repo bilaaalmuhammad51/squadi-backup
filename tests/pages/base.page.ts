@@ -4,6 +4,8 @@ import type { DualSelector } from '../factories/page.factory'
 import Logger from '../utils/logger'
 import {Timeout} from "../utils/timers";
 export default class BasePage {
+    private readonly iosNotificationPopupText = '(//XCUIElementTypeStaticText[contains(@name,"Please allow notifications")])[1]';
+    private readonly iosNotificationOkButton = '(//XCUIElementTypeStaticText[contains(@name,"Please allow notifications")])[2]';
     async resolve(selector: DualSelector) {
         const platform = await getPlatform()
         return $(platform === 'android' ? selector.android : selector.ios)
@@ -13,7 +15,7 @@ export default class BasePage {
 
         const element = await this.resolve(selector)
 
-        await element.waitForExist({ timeout: 10000 })
+        await element.waitForExist({ timeout: Timeout.ONE_SECOND })
 
         return element
     }
@@ -34,7 +36,7 @@ export default class BasePage {
 
         while (attempt <= maxAttempts) {
             try {
-                Logger.info(`[Attempt ${attempt}] waiting for element ${selector.name} to be visible`)
+                Logger.info(`[Attempt ${attempt}] waiting for element ${selector.log} to be visible`)
 
                 const element = await this.resolve(selector)
 
@@ -109,7 +111,7 @@ export default class BasePage {
 
     async type(selector: DualSelector, value: string) {
         Logger.info(`Typing text into element: ${selector.log}`)
-        const element = await this.waitUntilVisibleWithRetry(selector)
+        const element = await this.getElement(selector)
         await element.setValue(value)
     }
     async assertTextContains(selector: DualSelector, expected: string) {
@@ -122,9 +124,19 @@ export default class BasePage {
     }
     async expectElementState(
         element: any,
-        state: "enabled" | "disabled"
+        state: any
     ) {
         await browser.waitUntil(async () => {
+
+            if (driver.isIOS) {
+                const enabled = await element.getAttribute("enabled");
+
+                if (state === "enabled") {
+                    return enabled === "true";
+                }
+
+                return enabled === "false";
+            }
             const clickable = await element.getAttribute("clickable");
             const enabled = await element.getAttribute("enabled");
 
@@ -133,6 +145,7 @@ export default class BasePage {
             }
 
             return clickable === "false";
+
         }, {
             timeout: Timeout.FIVE_SECONDS,
             timeoutMsg: `Element did not become ${state}`
@@ -152,8 +165,8 @@ export default class BasePage {
         const { height, width } = await driver.getWindowRect()
 
         const startX = Math.floor(width / 2)
-        const startY = Math.floor(height * 0.8)
-        const endY = Math.floor(height * 0.3)
+        const startY = Math.floor(height * 0.5)
+        const endY = Math.floor(height * 0.1)
 
         await driver.performActions([
             {
@@ -171,5 +184,18 @@ export default class BasePage {
         ])
 
         await driver.releaseActions()
+    }
+    async handleIOSNotificationPrePrompt() {
+        if (!driver.isIOS) return;
+        Logger.info("Handling IOS Notification PrePrompt")
+        const isVisible = await $(this.iosNotificationPopupText)
+            .waitForDisplayed({ timeout: 10000 })
+            .catch(() => false);
+
+        if (isVisible) {
+            await $(this.iosNotificationOkButton).click();
+            await this.pause(Timeout.THREE_SECONDS);
+            await this.scrollDown();
+        }
     }
 }
