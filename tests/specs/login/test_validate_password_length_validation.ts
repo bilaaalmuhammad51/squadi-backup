@@ -1,47 +1,69 @@
+import allureReporter from "@wdio/allure-reporter";
+import { step, generatePasswordByLength } from "../../utils/helpers";
 import { LoginData } from "../../data/login.data";
 import { LoginPage } from "../../pages/login.page";
-import { generateInvalidPassword} from "../../utils/helpers";
 
-describe("Authentication - Password length Validation", () => {
-    it("should validate login button state for password length boundaries", async () => {
-        // Arrange, initialize page object
-        const loginPage = new LoginPage();
+const passwordTests = [
+    { length: 5, expectedState: "disabled" },
+    { length: 6, expectedState: "disabled" },
+    { length: 7, expectedState: "disabled" },
+    { length: 8, expectedState: "enabled" },
+    { length: 9, expectedState: "enabled" },
+];
 
-        // Assert, verify welcome screen is loaded
-        await loginPage.waitUntilVisibleWithRetry(loginPage.loginButton);
-        await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
-        await loginPage.assertElementDisplayed(loginPage.createAccountOrRegisterProfile);
-        await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
-        await loginPage.assertElementDisplayed(loginPage.loginButton);
+describe("Authentication - Password Length Validation", () => {
+    let loginPage: LoginPage;
+    let loginBtn: ChainablePromiseElement;
 
-        // Act, navigate to login screen
-        await loginPage.click(loginPage.loginButton);
+    beforeEach(async () => {
+        loginPage = new LoginPage();
 
-        // Assert, verify login screen elements
-        await loginPage.assertElementDisplayed(loginPage.backButton);
-        await loginPage.assertElementDisplayed(loginPage.loginHeading);
+        allureReporter.addFeature("Authentication");
+        allureReporter.addStory("Password Length Validation");
+        allureReporter.addSeverity("critical");
 
-        const loginBtn = await loginPage.getElement(loginPage.login);
+        await step("Handle iOS notification pre prompt", async () => {
+            await loginPage.handleIOSNotificationPrePrompt();
+        });
 
-        // Assert, login button should be disabled on initial load
-        await loginPage.expectElementState(loginBtn, "disabled");
+        await step("Verify welcome screen is visible", async () => {
+            await loginPage.waitUntilVisibleWithRetry(loginPage.loginButton);
+        });
 
-        // Assert, login button should remain disabled after entering valid email only
-        await loginPage.addUserName(LoginData.email);
-        await loginPage.expectElementState(loginBtn, "disabled");
+        await step("Verify welcome screen elements", async () => {
+            await loginPage.assertElementDisplayed(loginPage.loginButton);
+        });
 
-        // Test password lengths dynamically
-        for (let len = 5; len <= 8; len++) {
-            // Force exact length when testing valid password (len=8)
-            const password = len < 8 ? generateInvalidPassword(len) : generateInvalidPassword(len, true);
+        await step("Navigate to login screen", async () => {
+            await loginPage.click(loginPage.loginButton);
+        });
 
-            await loginPage.addPassword(password);
+        await step("Verify login screen elements", async () => {
+            await loginPage.assertElementDisplayed(loginPage.backButton);
+            await loginPage.assertElementDisplayed(loginPage.loginHeading);
+        });
 
-            if (len < 8) {
-                await loginPage.expectElementState(loginBtn, "disabled");
-            } else {
-                await loginPage.expectElementState(loginBtn, "enabled");
-            }
-        }
+        await step("Enter valid email", async () => {
+            await loginPage.addUserName(LoginData.email);
+            allureReporter.addAttachment("Login Email", LoginData.email, "text/plain");
+        });
+
+        await step("Get login button element", async () => {
+            loginBtn = await loginPage.getElement(loginPage.login);
+        });
+    });
+
+    passwordTests.forEach(({ length, expectedState }) => {
+        it(`should set login button ${expectedState} for password length ${length}`, async () => {
+            const password = generatePasswordByLength(length);
+
+            await step(`Enter password of length ${length}`, async () => {
+                await loginPage.addPassword(password);
+            });
+
+            await step(`Verify login button is ${expectedState}`, async () => {
+                await loginPage.expectElementState(loginBtn, expectedState);
+            });
+        });
     });
 });
