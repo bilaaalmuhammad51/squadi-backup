@@ -1,33 +1,38 @@
 import BasePage from "./base.page";
 import { selector } from '../factories/page.factory'
-import {generateInvalidEmail} from "../utils/helpers";
+import {generateInvalidEmail, generateValidEmailSample} from "../utils/helpers";
 
 export class LoginPage extends BasePage {
     public createAccountOrRegisterProfile = selector(
         '~Create Account or Register Profile',
-        '',
+        '~Create Account or Register Profile',
         'Create Account or Register Profile',
     )
     public followTeamOrLeague = selector(
         '~Follow a Team or League',
-        '',
+        '~Follow a Team or League',
         'follow team or league'
     )
     public welcomeHeading = selector(
         '~Welcome!',
-        '~password',
-        'Welcome'
+        '~Welcome!',
+        'Welcome heading'
     )
 
     protected username = selector(
         '-android uiautomator:new UiSelector().className("android.widget.EditText").instance(0)',
-        '',
+        '(//XCUIElementTypeTextField)[1]',
         'email'
     )
 
     public password = selector(
         '-android uiautomator:new UiSelector().className("android.widget.EditText").instance(1)',
-        '',
+        '//XCUIElementTypeTextField[2] | //XCUIElementTypeSecureTextField',
+        'password'
+    );
+    public secureTextPasswordField = selector(
+        '-android uiautomator:new UiSelector().className("android.widget.EditText").instance(1)',
+        '(//XCUIElementTypeTextField)[2]',
         'password'
     )
 
@@ -38,32 +43,32 @@ export class LoginPage extends BasePage {
     )
     public loginHeading = selector(
         '(//android.view.View[@content-desc="Log In"])[1]',
-        '',
+        '//XCUIElementTypeOther[@name="Log In"]',
         'login Heading',
     )
     public backButton = selector(
         '~Back',
-        '',
-        'back'
+        '~Back',
+        'back button'
     )
     public rememberPassword = selector(
         '~Remember password',
-        '',
+        '~Remember password',
         'remember password'
     )
     public forgotPassword = selector(
         '~Forgot/ Reset Password?',
-        '',
+        '~Forgot/ Reset Password?',
         'forgot password'
     )
     public signUp = selector(
         '~Can’t login? Sign up for an account',
-        '',
+        '~Can’t login? Sign up for an account',
         'sign up'
     )
     public login = selector(
         '(//android.view.View[@content-desc="Log In"])[2]',
-        '',
+        '//XCUIElementTypeStaticText[@name="Log In"]',
         'Login user'
     )
     public invalidUsernameOrPass = selector(
@@ -93,8 +98,12 @@ export class LoginPage extends BasePage {
         await this.type(this.username, user)
     }
     async addPassword(password: string) {
-        await this.click(this.password)
-        await this.type(this.password, password)
+        await this.click(this.password);
+        await this.type(this.password, password);
+        if (driver.isIOS) {
+            await browser.pause(500);
+            await this.scrollDown();
+        }
     }
     async testMultipleInvalidEmails(element:any){
         for (let i = 0; i < 10; i++) {
@@ -105,6 +114,18 @@ export class LoginPage extends BasePage {
             // Expect login button to stay disabled for invalid emails
             await this.expectElementState(element, "disabled");
         }
+    }
+    async testMultipleValidEmails(element: any) {
+        for (let i = 0; i < 3; i++) {
+            const sample = generateValidEmailSample();
+
+            await this.addUserName(sample.email);
+            await this.addPassword(sample.password);
+
+            // For valid emails, button should be enabled
+            await this.expectElementState(element, "enabled");
+        }
+
     }
 
 

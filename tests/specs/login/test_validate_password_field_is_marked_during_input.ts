@@ -1,3 +1,5 @@
+import allureReporter from "@wdio/allure-reporter";
+import { step} from "../../utils/helpers";
 import { LoginData } from "../../data/login.data";
 import { LoginPage } from "../../pages/login.page";
 
@@ -5,64 +7,72 @@ describe("Authentication - Password field masking and visibility toggle", () => 
 
     it("should verify password is masked by default and can be toggled to visible", async () => {
 
-        // ---------- Initialize page object ----------
         const loginPage = new LoginPage();
+        let loginBtn: ChainablePromiseElement;
+
+        allureReporter.addFeature("Authentication");
+        allureReporter.addStory("Password Visibility Toggle");
+        allureReporter.addSeverity("critical");
 
 
-        // ---------- Verify welcome screen is loaded ----------
-        await loginPage.waitUntilVisibleWithRetry(loginPage.loginButton);
+        await step("Verify welcome screen is visible", async () => {
+            await loginPage.waitUntilVisibleWithRetry(loginPage.loginButton);
+        });
 
-        await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
-        await loginPage.assertElementDisplayed(loginPage.createAccountOrRegisterProfile);
-        await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
-        await loginPage.assertElementDisplayed(loginPage.loginButton);
+        await step("Verify welcome screen elements", async () => {
+            await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
+            await loginPage.assertElementDisplayed(loginPage.createAccountOrRegisterProfile);
+            await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
+            await loginPage.assertElementDisplayed(loginPage.loginButton);
+        });
 
+        await step("Navigate to login screen", async () => {
+            await loginPage.click(loginPage.loginButton);
+        });
 
-        // ---------- Navigate to login screen ----------
-        await loginPage.click(loginPage.loginButton);
+        await step("Verify login screen elements", async () => {
+            await loginPage.assertElementDisplayed(loginPage.backButton);
+            await loginPage.assertElementDisplayed(loginPage.loginHeading);
+        });
 
+        await step("Get login button element", async () => {
+            loginBtn = await loginPage.getElement(loginPage.login);
+        });
 
-        // ---------- Verify login screen elements ----------
-        await loginPage.assertElementDisplayed(loginPage.backButton);
-        await loginPage.assertElementDisplayed(loginPage.loginHeading);
+        await step("Enter valid email and verify login button is disabled", async () => {
+            await loginPage.addUserName(LoginData.email);
+            await loginPage.expectElementState(loginBtn, "disabled");
+        });
 
+        await step("Enter password and verify it is masked", async () => {
+            await loginPage.addPassword(LoginData.password);
 
-        // ---------- Get login button reference ----------
-        const loginBtn = await loginPage.getElement(loginPage.login);
+            const maskedText = await loginPage.getText(loginPage.password);
+            allureReporter.addAttachment("Masked Password Value", maskedText, "text/plain");
 
+            expect(maskedText.length).toBeGreaterThan(0);
+            expect(maskedText).toMatch(/^.+$/);
+        });
 
-        // ---------- Enter valid email and verify button remains disabled ----------
-        await loginPage.addUserName(LoginData.email);
-        await loginPage.expectElementState(loginBtn, "disabled");
+        await step("Toggle password visibility and verify it is visible", async () => {
+            await loginPage.click(loginPage.viewPassword);
 
+            const visibleText = await loginPage.getText(loginPage.password);
+            allureReporter.addAttachment("Visible Password Value", visibleText, "text/plain");
 
-        // ---------- Enter password and verify it is masked ----------
-        await loginPage.addPassword(LoginData.password);
+            expect(visibleText).toContain(LoginData.password);
+        });
 
-        const maskedText = await loginPage.getText(loginPage.password);
-        console.log(`Masked password value: ${maskedText}`);
+        await step("Toggle password visibility again and verify it is masked", async () => {
+            await loginPage.click(loginPage.viewPassword);
 
-        expect(maskedText.length).toBeGreaterThan(0);
-        expect(maskedText).toMatch(/^.+$/);
+            const reMaskedText = await loginPage.getText(loginPage.password);
+            allureReporter.addAttachment("Re-masked Password Value", reMaskedText, "text/plain");
 
+            expect(reMaskedText.length).toBeGreaterThan(0);
+            expect(reMaskedText).toMatch(/^.+$/);
+        });
 
-        // ---------- Toggle password visibility and verify unmasked value ----------
-        await loginPage.click(loginPage.viewPassword);
-
-        const visibleText = await loginPage.getText(loginPage.password);
-        console.log(`Unmasked password value: ${visibleText}`);
-
-        expect(visibleText).toContain(LoginData.password);
-
-
-        // ---------- Toggle visibility again and verify password is masked ----------
-        await loginPage.click(loginPage.viewPassword);
-
-        const reMaskedText = await loginPage.getText(loginPage.password);
-        console.log(`Re-masked password value: ${reMaskedText}`);
-
-        expect(reMaskedText.length).toBeGreaterThan(0);
-        expect(reMaskedText).toMatch(/^.+$/);
     });
 
 });
