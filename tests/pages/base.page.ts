@@ -1,8 +1,8 @@
-import {$, browser, expect} from '@wdio/globals'
+import { $, browser, expect } from '@wdio/globals'
 import { getPlatform } from '../factories/selector.factory'
 import type { DualSelector } from '../factories/page.factory'
 import Logger from '../utils/logger'
-import {Timeout} from "../utils/timers";
+import { Timeout } from "../utils/timers";
 export default class BasePage {
     private readonly iosNotificationPopupText = '(//XCUIElementTypeStaticText[contains(@name,"Please allow notifications")])[1]';
     private readonly iosNotificationOkButton = '(//XCUIElementTypeStaticText[contains(@name,"Please allow notifications")])[2]';
@@ -151,7 +151,7 @@ export default class BasePage {
             timeoutMsg: `Element did not become ${state}`
         });
     }
-    async getText(selector: DualSelector):Promise<string> {
+    async getText(selector: DualSelector): Promise<string> {
         const element = await this.resolve(selector);
         const text = await element.getText();
         Logger.info(`Element text/content-desc: "${text}"`);
@@ -161,6 +161,16 @@ export default class BasePage {
     async pause(ms: number) {
         await browser.pause(ms)
     }
+
+    async getElementText(selector: DualSelector): Promise<any> {
+        const element = await this.resolve(selector);
+        const text = driver.isAndroid
+            ? await element.getAttribute('content-desc')
+            : await element.getText();
+        Logger.info(`Element text/content-desc: "${text}"`);
+        return text;
+    }
+
     async scrollDown(): Promise<void> {
         const { height, width } = await driver.getWindowRect()
 
@@ -184,6 +194,27 @@ export default class BasePage {
         ])
 
         await driver.releaseActions()
+    }
+    async scrollUntilElementVisible(selector: DualSelector) {
+        const platform = await getPlatform();
+        let element;
+
+        if (platform === 'android') {
+            // Remove "android=" from your selector before using in UiScrollable
+            const uiSelector = selector.android.replace(/^android=/, '');
+
+            element = await $(
+                `android=new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(${uiSelector})`
+            );
+        } else {
+            // iOS scroll
+            element = await this.resolve(selector);
+            let attempts = 0;
+            while (!(await element.isDisplayed()) && attempts < 5) {
+                await driver.execute('mobile: scroll', { direction: 'down' });
+                attempts++;
+            }
+        }
     }
     async handleIOSNotificationPrePrompt() {
         if (!driver.isIOS) return;

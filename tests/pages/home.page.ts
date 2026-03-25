@@ -1,5 +1,5 @@
-import {selector} from "../factories/page.factory";
-import {LoginPage} from "./login.page";
+import { selector } from "../factories/page.factory";
+import { LoginPage } from "./login.page";
 
 export class HomePage extends LoginPage {
     public homeTab = selector(
@@ -32,6 +32,12 @@ export class HomePage extends LoginPage {
         '',
         'Welcome Back Heading'
     )
+    public matchById = (matchId: string) =>
+        selector(
+            `android=new UiSelector().descriptionContains("Match ID: ${matchId}")`,
+            '',
+            `Match with ID ${matchId}`
+        );
 
     async verifyHomeScreenElements() {
         await this.waitUntilVisibleWithRetry(this.liveScores);
@@ -42,4 +48,5 @@ export class HomePage extends LoginPage {
         await this.assertElementDisplayed(this.drawsTab);
         await this.assertElementDisplayed(this.laddersTab);
     }
+
 }
