@@ -6,7 +6,7 @@ import { HomePage } from "../../pages/home.page";
 import { ScorerPage } from "../../pages/scorer.page";
 import BasePage from "../../pages/base.page";
 
-describe("Authentication and Match Scoring Flow", () => {
+describe("Match Scoring Flow", () => {
     it("should log in with valid credentials, open a match, manage team sheets, start or resume play, and validate score increment and undo actions", async () => {
 
         const loginPage = new LoginPage();
@@ -14,7 +14,7 @@ describe("Authentication and Match Scoring Flow", () => {
         const scorerPage = new ScorerPage();
         const basePage = new BasePage();
 
-        allureReporter.addFeature("Authentication");
+        allureReporter.addFeature("Scoring Flow");
         allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
         allureReporter.addSeverity("critical");
 
@@ -61,11 +61,12 @@ describe("Authentication and Match Scoring Flow", () => {
         });
 
         await step("Open a match from the Home screen", async () => {
-            const matchId = "69433";
+            const matchId = "69435";
             const matchElement = homePage.matchById(matchId);
             await basePage.scrollUntilElementVisible(matchElement);
             await homePage.assertElementDisplayed(matchElement);
             await homePage.click(matchElement);
+            await scorerPage.handleErrorPopup();
             await scorerPage.waitUntilVisibleWithRetry(scorerPage.matchTimer);
         });
 
@@ -74,7 +75,10 @@ describe("Authentication and Match Scoring Flow", () => {
         });
 
         await step("Handle team sheet flow if alert is displayed", async () => {
-            if (await (await scorerPage.getElement(scorerPage.teamSheetAlert)).isDisplayed()) {
+            const alertEl = await scorerPage.getElement(scorerPage.teamSheetAlert, { wait: false });
+            const isVisible = await alertEl.isExisting();
+
+            if (isVisible) {
                 await scorerPage.click(scorerPage.teamSheetAlert);
 
                 await step("Validate and submit home team players", async () => {
@@ -86,10 +90,13 @@ describe("Authentication and Match Scoring Flow", () => {
                     await scorerPage.validateAwayTeamSheetElements();
                     await scorerPage.submitAwayTeamPlayersIfNotSubmitted();
                 });
+
+                await scorerPage.clickDoneBtn();
             }
         });
 
         await step("Start or resume the match", async () => {
+
             await scorerPage.handleStartOrResumeMatch();
         });
 

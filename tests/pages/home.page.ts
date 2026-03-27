@@ -32,6 +32,11 @@ export class HomePage extends LoginPage {
         '',
         'Welcome Back Heading'
     )
+    public drawsBtn = selector(
+        'android=new UiSelector().descriptionContains("Draws")',
+        '',
+        'Draws Button'
+    )
     public matchById = (matchId: string) =>
         selector(
             `android=new UiSelector().descriptionContains("Match ID: ${matchId}")`,
@@ -47,6 +52,26 @@ export class HomePage extends LoginPage {
         await this.assertElementDisplayed(this.addTeamOrLeague);
         await this.assertElementDisplayed(this.drawsTab);
         await this.assertElementDisplayed(this.laddersTab);
+    }
+
+    async loginFlow(email:string, password:string) {
+        await this.waitUntilVisibleWithRetry(this.loginButton);
+        await this.assertElementDisplayed(this.welcomeHeading);
+        await this.click(this.loginButton);
+        await this.assertElementDisplayed(this.rememberPassword);
+        await this.assertElementDisplayed(this.forgotPassword); 
+        await this.addUserName(email);
+        await this.addPassword(password);
+        await this.click(this.login);
+        await this.waitUntilVisibleWithRetry(this.homeTab);
+        await this.assertElementDisplayed(this.homeTab);
+        await this.assertElementDisplayed(this.drawsTab);
+        await this.assertElementDisplayed(this.laddersTab);
+    };
+
+    async openShoduleTab() {
+        await this.waitUntilVisibleWithRetry(this.drawsBtn);
+        await this.click(this.drawsBtn);
     }
 
 }

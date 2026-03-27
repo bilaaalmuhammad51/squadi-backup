@@ -3,6 +3,7 @@ import { getPlatform } from '../factories/selector.factory'
 import type { DualSelector } from '../factories/page.factory'
 import Logger from '../utils/logger'
 import { Timeout } from "../utils/timers";
+
 export default class BasePage {
     private readonly iosNotificationPopupText = '(//XCUIElementTypeStaticText[contains(@name,"Please allow notifications")])[1]';
     private readonly iosNotificationOkButton = '(//XCUIElementTypeStaticText[contains(@name,"Please allow notifications")])[2]';
@@ -10,14 +11,19 @@ export default class BasePage {
         const platform = await getPlatform()
         return $(platform === 'android' ? selector.android : selector.ios)
     }
-    async getElement(selector: DualSelector) {
-        Logger.info(`Getting element: ${selector.log}`)
 
-        const element = await this.resolve(selector)
+    async getElement(selector: DualSelector, options?: { wait?: boolean; timeout?: number }) {
+        const { wait = true, timeout = Timeout.ONE_SECOND } = options || {};
 
-        await element.waitForExist({ timeout: Timeout.ONE_SECOND })
+        Logger.info(`Getting element: ${selector.log}`);
 
-        return element
+        const element = await this.resolve(selector);
+
+        if (wait) {
+            await element.waitForExist({ timeout });
+        }
+
+        return element;
     }
 
     async assertElementDisplayed(selector: DualSelector): Promise<void> {
@@ -25,6 +31,13 @@ export default class BasePage {
         const element = await this.resolve(selector);
         const visible = await element.isDisplayed();
         expect(visible).toBe(true);
+    }
+
+    async assertElementNotDisplayed(selector: DualSelector): Promise<void> {
+        Logger.info(`Checking visibility of element: ${selector.log}`);
+        const element = await this.resolve(selector);
+        const visible = await element.isDisplayed();
+        expect(visible).not.toBe(true);
     }
 
     async waitUntilVisibleWithRetry(
@@ -229,4 +242,48 @@ export default class BasePage {
             await this.scrollDown();
         }
     }
+
+    async scrollToElementHorizontal(
+        container: DualSelector,
+        direction: 'left' | 'right' = 'right'
+    ) {
+        const selectorStr = driver.isAndroid ? container.android : container.ios;
+        const element = await $(selectorStr);
+
+        // Get the exact location and size of your scrollable container
+        const { x, y, } = await element.getLocation();
+        const size = await element.getSize();
+
+        // Define 20% horizontal padding to avoid the screen edges
+        const paddingX = size.width * 0.20;
+        const centerY = y + (size.height / 2);
+
+        let startX, endX;
+
+        if (direction === 'right') {
+            // To see content on the right, swipe from right-to-left
+            startX = x + size.width - paddingX; // 80% mark
+            endX = x + paddingX;                // 20% mark
+        } else {
+            // To see content on the left, swipe from left-to-right
+            startX = x + paddingX;              // 20% mark
+            endX = x + size.width - paddingX;   // 80% mark
+        }
+
+        // Execute the manual swipe via W3C Actions
+        await driver.performActions([{
+            type: 'pointer',
+            id: 'finger1',
+            parameters: { pointerType: 'touch' },
+            actions: [
+                { type: 'pointerMove', duration: 0, x: Math.floor(startX), y: Math.floor(centerY) },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pointerMove', duration: 1000, x: Math.floor(endX), y: Math.floor(centerY) },
+                { type: 'pointerUp', button: 0 }
+            ]
+        }]);
+
+        await driver.pause(500); // Allow UI to settle
+    }
+
 }

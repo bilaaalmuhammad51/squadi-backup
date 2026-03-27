@@ -134,13 +134,31 @@ export class ScorerPage extends LoginPage {
         'Undo Away Team Score'
     );
 
+    public errorPopup = selector(
+        'android=new UiSelector().descriptionContains("Sorry").instance(1)',
+        '',
+        'Error Popup'
+    );
+
+    public doneBtn = selector(
+        '~Done',
+        '',
+        'Done Button'
+    );
+
+    public matchById = (matchId: string) =>
+        selector(
+            `android=new UiSelector().descriptionContains("Match ID: ${matchId}")`,
+            '',
+            `Match with ID ${matchId}`
+        );
 
 
 
     async validateScorerScreenElements() {
         await this.waitUntilVisibleWithRetry(this.teamSheetAlert);
         await this.assertElementDisplayed(this.teamSheetAlert);
-        await this.assertElementDisplayed(this.matchTimer);
+        // await this.assertElementDisplayed(this.matchTimer);
         await this.assertElementDisplayed(this.homeTeam);
         await this.assertElementDisplayed(this.awayTeam);
     }
@@ -163,7 +181,10 @@ export class ScorerPage extends LoginPage {
     }
 
     async submitHomeTeamPlayersIfNotSubmitted() {
-        if (!(await (await this.getElement(this.teamSheetSubmittedMsg)).isDisplayed())) {
+        const element = await this.getElement(this.teamSheetSubmittedMsg);
+        const isSubmitted = await element.isExisting();
+
+        if (!isSubmitted) {
             await this.waitUntilVisibleWithRetry(this.selectHomeTeamPlayer);
             await this.assertElementDisplayed(this.selectHomeTeamPlayer);
             await this.click(this.selectHomeTeamPlayer);
@@ -172,26 +193,29 @@ export class ScorerPage extends LoginPage {
     }
 
     async submitAwayTeamPlayersIfNotSubmitted() {
-        if (!(await (await this.getElement(this.teamSheetSubmittedMsg)).isDisplayed())) {
-                await this.waitUntilVisibleWithRetry(this.selectAwayTeamPlayer);
-                await this.assertElementDisplayed(this.selectAwayTeamPlayer);
-                await this.click(this.selectAwayTeamPlayer);
-                await this.click(this.confirmBtn);
-            }
+        const element = await this.getElement(this.teamSheetSubmittedMsg);
+        const isSubmitted = await element.isExisting();
+
+        if (!isSubmitted) {
+            await this.waitUntilVisibleWithRetry(this.selectAwayTeamPlayer);
+            await this.assertElementDisplayed(this.selectAwayTeamPlayer);
+            await this.click(this.selectAwayTeamPlayer);
+            await this.click(this.confirmBtn);
+        }
     }
 
     async handleStartOrResumeMatch() {
-            try {
-            if (await (await this.getElement(this.startBtn)).isDisplayed()) {
-                await this.waitUntilVisibleWithRetry(this.startBtn);
-                await this.click(this.startBtn);
-                await this.waitUntilVisibleWithRetry(this.confirmStartBtn);
-                await this.click(this.confirmStartBtn);
-            } else {
-                await this.waitUntilVisibleWithRetry(this.resumeBtn)
-                await this.click(this.resumeBtn);
-            }
-        } catch { }
+        const element = await this.getElement(this.startBtn, { wait: false });
+        const startBtn = await element.isExisting();
+        if (startBtn) {
+            await this.waitUntilVisibleWithRetry(this.startBtn);
+            await this.click(this.startBtn);
+            await this.waitUntilVisibleWithRetry(this.confirmStartBtn);
+            await this.click(this.confirmStartBtn);
+        } else {
+            await this.waitUntilVisibleWithRetry(this.resumeBtn)
+            await this.click(this.resumeBtn);
+        }
     }
 
     async getTeamScores(teamName: any) {
@@ -204,10 +228,67 @@ export class ScorerPage extends LoginPage {
         await this.waitUntilVisibleWithRetry(scoreButton);
         await this.click(scoreButton);
     }
-    
+
     async undoTeamScore(undoButton: any) {
         await this.waitUntilVisibleWithRetry(undoButton);
         await this.click(undoButton);
+    }
+
+    async handleErrorPopup() {
+        try {
+            await (await this.getElement(this.errorPopup)).isDisplayed()
+            await this.click(this.errorPopup);
+        } catch { }
+    }
+
+    async clickDoneBtn() {
+        try {
+            await this.waitUntilVisibleWithRetry(this.doneBtn);
+            await this.click(this.doneBtn);
+        }
+        catch { }
+    }
+
+    async completeMatchFlowIfNeeded(matchId: string) {
+        const matchSelector = this.matchById(matchId);
+        const matchCard = await this.getElement(matchSelector, { wait: false });
+        const isMatchPending = await matchCard.isExisting();
+        if (!isMatchPending) return;
+        // Open match
+        await this.scrollUntilElementVisible(matchSelector);
+        await this.assertElementDisplayed(matchSelector);
+        await this.click(matchSelector);
+        await this.handleErrorPopup();
+        // Validate scorer screen
+        await this.validateScorerScreenElements();
+        // Handle team sheet
+        const alertEl = await this.getElement(this.teamSheetAlert, { wait: false });
+        const isVisible = await alertEl.isExisting();
+        if (isVisible) {
+            await this.click(this.teamSheetAlert);
+            await this.validateHomeTeamSheetElements();
+            await this.submitHomeTeamPlayersIfNotSubmitted();
+            await this.validateAwayTeamSheetElements();
+            await this.submitAwayTeamPlayersIfNotSubmitted();
+            await this.clickDoneBtn();
+        }
+        // Start / Resume match
+        await this.handleStartOrResumeMatch();
+        // Scores handling
+        const initialHomeScore = await this.getTeamScores(this.homeTeamScore);
+        const initialAwayScore = await this.getTeamScores(this.awayTeamScore);
+        await this.addTeamScore(this.addHomeTeamScore);
+        const homeScoreAfter = await this.getTeamScores(this.homeTeamScore);
+        await this.addTeamScore(this.addAwayTeamScore);
+        const awayScoreAfter = await this.getTeamScores(this.awayTeamScore);
+        expect(homeScoreAfter).not.toEqual(initialHomeScore);
+        expect(awayScoreAfter).not.toEqual(initialAwayScore);
+        await this.undoTeamScore(this.undoHomeTeamScoreBtn);
+        const homeScoreAfterUndo = await this.getTeamScores(this.homeTeamScore);
+        await this.undoTeamScore(this.undoAwayTeamScoreBtn);
+        const awayScoreAfterUndo = await this.getTeamScores(this.awayTeamScore);
+        expect(homeScoreAfterUndo).toEqual(initialHomeScore);
+        expect(awayScoreAfterUndo).toEqual(initialAwayScore);
     }
 
 

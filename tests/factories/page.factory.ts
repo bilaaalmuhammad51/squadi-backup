@@ -18,3 +18,8 @@ export function selector(
         }
     }
 }
+export async function $(dual: DualSelector) {
+    const selector = driver.isAndroid ? dual.android : dual.ios;
+    if (!selector) throw new Error(`No selector defined for platform ${driver.isAndroid ? 'Android' : 'iOS'}`);
+    return await browser.$(selector);
+}
