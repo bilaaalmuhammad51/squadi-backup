@@ -6,7 +6,7 @@ import { Timeout } from "../utils/timers";
 
 export default class BasePage {
     private readonly iosNotificationPopupText = '(//XCUIElementTypeStaticText[contains(@name,"Please allow notifications")])[1]';
-    private readonly iosNotificationOkButton = '(//XCUIElementTypeStaticText[contains(@name,"Please allow notifications")])[2]';
+    private readonly iosNotificationOkButton = '(//XCUIElementTypeStaticText[contains(@name, "notifications")])[2]';
     async resolve(selector: DualSelector) {
         const platform = await getPlatform()
         return $(platform === 'android' ? selector.android : selector.ios)

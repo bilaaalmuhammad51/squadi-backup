@@ -21,7 +21,7 @@ describe("Match scheduling/draws Flow", () => {
         });
 
         await step("Complete match flow if needed", async () => {
-            await scorerPage.completeMatchFlowIfNeeded("69435");
+            // await scorerPage.completeMatchFlowIfNeeded("69435");
         })
 
         await step("Open shodule tab and validate flow", async () => {

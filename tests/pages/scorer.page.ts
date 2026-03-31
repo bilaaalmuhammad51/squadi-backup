@@ -16,13 +16,13 @@ export class ScorerPage extends LoginPage {
 
     public homeTeam = selector(
         '~HR-ASN2Club1-D1-T2',
-        '',
+        '~HR-ASN2Club1-D1-T2',
         'Home Team'
     );
 
     public awayTeam = selector(
         '~HR-ASN2Club2-D1-T3',
-        '',
+        '~HR-ASN2Club2-D1-T3',
         'Away Team'
     );
 

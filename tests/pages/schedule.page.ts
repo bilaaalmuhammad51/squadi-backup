@@ -5,128 +5,128 @@ export class SchedulePage extends LoginPage {
 
     public addTeamBtn = selector(
         'android=new UiSelector().descriptionContains("Add a Team or League").childSelector(new UiSelector().clickable(true))',
-        '',
+        '//XCUIElementTypeOther[contains(@label, "Add a Team or League")]',
         'Add Team or league Button'
     );
 
     public searchField = selector(
         '~Add a Team or League',
-        '',
+        '~Add a Team or League',
         'search field'
     );
 
     public searchTeam = selector(
         'android=new UiSelector().className("android.widget.EditText")',
-        '',
+        '~Search for club/ assoc/ state',
         'search team'
     );
 
     public selectTeamOrClub = selector(
         'android=new UiSelector().descriptionContains("HR-ASN2Club2")',
-        '',
+        '//XCUIElementTypeButton[contains(@name, "HR-ASN2Club2")]',
         'select team'
     );
 
     public searchTeamTab = selector(
         'android=new UiSelector().descriptionContains("Team")',
-        '',
+        '-ios predicate string: label CONTAINS "Select Team(s)"',
         'select team or club'
     );
 
     public searchLeagueTab = selector(
         'android=new UiSelector().descriptionContains("League")',
-        '',
+        '-ios predicate string: label CONTAINS "Select League(s)"',
         'select team'
     );
 
     public selectTeam = selector(
         'android=new UiSelector().descriptionContains("HR-ASN2Club2-D1-T3")',
-        '',
+        '-ios predicate string: name CONTAINS "HR-ASN2Club2-D1-T3"',
         'select team'
     );
 
     public addToWatchlistBtn = selector(
         'android=new UiSelector().descriptionContains("watchlist")',
-        '',
+        '-ios predicate string: name CONTAINS "watchlist"',
         'add items to watchlist'
     );
 
     public doneBtn = selector(
         '~Done',
-        '',
+        '~Done',
         'Done button'
     );
 
     public cancelBtnForSelectedTeam = selector(
         'android=new UiSelector().className("android.widget.Button").instance(2)',
-        '',
+        '(//XCUIElementTypeButton[@enabled="true"])[3]',
         'Done button'
     );
 
     public settingsButton = selector(
         'android=new UiSelector().className("android.widget.ImageView").instance(1)',
-        '',
+        '(//XCUIElementTypeButton[@enabled="true"])[1]',
         'Done button'
     );
 
     public handleUnexpectedPopup = selector(
         'android=new UiSelector().description("Unexpected end of input").instance(1)',
-        '',
+        '(//XCUIElementTypeStaticText[@name="Unexpected end of input"])[2]',
         'Unexpected Popup'
     );
 
     public timelineHeading = selector(
         '~Timeline',
-        '',
+        '~Timeline',
         'Timeline heading'
     );
 
     public allTabSelector = selector(
         'android=new UiSelector().descriptionContains("All")',
-        '',
+        '-ios predicate string: name CONTAINS "All"',
         'All Tab '
     );
 
     public firstHalfTab = selector(
         'android=new UiSelector().descriptionContains("1st")',
-        '',
+        '-ios predicate string: name CONTAINS "1st"',
         'First half Tab'
     );
 
     public secondHalfTab = selector(
         'android=new UiSelector().descriptionContains("2nd")',
-        '',
+        '-ios predicate string: name CONTAINS "2nd"  ',
         'Second half Tab'
     );
 
     public scoreBreakdownTab = selector(
         'android=new UiSelector().descriptionContains("Breakdown")',
-        '',
+        '-ios predicate string: name CONTAINS "Breakdown"',
         'Score Breakdown Tab Button'
     );
 
     public scoreDetailsForFirstHalf = selector(
         'android=new UiSelector().descriptionContains("1st")',
-        '',
+        '-ios predicate string: name CONTAINS "1st"',
         'Score Details for First half'
     );
 
     public scoreDetailsForSecondHalf = selector(
         'android=new UiSelector().descriptionContains("2nd")',
-        '',
+        '-ios predicate string: name CONTAINS "2nd"',
         'Score Details for Second half'
     );
 
     public playerStatusTab = selector(
         'android=new UiSelector().descriptionContains("Player")',
-        '',
+        '-ios predicate string: name CONTAINS "Player"',
         'player Status Tab Button'
     );
 
     public matchCardById = (matchId: string) =>
         selector(
             `android=new UiSelector().descriptionContains("Match ID: ${matchId}")`,
-            '',
+            `//XCUIElementTypeOther[contains(@name, 'Match ID: ${matchId}')]`,
             `Match card with ID ${matchId}`
         );
 
