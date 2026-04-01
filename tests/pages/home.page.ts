@@ -36,7 +36,7 @@ export class HomePage extends LoginPage {
   public matchById = (matchId: string) =>
     selector(
       `android=new UiSelector().descriptionContains("Match ID: ${matchId}")`,
-      "",
+      `-ios predicate string: name CONTAINS "Match ID: ${matchId}"`,
       `Match with ID ${matchId}`,
     );
 
