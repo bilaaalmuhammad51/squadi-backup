@@ -2,7 +2,6 @@ import allureReporter from "@wdio/allure-reporter";
 import { step } from "../../utils/helpers";
 import { LoginData } from "../../data/login.data";
 import { HomePage } from "../../pages/home.page";
-import { ScorerPage } from "../../pages/scorer.page";
 import { SchedulePage } from "../../pages/schedule.page";
 
 describe("Match scheduling/draws Flow", () => {
@@ -10,7 +9,6 @@ describe("Match scheduling/draws Flow", () => {
 
         const schedulePage = new SchedulePage()
         const homePage = new HomePage();
-        const scorerPage = new ScorerPage();
 
         allureReporter.addFeature("Sceduling/Draws Flow");
         allureReporter.addStory("Login, Scheduling Tab, validate Match center elements");
@@ -42,19 +40,16 @@ describe("Match scheduling/draws Flow", () => {
                 await schedulePage.openMatchDetailsByID(matchID);
 
                 await step("Validate action log tabs elements", async () => {
-                    await schedulePage.waitUntilVisibleWithRetry(scorerPage.homeTeam);
-                    await schedulePage.assertElementDisplayed(scorerPage.homeTeam);
-                    await schedulePage.assertElementDisplayed(scorerPage.awayTeam);
-                    await schedulePage.assertElementDisplayed(schedulePage.timelineHeading);
-                    await schedulePage.assertElementDisplayed(schedulePage.allTabSelector);
-                    await schedulePage.assertElementDisplayed(schedulePage.firstHalfTab);
-                    await schedulePage.assertElementDisplayed(schedulePage.secondHalfTab);
+                  await schedulePage.openAndValidateActionLogTab();
                 });
 
-                //TODO player status tab is not working properly that's the reason these lines are commented  
-                // await step("Validate player status tabs elements", async () => {
-                //     // await schedulePage.openAndValidatePlayerStatusTab();
-                // });
+                await step("Validate action log tabs elements", async () => {
+                  await schedulePage.openAndValidateActionLogTab();
+                });
+
+                await step("Validate player status tabs elements", async () => {
+                    await schedulePage.openAndValidatePlayerStatusTab();
+                });
 
                 await step("Validate score breakdown tabs elements", async () => {
                     await schedulePage.openAndValidateScoreBreakdownTab();

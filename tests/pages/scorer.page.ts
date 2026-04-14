@@ -272,46 +272,5 @@ export class ScorerPage extends LoginPage {
       await this.click(this.doneBtn);
     } catch {}
   }
-
-  // async completeMatchFlowIfNeeded(matchId: string) {
-  //     const matchSelector = this.matchById(matchId);
-  //     const matchCard = await this.getElement(matchSelector, { wait: false });
-  //     const isMatchPending = await matchCard.isExisting();
-  //     if (!isMatchPending) return;
-  //     // Open match
-  //     await this.scrollUntilElementVisible(matchSelector);
-  //     await this.assertElementDisplayed(matchSelector);
-  //     await this.click(matchSelector);
-  //     await this.handleErrorPopup();
-  //     // Validate scorer screen
-  //     await this.validateScorerScreenElements();
-  //     // Handle team sheet
-  //     const alertEl = await this.getElement(this.teamSheetAlert, { wait: false });
-  //     const isVisible = await alertEl.isExisting();
-  //     if (isVisible) {
-  //         await this.click(this.teamSheetAlert);
-  //         await this.validateHomeTeamSheetElements();
-  //         await this.submitHomeTeamPlayersIfNotSubmitted();
-  //         await this.validateAwayTeamSheetElements();
-  //         await this.submitAwayTeamPlayersIfNotSubmitted();
-  //         await this.clickDoneBtn();
-  //     }
-  //     // Start / Resume match
-  //     await this.handleStartOrResumeMatch();
-  //     // Scores handling
-  //     const initialHomeScore = await this.getTeamScores(this.homeTeamScore);
-  //     const initialAwayScore = await this.getTeamScores(this.awayTeamScore);
-  //     await this.addTeamScore(this.addHomeTeamScore);
-  //     const homeScoreAfter = await this.getTeamScores(this.homeTeamScore);
-  //     await this.addTeamScore(this.addAwayTeamScore);
-  //     const awayScoreAfter = await this.getTeamScores(this.awayTeamScore);
-  //     expect(homeScoreAfter).not.toEqual(initialHomeScore);
-  //     expect(awayScoreAfter).not.toEqual(initialAwayScore);
-  //     await this.undoTeamScore(this.undoHomeTeamScoreBtn);
-  //     const homeScoreAfterUndo = await this.getTeamScores(this.homeTeamScore);
-  //     await this.undoTeamScore(this.undoAwayTeamScoreBtn);
-  //     const awayScoreAfterUndo = await this.getTeamScores(this.awayTeamScore);
-  //     expect(homeScoreAfterUndo).toEqual(initialHomeScore);
-  //     expect(awayScoreAfterUndo).toEqual(initialAwayScore);
-  // }
+  
 }

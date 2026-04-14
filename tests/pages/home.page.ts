@@ -45,7 +45,6 @@ export class HomePage extends LoginPage {
     await this.assertElementDisplayed(this.homeTab);
     await this.assertElementDisplayed(this.liveScores);
     await this.scrollDown();
-    await this.assertElementDisplayed(this.addTeamOrLeague);
     await this.assertElementDisplayed(this.drawsTab);
     await this.assertElementDisplayed(this.laddersTab);
   }

@@ -52,6 +52,41 @@ export class LoginPage extends BasePage {
     "~Forgot/ Reset Password?",
     "forgot password",
   );
+public locationOptionPopupCloseBtn = selector(
+    "~Close",
+    "~Close",
+    "location option popup close button",
+  );
+  public tapOnScreenForNextButton = selector(
+    'android=new UiSelector().text("Football")',
+    "",
+    "tap on screen to make Next visible if hidden in DOM",
+  )
+  public nextButton = selector(
+    'android=new UiSelector().text("Next")',
+    '~Next',
+    "Next button",
+  )
+  public usernameOrEmailField = selector(
+    '-android uiautomator:new UiSelector().className("android.widget.EditText").instance(1)',
+    '-ios predicate string: value == "Username/Email" AND type == "XCUIElementTypeTextField"',
+    "username or email field for forgot password flow",
+  )
+  public submitUsernameOrEmailBtn = selector(
+    '-android uiautomator:new UiSelector().text("Submit")',
+    '~Submit',
+    "Submit button for forgot password flow",
+  )
+  public tapOnScreenForTextAfterSubmittingUsernameOrEmail = selector(
+    'android=new UiSelector().className("android.webkit.WebView")',
+    "",
+    "tap on screen to make text visible after submitting username or email in forgot password flow"
+  )
+  public textAfterSubmittingUsernameOrEmail = selector(
+    'android=new UiSelector().text("If you are registered with us, a password link was sent to your email.")',
+    '~If you are registered with us, a password link was sent to your email.',
+    "text displayed after submitting username or email in forgot password flow"
+  )
   public signUp = selector(
     "~Can’t login? Sign up for an account",
     "~Can’t login? Sign up for an account",
@@ -64,17 +99,17 @@ export class LoginPage extends BasePage {
   );
   public invalidUsernameOrPass = selector(
     '(//android.view.View[@content-desc="Invalid username or password."])[1]',
-    "",
+    '(//XCUIElementTypeStaticText[@name="Invalid username or password."])[1]',
     "invalid username or password text",
   );
   public okButton = selector(
     '(//android.view.View[@content-desc="Invalid username or password."])[2]',
-    "",
+    '(//XCUIElementTypeStaticText[@name="Invalid username or password."])[2]',
     "invalid username or password ok button",
   );
   public viewPassword = selector(
     '-android uiautomator:new UiSelector().className("android.view.View").instance(13)',
-    "",
+    "//XCUIElementTypeWindow/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]/XCUIElementTypeOther[3]/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther",
     "view password",
   );
 
@@ -93,6 +128,58 @@ export class LoginPage extends BasePage {
     if (driver.isIOS) {
       await browser.pause(500);
       await this.scrollDown();
+    }
+  }
+  async clickForgotPassword() {
+    await this.waitUntilVisibleWithRetry(this.forgotPassword);
+    await this.click(this.forgotPassword);
+  }
+
+  async closePopupIfVisible() {
+    const isPopupVisible = await this.getElement(this.locationOptionPopupCloseBtn, { wait: true, timeout: 50000 }).then(() => true).catch(() => false);
+    if (isPopupVisible) {
+      await this.click(this.locationOptionPopupCloseBtn);
+    }
+  }
+
+  async clickNextButton() {
+    const isNextBtnVisible = await this.getElement(this.nextButton, { wait: true, timeout: 10000 }).then(() => true).catch(() => false);
+    if (isNextBtnVisible) {
+      await this.click(this.nextButton);
+    } else {
+      await this.click(this.tapOnScreenForNextButton);
+      await this.waitUntilVisibleWithRetry(this.nextButton, undefined, 30000);
+      await this.click(this.nextButton);
+    }
+  }
+
+  async addUsernameOrEmailForForgotPasswordFlow(usernameOrEmail: string) {
+    await this.waitUntilVisibleWithRetry(this.usernameOrEmailField);
+    await this.click(this.usernameOrEmailField);
+    await this.type(this.usernameOrEmailField, usernameOrEmail);
+  }
+
+  async clickSubmitBtnForForgotPasswordFlow() {
+    await this.waitUntilVisibleWithRetry(this.submitUsernameOrEmailBtn);
+    await this.click(this.submitUsernameOrEmailBtn);
+  }
+
+  async verifyTextAfterSubmittingUsernameOrEmail() {
+    try {
+      const isTextVisible = await this.getElement(this.textAfterSubmittingUsernameOrEmail, { wait: true, timeout: 10000 }).then(() => true).catch(() => false);
+
+      if (isTextVisible) {
+        console.log("Text is visible without tapping on screen");
+        await this.assertElementDisplayed(this.textAfterSubmittingUsernameOrEmail);
+      } else {
+        console.log("Text is not visible, tapping on screen to make it visible");
+        await this.click(this.tapOnScreenForTextAfterSubmittingUsernameOrEmail);
+
+        await this.waitUntilVisible(this.textAfterSubmittingUsernameOrEmail, 10000); // Wait for the element to become visible
+        await this.assertElementDisplayed(this.textAfterSubmittingUsernameOrEmail);
+      }
+    } catch (error) {
+      console.error("Error while verifying text visibility:", error);
     }
   }
   async testMultipleInvalidEmails(element: any) {

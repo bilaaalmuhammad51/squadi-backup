@@ -44,6 +44,27 @@ export default class BasePage {
     const visible = await element.isDisplayed();
     expect(visible).not.toBe(true);
   }
+  async waitUntilVisible(
+    selector: DualSelector,
+    timeout: number = Timeout.THREE_SECONDS,
+  ) {
+    try {
+      Logger.info(`Waiting for element ${selector.log} to be visible`);
+
+      const element = await this.resolve(selector);
+
+      await element.waitForDisplayed({
+        timeout: timeout,
+      });
+
+      Logger.info("Element visible");
+      return element;
+    } catch (error) {
+      throw new Error(
+        `Element not visible after waiting for ${timeout}ms: ${error}`,
+      );
+    }
+  }
 
   async waitUntilVisibleWithRetry(
     selector: DualSelector,

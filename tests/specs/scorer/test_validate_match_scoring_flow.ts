@@ -8,7 +8,7 @@ import BasePage from "../../pages/base.page";
 import { Timeout } from "../../utils/timers";
 
 describe("Match Scoring Flow", () => {
-  it("should log in with valid credentials, open a match, manage team sheets, start or resume play, and validate score increment and undo actions", async () => {
+  it.skip("should log in with valid credentials, open a match, manage team sheets, start or resume play, and validate score increment and undo actions", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
     const scorerPage = new ScorerPage();

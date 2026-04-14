@@ -7,7 +7,7 @@ export class RegisterProfilePage extends LoginPage {
     public inputFieldByIndex = (index: number) =>
         selector(
             `//android.widget.ScrollView/android.widget.EditText[${index}]`,
-            '',
+            '(//XCUIElementTypeTextField[@name="Enter..."])'+`[${index}]`,
             `Input field at index ${index}`
         )
     public enterTextInFieldByIndex = async (index: number, value: any): Promise<void> => {
@@ -17,7 +17,7 @@ export class RegisterProfilePage extends LoginPage {
 
     public genderDropdown = selector(
         '~Gender',
-        '',
+        '~Select...',
         'Gender dropdown trigger'
     )
     public genderOption = (value: string) =>
@@ -28,13 +28,13 @@ export class RegisterProfilePage extends LoginPage {
         )
     public organisationTrigger = selector(
         '~Select an Organisation',
-        '',
+        '~Select an Organisation',
         'Organisation trigger'
     )
 
     public organisationSearchField = selector(
         '//android.widget.EditText',
-        '',
+        '~Search for club/ assoc/ state',
         'Organisation search field'
     )
     public organisationResultContains = (value: string) => {
