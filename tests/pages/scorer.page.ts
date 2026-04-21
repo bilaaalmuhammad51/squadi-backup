@@ -130,6 +130,7 @@ export class ScorerPage extends LoginPage {
   );
 
   public doneBtn = selector("~Done", "~Done", "Done Button");
+  public backBtn = selector("~Back", "~Back", "Back Button");
 
   public enterShirtNumberPopup = selector(
     "",
@@ -155,6 +156,49 @@ export class ScorerPage extends LoginPage {
       "",
       `Match with ID ${matchId}`,
     );
+
+  public settingIcon = selector(
+    'android=new UiSelector().className("android.widget.ImageView").instance(0)',
+    "//XCUIElementTypeOther[2]/XCUIElementTypeButton[2]",
+    "Settings Icon",
+  );
+
+  public teamSheetOption = selector(
+    "~Team Sheet",
+    "~Team Sheet",
+    "Team Sheet Option in Settings",
+  );
+
+  public startingFormationOption = selector(
+    "~Starting Formation",
+    "~Starting Formation",
+    "Starting Formation Option in Settings",
+  );
+
+  public selectPlayerInTeamSheet = (player: string) =>
+    selector(
+      `(//*[contains(@content-desc, "${player}")]/*[contains(@class, "android")])[2]`,
+      `//*[contains(@name, "${player}")]/following-sibling::XCUIElementTypeOther`,
+    );
+
+  public selectPositionOfPlayerInTeamSheet = (position: string) =>
+    selector(
+      `android=new UiSelector().descriptionContains("${position}")`,
+      `-ios predicate string: name == "${position}"`,
+    );
+
+  public playerIconToDragInStartingFormation = (player: string) =>
+    selector(
+      `android=new UiSelector().descriptionContains("${player}")`,
+      `-ios predicate string: name CONTAINS "${player}"`,
+      "Player icon to drag in Starting Formation",
+    );
+
+  public tickButtonInStartingFormation = selector(
+    'android=new UiSelector().className("android.widget.Button").instance(2)',
+    "//XCUIElementTypeButton[2]",
+    "Tick button to save in Starting Formation",
+  );
 
   async validateScorerScreenElements() {
     await this.waitUntilVisibleWithRetry(this.matchTimer);
@@ -267,10 +311,91 @@ export class ScorerPage extends LoginPage {
   }
 
   async clickDoneBtn() {
+    await this.waitUntilVisibleWithRetry(this.doneBtn);
+    await this.click(this.doneBtn);
+  }
+
+  async clickBackBtn() {
+    await this.waitUntilVisibleWithRetry(this.backBtn);
+    await this.click(this.backBtn);
+  }
+
+  async clickSettingsIcon() {
+    await this.waitUntilVisibleWithRetry(this.settingIcon);
+    await this.click(this.settingIcon);
+  }
+
+  async validateTeamSheetOption() {
+    await this.waitUntilVisibleWithRetry(this.teamSheetOption);
+    await this.assertElementDisplayed(this.teamSheetOption);
+  }
+
+  async validateStartingFormationOption() {
+    await this.waitUntilVisibleWithRetry(this.startingFormationOption);
+    await this.assertElementDisplayed(this.startingFormationOption);
+  }
+
+  async openTeamSheetOption() {
+    await this.waitUntilVisibleWithRetry(this.teamSheetOption);
+    await this.click(this.teamSheetOption);
+  }
+
+  async selectPlayerAndPositionOfTeam(player: string, position: string) {
+    await this.waitUntilVisibleWithRetry(this.selectPlayerInTeamSheet(player));
+    await this.click(this.selectPlayerInTeamSheet(player));
+    await this.waitUntilVisibleWithRetry(
+      this.selectPositionOfPlayerInTeamSheet(position),
+    );
+    await this.click(this.selectPositionOfPlayerInTeamSheet(position));
     try {
-      await this.waitUntilVisibleWithRetry(this.doneBtn);
-      await this.click(this.doneBtn);
+      await driver.hideKeyboard();
     } catch {}
   }
-  
+
+  async openStartingFormationOption() {
+    await this.waitUntilVisibleWithRetry(this.startingFormationOption);
+    await this.click(this.startingFormationOption);
+  }
+
+  async dragPlayer(
+    player: string,
+    offSetX: number = 300,
+    offsetY: number = 300,
+  ) {
+    const selectorObj = this.playerIconToDragInStartingFormation(player);
+    const selector = await this.resolveSelectorObjToString(selectorObj);
+
+    const element = await $(selector);
+
+    const { x, y } = await element.getLocation();
+    const { width, height } = await element.getSize();
+
+    const startX = x + width / 2;
+    const startY = y + height / 2;
+
+    const endX = startX + offSetX;
+    const endY = startY + offsetY;
+
+    await driver.performActions([
+      {
+        type: "pointer",
+        id: "finger1",
+        parameters: { pointerType: "touch" },
+        actions: [
+          { type: "pointerMove", duration: 0, x: startX, y: startY },
+          { type: "pointerDown", button: 0 },
+          { type: "pause", duration: 300 },
+          { type: "pointerMove", duration: 600, x: endX, y: endY },
+          { type: "pointerUp", button: 0 },
+        ],
+      },
+    ]);
+
+    await driver.releaseActions();
+  }
+
+  async saveStartingFormation() {
+    await this.waitUntilVisibleWithRetry(this.tickButtonInStartingFormation);
+    await this.click(this.tickButtonInStartingFormation);
+  }
 }

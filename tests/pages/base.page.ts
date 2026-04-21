@@ -14,6 +14,28 @@ export default class BasePage {
     return $(platform === "android" ? selector.android : selector.ios);
   }
 
+  async resolveSelectorObjToString(selectorObj: any): Promise<string> {
+    if (!selectorObj) {
+      throw new Error("Selector object is undefined");
+    }
+
+    if (driver.isAndroid) {
+      if (!selectorObj.android) {
+        throw new Error("Android selector missing");
+      }
+      return selectorObj.android;
+    }
+
+    if (driver.isIOS) {
+      if (!selectorObj.ios) {
+        throw new Error("iOS selector missing");
+      }
+      return selectorObj.ios;
+    }
+
+    throw new Error("Unknown platform");
+  }
+
   async getElement(
     selector: DualSelector,
     options?: { wait?: boolean; timeout?: number },
