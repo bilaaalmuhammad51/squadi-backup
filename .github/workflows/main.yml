@@ -66,11 +66,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify Allure packages
-        run: |
-          npm ls @wdio/allure-reporter
-          npm ls allure-commandline
-
       - name: Setup Java for Allure
         uses: actions/setup-java@v4
         with:
