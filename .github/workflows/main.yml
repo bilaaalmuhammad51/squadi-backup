@@ -1,0 +1,277 @@
+name: Squadi Mobile Testss
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to run tests from
+        required: true
+        default: bs-setup
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Run Android BrowserStack Login Test
+    runs-on: ubuntu-latest
+
+    env:
+      PLATFORM: android
+      ENV: browserstack
+      BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+      BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      SPEC_PATH: tests/specs/login/test_validate_successful_login_flow.ts
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "$BROWSERSTACK_USERNAME" ]; then
+            echo "Missing BROWSERSTACK_USERNAME secret"
+            exit 1
+          fi
+
+          if [ -z "$BROWSERSTACK_ACCESS_KEY" ]; then
+            echo "Missing BROWSERSTACK_ACCESS_KEY secret"
+            exit 1
+          fi
+
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "Missing SLACK_WEBHOOK_URL secret"
+            exit 1
+          fi
+
+      - name: Get commit short SHA
+        id: commit
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Java for Allure
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Clean old reports
+        run: rm -rf allure-results allure-report
+
+      - name: Run WDIO login test on BrowserStack
+        id: run_tests
+        continue-on-error: true
+        run: |
+          PLATFORM=android ENV=browserstack npx wdio run wdio.conf.ts --spec "$SPEC_PATH"
+
+      - name: Generate Allure report
+        if: always()
+        run: |
+          if [ -d "allure-results" ]; then
+            npx --no-install allure generate allure-results --clean -o allure-report
+          else
+            mkdir -p allure-report
+            cat > allure-report/index.html <<EOF
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>No Allure Results</title>
+            </head>
+            <body>
+              <h1>No Allure results generated</h1>
+              <p>WDIO failed before creating allure-results.</p>
+            </body>
+          </html>
+          EOF
+          fi
+
+      - name: Generate test summary
+        if: always()
+        id: summary
+        run: |
+          node <<'EOF'
+          const fs = require("fs");
+
+          const summaryPath = "allure-report/widgets/summary.json";
+
+          let total = 0;
+          let passed = 0;
+          let failed = 0;
+          let broken = 0;
+          let skipped = 0;
+          let unknown = 0;
+          let duration = "0s";
+
+          if (fs.existsSync(summaryPath)) {
+            const summary = JSON.parse(fs.readFileSync(summaryPath, "utf8"));
+            const stat = summary.statistic || {};
+
+            total = stat.total || 0;
+            passed = stat.passed || 0;
+            failed = stat.failed || 0;
+            broken = stat.broken || 0;
+            skipped = stat.skipped || 0;
+            unknown = stat.unknown || 0;
+
+            const ms = summary.time?.duration || 0;
+            const seconds = Math.round(ms / 1000);
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+
+            duration = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+          }
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `total=${total}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `passed=${passed}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `failed=${failed}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `broken=${broken}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `skipped=${skipped}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `unknown=${unknown}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `duration=${duration}\n`);
+          EOF
+
+      - name: Upload Allure artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-${{ github.run_number }}
+          path: allure-report
+          retention-days: 14
+
+      - name: Upload Pages artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: allure-report
+
+      - name: Deploy Allure report to GitHub Pages
+        if: always()
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Send Slack report
+        if: always()
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ env.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "Squadi Mobile Test Result",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "📱 Squadi Mobile Test Result"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "${{ steps.run_tests.outcome == 'success' && '✅ *PASSED*' || '❌ *FAILED*' }}\nBrowserStack Android login test completed."
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Total:*\n${{ steps.summary.outputs.total }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Passed:*\n${{ steps.summary.outputs.passed }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Failed:*\n${{ steps.summary.outputs.failed }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Broken:*\n${{ steps.summary.outputs.broken }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Skipped:*\n${{ steps.summary.outputs.skipped }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Duration:*\n${{ steps.summary.outputs.duration }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repo:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:*\n${{ github.event.inputs.branch }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Commit:*\n${{ steps.commit.outputs.short_sha }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Environment:*\nbrowserstack"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Spec:*\n`${{ env.SPEC_PATH }}`"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Open Allure Report"
+                      },
+                      "style": "primary",
+                      "url": "${{ steps.deployment.outputs.page_url }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Open GitHub Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
+
+      - name: Mark workflow failed if tests failed
+        if: steps.run_tests.outcome != 'success'
+        run: exit 1
