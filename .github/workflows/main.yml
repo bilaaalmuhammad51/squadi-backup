@@ -7,6 +7,10 @@ on:
         description: Branch to run tests from
         required: true
         default: bs-setup
+      platform:
+        description: Platform android or ios
+        required: true
+        default: android
 
 permissions:
   contents: read
@@ -23,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      PLATFORM: android
+      PLATFORM: ${{ github.event.inputs.platform }}
       ENV: browserstack
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
@@ -79,7 +83,7 @@ jobs:
         id: run_tests
         continue-on-error: true
         run: |
-          PLATFORM=android ENV=browserstack ./node_modules/.bin/wdio run ./wdio.conf.ts --spec "$SPEC_PATH"
+          PLATFORM="$PLATFORM" ENV="$ENV" ./node_modules/.bin/wdio run ./wdio.conf.ts --spec "$SPEC_PATH"
 
       - name: Generate Allure report
         if: always()
@@ -187,65 +191,64 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "${{ steps.run_tests.outcome == 'success' && '✅ *PASSED*' || '❌ *FAILED*' }}\nBrowserStack Android login test completed."
+                    "text": "${{ steps.run_tests.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}"
                   }
+                },
+                {
+                  "type": "divider"
                 },
                 {
                   "type": "section",
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Total:*\n${{ steps.summary.outputs.total }}"
+                      "text": "*🧪 Total*\n${{ steps.summary.outputs.total }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Passed:*\n${{ steps.summary.outputs.passed }}"
+                      "text": "*✅ Passed*\n${{ steps.summary.outputs.passed }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Failed:*\n${{ steps.summary.outputs.failed }}"
+                      "text": "*❌ Failed*\n${{ steps.summary.outputs.failed }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Broken:*\n${{ steps.summary.outputs.broken }}"
+                      "text": "*⏭ Skipped*\n${{ steps.summary.outputs.skipped }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Skipped:*\n${{ steps.summary.outputs.skipped }}"
+                      "text": "*⚠️ Broken*\n${{ steps.summary.outputs.broken }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Duration:*\n${{ steps.summary.outputs.duration }}"
+                      "text": "*⏱ Duration*\n${{ steps.summary.outputs.duration }}"
                     }
                   ]
+                },
+                {
+                  "type": "divider"
                 },
                 {
                   "type": "section",
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Repo:*\n${{ github.repository }}"
+                      "text": "*🌿 Branch*\n${{ github.event.inputs.branch }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Branch:*\n${{ github.event.inputs.branch }}"
+                      "text": "*📱 Platform*\n${{ env.PLATFORM }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Commit:*\n${{ steps.commit.outputs.short_sha }}"
+                      "text": "*🌎 Environment*\n${{ env.ENV }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Environment:*\nbrowserstack"
+                      "text": "*☁️ Execution*\nBrowserStack"
                     }
                   ]
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Spec:*\n`${{ env.SPEC_PATH }}`"
-                  }
                 },
                 {
                   "type": "actions",
@@ -254,7 +257,7 @@ jobs:
                       "type": "button",
                       "text": {
                         "type": "plain_text",
-                        "text": "Open Allure Report"
+                        "text": "📊 Allure Report"
                       },
                       "style": "primary",
                       "url": "${{ steps.deployment.outputs.page_url }}"
@@ -263,7 +266,7 @@ jobs:
                       "type": "button",
                       "text": {
                         "type": "plain_text",
-                        "text": "Open GitHub Run"
+                        "text": "🧾 GitHub Run"
                       },
                       "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                     }
