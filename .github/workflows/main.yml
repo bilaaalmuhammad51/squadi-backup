@@ -7,6 +7,37 @@ on:
         description: Branch to run tests from
         required: true
         default: bs-setup
+      platform:
+        description: Select mobile platform to run tests on, android or ios
+        required: true
+        default: android
+        type: choice
+        options:
+          - android
+          - ios
+          - other
+      app:
+        description: 'App to test'
+        required: true
+        default: 'Squadi'
+        type: choice
+        options:
+          - Squadi
+          - NetballConnect
+          - football
+      environment:
+        description: 'Environment'
+        required: true
+        default: 'Dev'
+        type: choice
+        options:
+          - Dev
+          - Staging
+          - Production
+      spec_path:
+        description: 'Path to a specific spec file (e.g., tests/specs/login/test_login.ts). Leave default to run only login test, or set to tests/specs/**/*.ts for all specs.'
+        required: false
+        default: 'tests/specs/login/test_validate_successful_login_flow.ts'
 
 permissions:
   contents: read
@@ -19,16 +50,18 @@ concurrency:
 
 jobs:
   test:
-    name: Run Android BrowserStack Login Test
+    name: ${{ github.event.inputs.app }} on ${{ github.event.inputs.platform }} (${{ github.event.inputs.environment }})
     runs-on: ubuntu-latest
 
     env:
-      PLATFORM: android
+      PLATFORM: ${{ github.event.inputs.platform }}
+      APP: ${{ github.event.inputs.app }}
       ENV: browserstack
+      TEST_ENV: ${{ github.event.inputs.environment }}
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      SPEC_PATH: tests/specs/login/test_validate_successful_login_flow.ts
+      SPEC_PATH: ${{ github.event.inputs.spec_path }}
 
     steps:
       - name: Checkout selected branch
@@ -79,7 +112,7 @@ jobs:
         id: run_tests
         continue-on-error: true
         run: |
-          PLATFORM=android ENV=browserstack npx wdio run wdio.conf.ts --spec "$SPEC_PATH"
+          APP="$APP" PLATFORM="$PLATFORM" ENV="$ENV" TEST_ENV="$TEST_ENV" ./node_modules/.bin/wdio run ./wdio.conf.ts --spec "$SPEC_PATH"
 
       - name: Generate Allure report
         if: always()
@@ -91,12 +124,13 @@ jobs:
             cat > allure-report/index.html <<EOF
           <!DOCTYPE html>
           <html>
-            <head>
-              <title>No Allure Results</title>
-            </head>
+            <head><title>No Allure Results</title></head>
             <body>
               <h1>No Allure results generated</h1>
               <p>WDIO failed before creating allure-results.</p>
+              <p>App: ${{ steps.app_meta.outputs.display_name }}</p>
+              <p>Platform: ${{ env.PLATFORM }}</p>
+              <p>Environment: ${{ env.TEST_ENV }}</p>
             </body>
           </html>
           EOF
@@ -115,6 +149,7 @@ jobs:
           let passed = 0;
           let failed = 0;
           let broken = 0;
+          let flaky = 0;
           let skipped = 0;
           let unknown = 0;
           let duration = "0s";
@@ -127,6 +162,7 @@ jobs:
             passed = stat.passed || 0;
             failed = stat.failed || 0;
             broken = stat.broken || 0;
+            flaky = stat.flaky || 0;
             skipped = stat.skipped || 0;
             unknown = stat.unknown || 0;
 
@@ -142,10 +178,12 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `passed=${passed}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `failed=${failed}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `broken=${broken}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `flaky=${flaky}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `skipped=${skipped}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `unknown=${unknown}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `duration=${duration}\n`);
           EOF
+          echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
 
       - name: Upload Allure artifact
         if: always()
@@ -187,85 +225,65 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "${{ steps.run_tests.outcome == 'success' && '✅ *PASSED*' || '❌ *FAILED*' }}\nBrowserStack Android login test completed."
+                    "text": "${{ steps.run_tests.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}"
                   }
+                },
+                {
+                  "type": "divider"
+                },
+            {
+                  "type": "section",
+                  "fields": [
+                    { "type": "mrkdwn", "text": "*📦 App*\n${{ env.APP }}" },
+                    { "type": "mrkdwn", "text": "*🌎 Environment*\n${{ env.TEST_ENV }}" },
+                    { "type": "mrkdwn", "text": "*📱 Platform*\n${{ env.PLATFORM }}" },
+                    { "type": "mrkdwn", "text": "*🌿 Branch*\n`${{ github.event.inputs.branch }}`" }
+                  ]
+                },
+                { "type": "divider" },
+                 {
+                  "type": "section",
+                  "text": { "type": "mrkdwn", "text": "*Test Summary*" }
                 },
                 {
                   "type": "section",
                   "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Total:*\n${{ steps.summary.outputs.total }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Passed:*\n${{ steps.summary.outputs.passed }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Failed:*\n${{ steps.summary.outputs.failed }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Broken:*\n${{ steps.summary.outputs.broken }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Skipped:*\n${{ steps.summary.outputs.skipped }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Duration:*\n${{ steps.summary.outputs.duration }}"
-                    }
+                    { "type": "mrkdwn", "text": "*🧪 Total*\n${{ steps.summary.outputs.total }}" },
+                    { "type": "mrkdwn", "text": "*⏱ Duration*\n${{ steps.summary.outputs.duration }}" },
+                    { "type": "mrkdwn", "text": "*✅ Passed*\n${{ steps.summary.outputs.passed }}" },
+                    { "type": "mrkdwn", "text": "*❌ Failed*\n${{ steps.summary.outputs.failed }}" },
+                    { "type": "mrkdwn", "text": "*⏭ Skipped*\n${{ steps.summary.outputs.skipped }}" },
+                    { "type": "mrkdwn", "text": "*⚠️ Flaky*\n${{ steps.summary.outputs.flaky }}" }
                   ]
                 },
+                { "type": "divider" },
                 {
-                  "type": "section",
-                  "fields": [
+                  "type": "context",
+                  "elements": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Repo:*\n${{ github.repository }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Branch:*\n${{ github.event.inputs.branch }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Commit:*\n${{ steps.commit.outputs.short_sha }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Environment:*\nbrowserstack"
+                      "text": "☁️ Execution: *BrowserStack*  ·  🔑 Commit: `${{ steps.commit.outputs.short_sha }}`"
                     }
                   ]
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Spec:*\n`${{ env.SPEC_PATH }}`"
-                  }
                 },
                 {
                   "type": "actions",
                   "elements": [
                     {
                       "type": "button",
-                      "text": {
-                        "type": "plain_text",
-                        "text": "Open Allure Report"
-                      },
+                      "text": { "type": "plain_text", "text": "📊 View Allure Report" },
                       "style": "primary",
                       "url": "${{ steps.deployment.outputs.page_url }}"
                     },
                     {
                       "type": "button",
-                      "text": {
-                        "type": "plain_text",
-                        "text": "Open GitHub Run"
-                      },
+                      "text": { "type": "plain_text", "text": "🧾 Open GitHub Run" },
                       "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": { "type": "plain_text", "text": "🌐 BrowserStack Session" },
+                      "url": "https://app-automate.browserstack.com/dashboard/v2"
                     }
                   ]
                 }
