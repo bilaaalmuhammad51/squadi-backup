@@ -7,6 +7,7 @@ import {browserstackIosCaps} from './tests/config/browserstack.ios.capabilities'
 import Logger from "./tests/utils/logger";
 import allureReporter from '@wdio/allure-reporter'
 import {Timeout} from "./tests/utils/timers";
+import BasePage from "./tests/pages/base.page";
 const ENV = (process.env.ENV || 'local').toLowerCase()
 const PLATFORM = (process.env.PLATFORM || 'android').toLowerCase()
 
@@ -65,8 +66,30 @@ export const config: WebdriverIO.Config = {
 
     capabilities: getCapabilities(),
 
+    // beforeTest: async function (test) {
+    //     const timestamp = new Date().toISOString()
+    //     if (ENV === 'browserstack') {
+    //         await browser.execute(
+    //             'browserstack_executor: ' +
+    //             JSON.stringify({
+    //                 action: 'setSessionName',
+    //                 arguments: {
+    //                     name: `${PLATFORM === 'android' ? 'Android' : 'iOS'}: ${test.title} | ${timestamp}`
+    //                 }
+    //             })
+    //         )
+    //         return
+    //     }
+    //
+    //     await browser.startRecordingScreen({
+    //         forceRestart: true,
+    //         timeLimit: '180'
+    //     })
+    // },
     beforeTest: async function (test) {
-        const timestamp = new Date().toISOString()
+        const timestamp = new Date().toISOString();
+
+        // ---------- BrowserStack session naming ----------
         if (ENV === 'browserstack') {
             await browser.execute(
                 'browserstack_executor: ' +
@@ -76,14 +99,20 @@ export const config: WebdriverIO.Config = {
                         name: `${PLATFORM === 'android' ? 'Android' : 'iOS'}: ${test.title} | ${timestamp}`
                     }
                 })
-            )
-            return
+            );
+        } else {
+            // ---------- Start recording for local ----------
+            await browser.startRecordingScreen({
+                forceRestart: true,
+                timeLimit: '180'
+            });
         }
 
-        await browser.startRecordingScreen({
-            forceRestart: true,
-            timeLimit: '180'
-        })
+        // ---------- Handle iOS notification pre-prompt ----------
+        if (driver.isIOS) {
+            const basePage = new BasePage();
+            await basePage.handleIOSNotificationPrePrompt();
+        }
     },
 
     afterTest: async function (test, _context, result) {
