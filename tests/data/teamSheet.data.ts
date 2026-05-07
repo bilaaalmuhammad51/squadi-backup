@@ -3,13 +3,13 @@ export const TeamsInTeamSheet = {
   Awayteam: "HR-ASN2Club2-D1-T3",
 };
 
-export const PlayersInTeamSheet = {
-  HomePlayer1: "ImpPlyr2 Test2",
-  HomePlayer2: "ImpPlyr17 Test17",
-  HomePlayer3: "ImpPlyr1 Test1",
-  AwayPlayer1: "ImpPlyr18 Test18",
-  AwayPlayer2: "ImpPlyr3 Test3",
-  AwayPlayer3: "ImpPlyr4 Test4",
+export const PlayerNamesInTeamSheet = {
+  HomePlayer1: "ImpPlyr1 Test1",
+  HomePlayer2: "ImpPlyr2 Test2",
+  HomePlayer3: "ImpPlyr17 Test17",
+  AwayPlayer1: "ImpPlyr3 Test3",
+  AwayPlayer2: "ImpPlyr4 Test4",
+  AwayPlayer3: "ImpPlyr18 Test18",
 };
 
 export const PlayerPositions = {
@@ -21,10 +21,10 @@ export const PlayerPositions = {
 };
 
 export const PlayersInStartingFormation = {
-  HomePlayer1: "Test2",
-  HomePlayer2: "Test17",
-  HomePlayer3: "Test1",
-  AwayPlayer1: "Test18",
-  AwayPlayer2: "Test3",
-  AwayPlayer3: "Test4",
+  HomePlayer1: "Test1",
+  HomePlayer2: "Test2",
+  HomePlayer3: "Test17",
+  AwayPlayer1: "Test3",
+  AwayPlayer2: "Test4",
+  AwayPlayer3: "Test18",
 };

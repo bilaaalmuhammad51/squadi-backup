@@ -139,9 +139,9 @@ export class ScorerPage extends LoginPage {
   );
 
   public enterShirtNubmerField = selector(
+    "android.widget.EditText",
     "~Enter...",
-    "~Enter...",
-    "Done Button",
+    "Field to enter shirt number in team sheet",
   );
 
   public selectShirtNumberOkBtn = selector(
@@ -169,6 +169,12 @@ export class ScorerPage extends LoginPage {
     "Team Sheet Option in Settings",
   );
 
+  public substitutionOption = selector(
+    "~Substitutions",
+    "~Substitutions",
+    "Substitution Option in Settings",
+  );
+
   public startingFormationOption = selector(
     "~Starting Formation",
     "~Starting Formation",
@@ -178,13 +184,36 @@ export class ScorerPage extends LoginPage {
   public selectPlayerInTeamSheet = (player: string) =>
     selector(
       `(//*[contains(@content-desc, "${player}")]/*[contains(@class, "android")])[2]`,
-      `//*[contains(@name, "${player}")]/following-sibling::XCUIElementTypeOther`,
+      `//*[contains(@name, "${player}")]/following-sibling::*[2]`,
+      "Select player in team sheet",
+    );
+
+  public editShirtNumberInTeamSheet = (player: string) =>
+    selector(
+      `android=new UiSelector().descriptionContains("${player}")`,
+      `-ios predicate string:name CONTAINS[c] "${player}"`,
+      "Edit shirt number of player in team sheet",
+    );
+
+  public okBtnToSaveShirtNumberInTeamSheet = () =>
+    selector(
+      `android=new UiSelector().description("Enter a shirt number").instance(2)`,
+      `(//XCUIElementTypeStaticText[@name="Enter a shirt number"])[2]`,
+      "OK button to save shirt number in team sheet",
+    );
+
+  public cancelBtnForShirtNumberInTeamSheet = () =>
+    selector(
+      `android=new UiSelector().description("Enter a shirt number").instance(1)`,
+      `(//XCUIElementTypeStaticText[@name="Enter a shirt number"])[1]`,
+      "Cancel button for shirt number in team sheet",
     );
 
   public selectPositionOfPlayerInTeamSheet = (position: string) =>
     selector(
       `android=new UiSelector().descriptionContains("${position}")`,
       `-ios predicate string: name == "${position}"`,
+      "Select position of player in team sheet",
     );
 
   public playerIconToDragInStartingFormation = (player: string) =>
@@ -224,11 +253,27 @@ export class ScorerPage extends LoginPage {
     await this.assertElementDisplayed(this.validatorName);
   }
 
+  async validateHomeSubstitutionElements(homeTeam: string) {
+    await this.waitUntilVisibleWithRetry(this.homeTeamSheetTab(homeTeam));
+    await this.assertElementDisplayed(this.homeTeamSheetTab(homeTeam));
+    await this.click(this.homeTeamSheetTab(homeTeam));
+    await this.assertElementNotDisplayed(this.borrowPlayerBtn);
+    await this.assertElementDisplayed(this.validatorName);
+  }
+
   async validateAwayTeamSheetElements(awayTeam: string) {
     await this.waitUntilVisibleWithRetry(this.awayTeamSheetTab(awayTeam));
     await this.assertElementDisplayed(this.awayTeamSheetTab(awayTeam));
     await this.click(this.awayTeamSheetTab(awayTeam));
     await this.assertElementDisplayed(this.borrowPlayerBtn);
+    await this.assertElementDisplayed(this.validatorName);
+  }
+
+  async validateAwaySubstitutionElements(awayTeam: string) {
+    await this.waitUntilVisibleWithRetry(this.awayTeamSheetTab(awayTeam));
+    await this.assertElementDisplayed(this.awayTeamSheetTab(awayTeam));
+    await this.click(this.awayTeamSheetTab(awayTeam));
+    await this.assertElementNotDisplayed(this.borrowPlayerBtn);
     await this.assertElementDisplayed(this.validatorName);
   }
 
@@ -330,6 +375,11 @@ export class ScorerPage extends LoginPage {
     await this.assertElementDisplayed(this.teamSheetOption);
   }
 
+  async validateSubstitutionOption() {
+    await this.waitUntilVisibleWithRetry(this.substitutionOption);
+    await this.assertElementDisplayed(this.substitutionOption);
+  }
+
   async validateStartingFormationOption() {
     await this.waitUntilVisibleWithRetry(this.startingFormationOption);
     await this.assertElementDisplayed(this.startingFormationOption);
@@ -338,6 +388,11 @@ export class ScorerPage extends LoginPage {
   async openTeamSheetOption() {
     await this.waitUntilVisibleWithRetry(this.teamSheetOption);
     await this.click(this.teamSheetOption);
+  }
+
+  async openSubstitutionOption() {
+    await this.waitUntilVisible(this.substitutionOption);
+    await this.click(this.substitutionOption);
   }
 
   async selectPlayerAndPositionOfTeam(player: string, position: string) {
@@ -352,15 +407,48 @@ export class ScorerPage extends LoginPage {
     } catch {}
   }
 
+  async selectOrUnselectPlayerInSubstitution(player: string) {
+    await this.waitUntilVisibleWithRetry(this.selectPlayerInTeamSheet(player));
+    await this.click(this.selectPlayerInTeamSheet(player));
+  }
+
+  async editShirtNumberOfPlayerInTeamSheet(
+    player: string,
+    shirtNumber?: number,
+  ) {
+    await this.waitUntilVisibleWithRetry(
+      this.editShirtNumberInTeamSheet(player),
+    );
+    await this.click(this.editShirtNumberInTeamSheet(player));
+    if (shirtNumber !== undefined) {
+      await this.type(this.enterShirtNubmerField, shirtNumber.toString());
+    }
+    await this.waitUntilVisibleWithRetry(
+      this.okBtnToSaveShirtNumberInTeamSheet(),
+    );
+    await this.click(this.okBtnToSaveShirtNumberInTeamSheet());
+  }
+
   async openStartingFormationOption() {
     await this.waitUntilVisibleWithRetry(this.startingFormationOption);
     await this.click(this.startingFormationOption);
   }
 
+  async getPlayerPosition(player: string) {
+    const selectorObj = this.playerIconToDragInStartingFormation(player);
+    const selector = await this.resolveSelectorObjToString(selectorObj);
+
+    const element = await $(selector);
+
+    const { x, y } = await element.getLocation();
+
+    return { x, y };
+  }
+
   async dragPlayer(
     player: string,
-    offSetX: number = 300,
-    offsetY: number = 300,
+    offSetX: number = 80,
+    offsetY: number = 120,
   ) {
     const selectorObj = this.playerIconToDragInStartingFormation(player);
     const selector = await this.resolveSelectorObjToString(selectorObj);

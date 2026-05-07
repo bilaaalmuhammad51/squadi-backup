@@ -8,12 +8,12 @@ import BasePage from "../../pages/base.page";
 import {
   PlayerPositions,
   PlayersInStartingFormation,
-  PlayersInTeamSheet,
+  PlayerNamesInTeamSheet,
   TeamsInTeamSheet,
 } from "../../data/teamSheet.data";
 
 describe("Scorer team sheet pre-recording window permissions", () => {
-  it("should log in with valid credentials, open a match, manage team sheets, start or resume play, and validate score increment and undo actions", async () => {
+  it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for both teams", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
     const scorerPage = new ScorerPage();
@@ -71,7 +71,7 @@ describe("Scorer team sheet pre-recording window permissions", () => {
     );
 
     await step("Open a match from the Home screen", async () => {
-      const matchId = "69624";
+      const matchId = "69720";
       const matchElement = homePage.matchById(matchId);
       await basePage.scrollUntilElementVisible(matchElement);
       await homePage.assertElementDisplayed(matchElement);
@@ -102,18 +102,18 @@ describe("Scorer team sheet pre-recording window permissions", () => {
 
     await step("Select players and their positions for home team", async () => {
       await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayersInTeamSheet.HomePlayer1,
+        PlayerNamesInTeamSheet.HomePlayer1,
         PlayerPositions.Forward,
       );
       await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayersInTeamSheet.HomePlayer2,
+        PlayerNamesInTeamSheet.HomePlayer2,
         PlayerPositions.Defender,
       );
       await scorerPage.click(
         scorerPage.homeTeamSheetTab(TeamsInTeamSheet.HomeTeam),
       );
       await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayersInTeamSheet.HomePlayer3,
+        PlayerNamesInTeamSheet.HomePlayer3,
         PlayerPositions.Forward,
       );
     });
@@ -121,15 +121,15 @@ describe("Scorer team sheet pre-recording window permissions", () => {
     await step("Select players and their positions for away team", async () => {
       await scorerPage.validateAwayTeamSheetElements(TeamsInTeamSheet.Awayteam);
       await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayersInTeamSheet.AwayPlayer1,
+        PlayerNamesInTeamSheet.AwayPlayer1,
         PlayerPositions.Midfielder,
       );
       await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayersInTeamSheet.AwayPlayer2,
+        PlayerNamesInTeamSheet.AwayPlayer2,
         PlayerPositions.Midfielder,
       );
       await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayersInTeamSheet.AwayPlayer3,
+        PlayerNamesInTeamSheet.AwayPlayer3,
         PlayerPositions.Goalkeeper,
       );
     });
