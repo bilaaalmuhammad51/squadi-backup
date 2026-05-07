@@ -10,7 +10,7 @@ export class ScorerPage extends LoginPage {
   );
 
   public matchTimer = selector(
-    'android=new UiSelector().descriptionContains("STARTS IN")',
+    'android=new UiSelector().descriptionMatches(".(STARTS IN|Half 1|Half 2|FT).")',
     "(//XCUIElementTypeStaticText)[2]",
     "Match Timer",
   );
