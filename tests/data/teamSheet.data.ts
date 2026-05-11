@@ -12,6 +12,7 @@ export const PlayerNamesInTeamSheet = {
   AwayPlayer1: "ImpPlyr3 Test3",
   AwayPlayer2: "ImpPlyr4 Test4",
   AwayPlayer3: "ImpPlyr18 Test18",
+  ClubPlayer1: "HR-ASN2Club1 -D1-T2",
 };
 
 export const PlayerPositions = {
@@ -31,4 +32,5 @@ export const PlayersInStartingFormation = {
   AwayPlayer1: "Test3",
   AwayPlayer2: "Test4",
   AwayPlayer3: "Test18",
+  ClubPlayer1: "H. -D1-T2",
 };
