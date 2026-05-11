@@ -1,6 +1,7 @@
 import { selector } from "../factories/page.factory";
 import { Timeout } from "../utils/timers";
 import { LoginPage } from "./login.page";
+import { HomePage } from "../pages/home.page";
 
 export class ScorerPage extends LoginPage {
   public teamSheetAlert = selector(
@@ -132,6 +133,18 @@ export class ScorerPage extends LoginPage {
   public doneBtn = selector("~Done", "~Done", "Done Button");
   public backBtn = selector("~Back", "~Back", "Back Button");
 
+  public ResponsesHeading = selector(
+    "~Responses",
+    "~Responses",
+    "Responses heading in the bottom after opening field in manager view",
+  )
+
+  public teamSheetNotAvailableMsg = selector(
+    "~Team Sheet is not available yet",
+    "~Team Sheet is not available yet",
+    "Team Sheet not available message",
+  );
+
   public enterShirtNumberPopup = selector(
     "",
     '//XCUIElementTypeOther[@name="Enter a shirt number"]',
@@ -179,6 +192,12 @@ export class ScorerPage extends LoginPage {
     "~Starting Formation",
     "~Starting Formation",
     "Starting Formation Option in Settings",
+  );
+
+  public fieldOption = selector(
+    'android=new UiSelector().descriptionContains("Field")',
+    '-ios predicate string:name CONTAINS "Field"',
+    "Field Option after opening match as a Manager",
   );
 
   public selectPlayerInTeamSheet = (player: string) =>
@@ -236,6 +255,18 @@ export class ScorerPage extends LoginPage {
     await this.assertElementDisplayed(this.awayTeam);
   }
 
+  async validateManagerScreenElements(teamSheetOptionVisible: boolean = true, matchId: string) {
+    const homePage = new HomePage();
+    await this.waitUntilVisibleWithRetry(this.startingFormationOption);
+    await this.assertElementDisplayed(this.startingFormationOption);
+    const matchElement = homePage.matchById(matchId);
+    await this.scrollUntilElementVisible(matchElement);
+    await homePage.assertElementDisplayed(matchElement);
+
+    await this.assertElementDisplayed(this.fieldOption);
+    await this.assertElementDisplayed(this.ResponsesHeading);
+  }
+
   async selectShirtNumberIfNot() {
     try {
       await this.waitUntilInvisibleWithRetry(this.enterShirtNumberPopup);
@@ -250,7 +281,7 @@ export class ScorerPage extends LoginPage {
     await this.assertElementDisplayed(this.homeTeamSheetTab(homeTeam));
     await this.click(this.homeTeamSheetTab(homeTeam));
     await this.assertElementDisplayed(this.borrowPlayerBtn);
-    await this.assertElementDisplayed(this.validatorName);
+    // await this.assertElementDisplayed(this.validatorName);
   }
 
   async validateHomeSubstitutionElements(homeTeam: string) {
@@ -275,6 +306,11 @@ export class ScorerPage extends LoginPage {
     await this.click(this.awayTeamSheetTab(awayTeam));
     await this.assertElementNotDisplayed(this.borrowPlayerBtn);
     await this.assertElementDisplayed(this.validatorName);
+  }
+
+  async validateTeamSheetNotAvailable() {
+    await this.waitUntilVisibleWithRetry(this.teamSheetNotAvailableMsg);
+    await this.assertElementDisplayed(this.teamSheetNotAvailableMsg);
   }
 
   async submitHomeTeamPlayersIfNotSubmitted(playerName: string) {

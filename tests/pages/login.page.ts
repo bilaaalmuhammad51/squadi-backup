@@ -112,6 +112,21 @@ public locationOptionPopupCloseBtn = selector(
     "//XCUIElementTypeWindow/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]/XCUIElementTypeOther[3]/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther",
     "view password",
   );
+  public moreTab = selector(
+    'android=new UiSelector().description("More Tab 5 of 5")',
+    "",
+    "More tab in bottom navigation",
+  );
+  public logoutButton = selector(
+    "~Log Out",
+    "~Log Out",
+    "Logout button in More tab",
+  );
+  public confirmLogoutButton = selector(
+    'new UiSelector().description("Log Out").instance(1)',
+    "",
+    "Confirm logout button in logout popup",
+  );
 
   async loginUser(user: string, pass: string) {
     await this.addUserName(user);
@@ -208,5 +223,13 @@ public locationOptionPopupCloseBtn = selector(
     await this.handleIOSNotificationPrePrompt();
     await this.scrollDown();
     await this.waitUntilVisibleWithRetry(this.loginButton);
+  }
+
+  async logoutUser() {
+    await this.click(this.moreTab);
+    await this.scrollUntilElementVisible(this.logoutButton);
+    await this.click(this.logoutButton);
+    await this.waitUntilVisibleWithRetry(this.confirmLogoutButton);
+    await this.click(this.confirmLogoutButton);
   }
 }
