@@ -14,7 +14,7 @@ import {
 
 let matchId: string;
 
-describe("Manager team sheet pre-recording window permissions", () => {
+describe("Manager team sheet recording window permissions", () => {
   it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for respective team", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();

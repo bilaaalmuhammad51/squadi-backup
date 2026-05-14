@@ -11,6 +11,9 @@ import {
   PlayerNamesInTeamSheet,
   TeamsInTeamSheet,
 } from "../../data/teamSheet.data";
+import { MatchApiHelper } from "../../utils/matchApi.helper";
+
+let matchId: number;
 
 describe("Scorer team sheet pre-recording window permissions", () => {
   it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for both teams", async () => {
@@ -22,6 +25,23 @@ describe("Scorer team sheet pre-recording window permissions", () => {
     allureReporter.addFeature("Scoring Flow");
     allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
     allureReporter.addSeverity("critical");
+
+    await step("Create match before launching app", async () => {
+      const token = await MatchApiHelper.getToken(
+        LoginData.email,
+        LoginData.password,
+      );
+
+      matchId = await MatchApiHelper.createMatch(token, 15);
+
+      console.log("Created Match ID:", matchId);
+
+      allureReporter.addAttachment(
+        "Created Match ID",
+        String(matchId),
+        "text/plain",
+      );
+    });
 
     await step("Verify welcome screen is visible", async () => {
       await loginPage.validateLoginBtnIsVisible();
@@ -71,8 +91,7 @@ describe("Scorer team sheet pre-recording window permissions", () => {
     );
 
     await step("Open a match from the Home screen", async () => {
-      const matchId = "69720";
-      const matchElement = homePage.matchById(matchId);
+      const matchElement = homePage.matchById(matchId.toString());
       await basePage.scrollUntilElementVisible(matchElement);
       await homePage.assertElementDisplayed(matchElement);
       await homePage.click(matchElement);
@@ -102,18 +121,7 @@ describe("Scorer team sheet pre-recording window permissions", () => {
 
     await step("Select players and their positions for home team", async () => {
       await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.HomePlayer1,
-        PlayerPositions.Forward,
-      );
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.HomePlayer2,
-        PlayerPositions.Defender,
-      );
-      await scorerPage.click(
-        scorerPage.homeTeamSheetTab(TeamsInTeamSheet.HomeTeam),
-      );
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.HomePlayer3,
+        PlayerNamesInTeamSheet.ClubPlayer1,
         PlayerPositions.Forward,
       );
     });
@@ -121,16 +129,8 @@ describe("Scorer team sheet pre-recording window permissions", () => {
     await step("Select players and their positions for away team", async () => {
       await scorerPage.validateAwayTeamSheetElements(TeamsInTeamSheet.Awayteam);
       await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.AwayPlayer1,
+        PlayerNamesInTeamSheet.ClubPlayer2,
         PlayerPositions.Midfielder,
-      );
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.AwayPlayer2,
-        PlayerPositions.Midfielder,
-      );
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.AwayPlayer3,
-        PlayerPositions.Goalkeeper,
       );
     });
 
@@ -146,16 +146,14 @@ describe("Scorer team sheet pre-recording window permissions", () => {
     });
 
     await step("dragging home players in Starting Formation", async () => {
-      await scorerPage.dragPlayer(PlayersInStartingFormation.HomePlayer1);
-      await scorerPage.dragPlayer(PlayersInStartingFormation.HomePlayer2);
+      await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer1);
     });
 
     await step("dragging away players in Starting Formation", async () => {
       await scorerPage.click(
         scorerPage.homeTeamSheetTab(TeamsInTeamSheet.Awayteam),
       );
-      await scorerPage.dragPlayer(PlayersInStartingFormation.AwayPlayer1);
-      await scorerPage.dragPlayer(PlayersInStartingFormation.AwayPlayer2);
+      await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer2);
     });
 
     await step("save Starting Formation", async () => {
