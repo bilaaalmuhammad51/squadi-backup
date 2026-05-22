@@ -230,30 +230,28 @@ export default class BasePage {
     return text;
   }
 
-  async scrollDown(): Promise<void> {
-    const { height, width } = await driver.getWindowRect();
+    async scrollDown(
+        startXPercent: number = 0.5,
+        startYPercent: number = 0.5,
+        endYPercent: number = 0.1,
+        duration: number = 500
+    ): Promise<void> {
+        const { height, width } = await driver.getWindowRect();
 
-    const startX = Math.floor(width / 2);
-    const startY = Math.floor(height * 0.5);
-    const endY = Math.floor(height * 0.1);
+        const startX = Math.floor(width * startXPercent);
+        const startY = Math.floor(height * startYPercent);
+        const endY = Math.floor(height * endYPercent);
 
-    await driver.performActions([
-      {
-        type: "pointer",
-        id: "finger1",
-        parameters: { pointerType: "touch" },
-        actions: [
-          { type: "pointerMove", duration: 0, x: startX, y: startY },
-          { type: "pointerDown", button: 0 },
-          { type: "pause", duration: 200 },
-          { type: "pointerMove", duration: 500, x: startX, y: endY },
-          { type: "pointerUp", button: 0 },
-        ],
-      },
-    ]);
-
-    await driver.releaseActions();
-  }
+        await driver.execute("mobile: swipeGesture", {
+            left: startX - 5,
+            top: endY,
+            width: 10,
+            height: startY - endY,
+            direction: "up",
+            percent: 1.0,
+            speed: duration * 5,
+        });
+    }
   async scrollUntilElementVisible(selector: DualSelector) {
     const platform = await getPlatform();
     let element;

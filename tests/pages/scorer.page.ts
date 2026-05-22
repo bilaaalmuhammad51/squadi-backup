@@ -1,6 +1,7 @@
-import { selector } from "../factories/page.factory";
+import { DualSelector, selector } from "../factories/page.factory";
 import { Timeout } from "../utils/timers";
 import { LoginPage } from "./login.page";
+import { HomePage } from "../pages/home.page";
 
 export class ScorerPage extends LoginPage {
   public teamSheetAlert = selector(
@@ -10,7 +11,7 @@ export class ScorerPage extends LoginPage {
   );
 
   public matchTimer = selector(
-    'android=new UiSelector().descriptionContains("STARTS IN")',
+    'android=new UiSelector().descriptionMatches(".*(STARTS IN|Half 1|Half 2|FT).*")',
     "(//XCUIElementTypeStaticText)[2]",
     "Match Timer",
   );
@@ -59,6 +60,12 @@ export class ScorerPage extends LoginPage {
 
   public startBtn = selector("~Start", "~Start", "Start Button");
 
+  public ConfirmToStartBtn = selector(
+    "~Confirm",
+    "~Confirm",
+    "Confirm to Start Button",
+  );
+
   public pauseBtn = selector("~Pause", "~Pause", "Pause Button");
 
   public resumeBtn = selector("~Resume", "~Resume", "Resume Button");
@@ -70,8 +77,8 @@ export class ScorerPage extends LoginPage {
   );
 
   public validatorName = selector(
-    'android=new UiSelector().text("syed shah")',
-    '-ios predicate string: value == "syed shah"',
+    'android=new UiSelector().textMatches("(?i).*syed.*")',
+    '-ios predicate string: value CONTAINS[c] "syed"',
     "Validator Name",
   );
 
@@ -132,6 +139,24 @@ export class ScorerPage extends LoginPage {
   public doneBtn = selector("~Done", "~Done", "Done Button");
   public backBtn = selector("~Back", "~Back", "Back Button");
 
+  public crossCloseBtn = selector(
+    'android=new UiSelector().className("android.widget.Button")',
+    '-ios predicate string: type == "XCUIElementTypeButton"',
+    "Cross/Close Button in Settings",
+  );
+
+  public ResponsesHeading = selector(
+    "~Responses",
+    "~Responses",
+    "Responses heading in the bottom after opening field in manager view",
+  );
+
+  public teamSheetNotAvailableMsg = selector(
+    "~Team Sheet is not available yet",
+    "~Team Sheet is not available yet",
+    "Team Sheet not available message",
+  );
+
   public enterShirtNumberPopup = selector(
     "",
     '//XCUIElementTypeOther[@name="Enter a shirt number"]',
@@ -140,7 +165,7 @@ export class ScorerPage extends LoginPage {
 
   public enterShirtNubmerField = selector(
     "android.widget.EditText",
-    "~Enter...",
+    "-ios class chain:**/XCUIElementTypeTextField",
     "Field to enter shirt number in team sheet",
   );
 
@@ -179,6 +204,12 @@ export class ScorerPage extends LoginPage {
     "~Starting Formation",
     "~Starting Formation",
     "Starting Formation Option in Settings",
+  );
+
+  public fieldOption = selector(
+    'android=new UiSelector().descriptionContains("Field")',
+    '-ios predicate string:name CONTAINS "Field"',
+    "Field Option after opening match as a Manager",
   );
 
   public selectPlayerInTeamSheet = (player: string) =>
@@ -236,6 +267,18 @@ export class ScorerPage extends LoginPage {
     await this.assertElementDisplayed(this.awayTeam);
   }
 
+  async validateManagerScreenElements(matchId: string) {
+    const homePage = new HomePage();
+    await this.waitUntilVisibleWithRetry(this.startingFormationOption);
+    await this.assertElementDisplayed(this.startingFormationOption);
+    const matchElement = homePage.matchById(matchId);
+    await this.scrollUntilElementVisible(matchElement);
+    await homePage.assertElementDisplayed(matchElement);
+
+    await this.assertElementDisplayed(this.fieldOption);
+    await this.assertElementDisplayed(this.ResponsesHeading);
+  }
+
   async selectShirtNumberIfNot() {
     try {
       await this.waitUntilInvisibleWithRetry(this.enterShirtNumberPopup);
@@ -275,6 +318,11 @@ export class ScorerPage extends LoginPage {
     await this.click(this.awayTeamSheetTab(awayTeam));
     await this.assertElementNotDisplayed(this.borrowPlayerBtn);
     await this.assertElementDisplayed(this.validatorName);
+  }
+
+  async validateTeamSheetNotAvailable() {
+    await this.waitUntilVisibleWithRetry(this.teamSheetNotAvailableMsg);
+    await this.assertElementDisplayed(this.teamSheetNotAvailableMsg);
   }
 
   async submitHomeTeamPlayersIfNotSubmitted(playerName: string) {
@@ -370,9 +418,59 @@ export class ScorerPage extends LoginPage {
     await this.click(this.settingIcon);
   }
 
+  async clickCloseBtnInSettings() {
+    await this.waitUntilVisibleWithRetry(this.crossCloseBtn);
+    await this.click(this.crossCloseBtn);
+  }
+
   async validateTeamSheetOption() {
     await this.waitUntilVisibleWithRetry(this.teamSheetOption);
     await this.assertElementDisplayed(this.teamSheetOption);
+  }
+
+  async isElementDisplayed(selector: DualSelector): Promise<boolean> {
+    try {
+      const element = await this.resolve(selector);
+      return await element.isDisplayed();
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async waitUntilTeamSheetBecomesSubstitution(
+    maxAttempts: number = 20,
+    waitBetweenAttempts: number = 5000,
+  ) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      console.log(
+        `[Attempt ${attempt}] Checking if Team Sheet became Substitution`,
+      );
+
+      // Open settings
+      await this.clickSettingsIcon();
+
+      // Check if Substitution option is visible
+      const substitutionVisible = await this.isElementDisplayed(
+        this.substitutionOption,
+      );
+
+      if (substitutionVisible) {
+        console.log("Substitution option is now visible");
+        return;
+      }
+
+      console.log("Still showing Team Sheet. Retrying...");
+
+      // Go back
+      await this.clickCloseBtnInSettings();
+
+      // Wait before retry
+      await driver.pause(waitBetweenAttempts);
+    }
+
+    throw new Error(
+      `Substitution option did not appear after ${maxAttempts} attempts`,
+    );
   }
 
   async validateSubstitutionOption() {
@@ -445,6 +543,19 @@ export class ScorerPage extends LoginPage {
     return { x, y };
   }
 
+  async isPlayerAvailableInFormation(player: string): Promise<boolean> {
+    try {
+      const selectorObj = this.playerIconToDragInStartingFormation(player);
+      const selector = await this.resolveSelectorObjToString(selectorObj);
+
+      const element = await $(selector);
+
+      return await element.isDisplayed();
+    } catch (error) {
+      return false;
+    }
+  }
+
   async dragPlayer(
     player: string,
     offSetX: number = 80,
@@ -485,5 +596,14 @@ export class ScorerPage extends LoginPage {
   async saveStartingFormation() {
     await this.waitUntilVisibleWithRetry(this.tickButtonInStartingFormation);
     await this.click(this.tickButtonInStartingFormation);
+  }
+
+  async startMatch() {
+    await this.scrollDown();
+    await this.waitUntilVisibleWithRetry(this.startBtn);
+    await this.click(this.startBtn);
+    await this.waitUntilVisibleWithRetry(this.confirmStartBtn);
+    await this.click(this.confirmStartBtn);
+    await this.waitUntilVisibleWithRetry(this.pauseBtn);
   }
 }

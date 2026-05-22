@@ -4,7 +4,7 @@ export const browserstackAndroidCaps = {
     "appium:platformVersion": "12.0",
     "appium:deviceName": "Google Pixel 6",
     "appium:automationName": "UiAutomator2",
-    "appium:app": "bs://c04896fb1a234d80c5b9957202a37ded02067413",
+    "appium:app": "bs://b12aa2cda3ea1b21aec66bcd14b241e23aa8b0d5",
     "appium:autoGrantPermissions": true,
     "appium:autoAcceptAlerts": true,
     "appium:disableHiddenApiPolicyPrePApp": true,

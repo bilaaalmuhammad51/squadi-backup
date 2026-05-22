@@ -35,6 +35,12 @@ export class LoginPage extends BasePage {
     "password",
   );
 
+  public loginTab = selector(
+    'android=new UiSelector().descriptionContains("Login")',
+    '-ios predicate string: name CONTAINS "Login"',
+    "Login tab on Welcome screen",
+  );
+
   public loginButton = selector("~Log In", "~Log In", "first login button");
   public loginHeading = selector(
     '(//android.view.View[@content-desc="Log In"])[1]',
@@ -52,7 +58,7 @@ export class LoginPage extends BasePage {
     "~Forgot/ Reset Password?",
     "forgot password",
   );
-public locationOptionPopupCloseBtn = selector(
+  public locationOptionPopupCloseBtn = selector(
     "~Close",
     "~Close",
     "location option popup close button",
@@ -61,32 +67,32 @@ public locationOptionPopupCloseBtn = selector(
     'android=new UiSelector().text("Football")',
     "",
     "tap on screen to make Next visible if hidden in DOM",
-  )
+  );
   public nextButton = selector(
     'android=new UiSelector().text("Next")',
-    '~Next',
+    "~Next",
     "Next button",
-  )
+  );
   public usernameOrEmailField = selector(
     '-android uiautomator:new UiSelector().className("android.widget.EditText").instance(1)',
     '-ios predicate string: value == "Username/Email" AND type == "XCUIElementTypeTextField"',
     "username or email field for forgot password flow",
-  )
+  );
   public submitUsernameOrEmailBtn = selector(
     '-android uiautomator:new UiSelector().text("Submit")',
-    '~Submit',
+    "~Submit",
     "Submit button for forgot password flow",
-  )
+  );
   public tapOnScreenForTextAfterSubmittingUsernameOrEmail = selector(
     'android=new UiSelector().className("android.webkit.WebView")',
     "",
-    "tap on screen to make text visible after submitting username or email in forgot password flow"
-  )
+    "tap on screen to make text visible after submitting username or email in forgot password flow",
+  );
   public textAfterSubmittingUsernameOrEmail = selector(
     'android=new UiSelector().text("If you are registered with us, a password link was sent to your email.")',
-    '~If you are registered with us, a password link was sent to your email.',
-    "text displayed after submitting username or email in forgot password flow"
-  )
+    "~If you are registered with us, a password link was sent to your email.",
+    "text displayed after submitting username or email in forgot password flow",
+  );
   public signUp = selector(
     "~Can’t login? Sign up for an account",
     "~Can’t login? Sign up for an account",
@@ -112,6 +118,21 @@ public locationOptionPopupCloseBtn = selector(
     "//XCUIElementTypeWindow/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]/XCUIElementTypeOther[3]/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther",
     "view password",
   );
+  public moreTab = selector(
+    'android=new UiSelector().descriptionContains("More")',
+    '-ios predicate string:name CONTAINS "More"',
+    "More tab in bottom navigation",
+  );
+  public logoutButton = selector(
+    'android=new UiSelector().description("Log Out")',
+    "~Log Out",
+    "Logout button in More tab",
+  );
+  public confirmLogoutButton = selector(
+    'android=new UiSelector().description("Log Out").instance(1)',
+    '-ios class chain:**/XCUIElementTypeStaticText[`name == "Log Out"`][2]',
+    "Confirm logout button in logout popup",
+  );
 
   async loginUser(user: string, pass: string) {
     await this.addUserName(user);
@@ -136,14 +157,24 @@ public locationOptionPopupCloseBtn = selector(
   }
 
   async closePopupIfVisible() {
-    const isPopupVisible = await this.getElement(this.locationOptionPopupCloseBtn, { wait: true, timeout: 50000 }).then(() => true).catch(() => false);
+    const isPopupVisible = await this.getElement(
+      this.locationOptionPopupCloseBtn,
+      { wait: true, timeout: 50000 },
+    )
+      .then(() => true)
+      .catch(() => false);
     if (isPopupVisible) {
       await this.click(this.locationOptionPopupCloseBtn);
     }
   }
 
   async clickNextButton() {
-    const isNextBtnVisible = await this.getElement(this.nextButton, { wait: true, timeout: 10000 }).then(() => true).catch(() => false);
+    const isNextBtnVisible = await this.getElement(this.nextButton, {
+      wait: true,
+      timeout: 10000,
+    })
+      .then(() => true)
+      .catch(() => false);
     if (isNextBtnVisible) {
       await this.click(this.nextButton);
     } else {
@@ -166,17 +197,31 @@ public locationOptionPopupCloseBtn = selector(
 
   async verifyTextAfterSubmittingUsernameOrEmail() {
     try {
-      const isTextVisible = await this.getElement(this.textAfterSubmittingUsernameOrEmail, { wait: true, timeout: 10000 }).then(() => true).catch(() => false);
+      const isTextVisible = await this.getElement(
+        this.textAfterSubmittingUsernameOrEmail,
+        { wait: true, timeout: 10000 },
+      )
+        .then(() => true)
+        .catch(() => false);
 
       if (isTextVisible) {
         console.log("Text is visible without tapping on screen");
-        await this.assertElementDisplayed(this.textAfterSubmittingUsernameOrEmail);
+        await this.assertElementDisplayed(
+          this.textAfterSubmittingUsernameOrEmail,
+        );
       } else {
-        console.log("Text is not visible, tapping on screen to make it visible");
+        console.log(
+          "Text is not visible, tapping on screen to make it visible",
+        );
         await this.click(this.tapOnScreenForTextAfterSubmittingUsernameOrEmail);
 
-        await this.waitUntilVisible(this.textAfterSubmittingUsernameOrEmail, 10000); // Wait for the element to become visible
-        await this.assertElementDisplayed(this.textAfterSubmittingUsernameOrEmail);
+        await this.waitUntilVisible(
+          this.textAfterSubmittingUsernameOrEmail,
+          10000,
+        ); // Wait for the element to become visible
+        await this.assertElementDisplayed(
+          this.textAfterSubmittingUsernameOrEmail,
+        );
       }
     } catch (error) {
       console.error("Error while verifying text visibility:", error);
@@ -204,9 +249,22 @@ public locationOptionPopupCloseBtn = selector(
     }
   }
 
+  async gotoLoginTab() {
+    await this.waitUntilVisibleWithRetry(this.loginTab);
+    await this.click(this.loginTab);
+  }
+
   async validateLoginBtnIsVisible() {
     await this.handleIOSNotificationPrePrompt();
     await this.scrollDown();
     await this.waitUntilVisibleWithRetry(this.loginButton);
+  }
+
+  async logoutUser() {
+    await this.click(this.moreTab);
+    await this.scrollUntilElementVisible(this.logoutButton);
+    await this.click(this.logoutButton);
+    await this.waitUntilVisibleWithRetry(this.confirmLogoutButton);
+    await this.click(this.confirmLogoutButton);
   }
 }
