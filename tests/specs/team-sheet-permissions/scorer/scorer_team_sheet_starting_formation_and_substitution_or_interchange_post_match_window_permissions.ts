@@ -1,19 +1,20 @@
 import allureReporter from "@wdio/allure-reporter";
-import { step } from "../../utils/helpers";
-import { LoginData } from "../../data/login.data";
-import { LoginPage } from "../../pages/login.page";
-import { HomePage } from "../../pages/home.page";
-import { ScorerPage } from "../../pages/scorer.page";
-import BasePage from "../../pages/base.page";
+import { step } from "../../../utils/helpers";
+import { LoginData } from "../../../data/login.data";
+import { LoginPage } from "../../../pages/login.page";
+import { HomePage } from "../../../pages/home.page";
+import { ScorerPage } from "../../../pages/scorer.page";
+import BasePage from "../../../pages/base.page";
 import {
   PlayersInStartingFormation,
   PlayerNamesInTeamSheet,
   TeamsInTeamSheet,
   PlayerPositions,
-} from "../../data/teamSheet.data";
-import { MatchApiHelper } from "../../utils/matchApi.helper";
+} from "../../../data/teamSheet.data";
+import { MatchApiHelper } from "../../../utils/matchApi.helper";
 
 let matchId: number;
+let token: string;
 
 let homePlayer1InitialPosition: { x: number; y: number };
 let awayPlayer1InitialPosition: { x: number; y: number };
@@ -32,7 +33,7 @@ describe("Scorer team sheet post match (after starting match) permissions", () =
     allureReporter.addSeverity("critical");
 
     await step("Create match before launching app", async () => {
-      const token = await MatchApiHelper.getToken(
+      token = await MatchApiHelper.getToken(
         LoginData.email,
         LoginData.password,
       );
@@ -46,6 +47,17 @@ describe("Scorer team sheet post match (after starting match) permissions", () =
         String(matchId),
         "text/plain",
       );
+    });
+
+    after(async () => {
+      try {
+        if (token && matchId) {
+          await MatchApiHelper.deleteMatch(token, matchId);
+          console.log(`Deleted Match ID: ${matchId}`);
+        }
+      } catch (error) {
+        console.error("Failed to delete match:", error);
+      }
     });
 
     await step("Verify welcome screen is visible", async () => {

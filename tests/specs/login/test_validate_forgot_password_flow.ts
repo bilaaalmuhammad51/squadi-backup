@@ -41,12 +41,43 @@ describe("Authentication - Login Flow", () => {
 
     await step("Forgot password flow", async () => {
       await loginPage.clickForgotPassword();
-      await loginPage.closePopupIfVisible();
-      await loginPage.clickNextButton();
-      await loginPage.addUsernameOrEmailForForgotPasswordFlow(LoginData.email);
-      await loginPage.scrollDown();
-      await loginPage.clickSubmitBtnForForgotPasswordFlow();
-      await loginPage.verifyTextAfterSubmittingUsernameOrEmail();
+      const isPopupVisible = await loginPage.ifClosePopupVisible();
+      const isAcceptAllVisible = await loginPage.isAcceptAllButtonVisible();
+
+      if (isPopupVisible) {
+        if (driver.isAndroid) {
+          await loginPage.clickClosePopup();
+          await loginPage.clickNextButton();
+          await loginPage.addUsernameOrEmailForForgotPasswordFlow(
+            LoginData.email,
+          );
+          await loginPage.clickAcceptAllButton();
+          await loginPage.scrollDown();
+          await loginPage.clickSubmitBtnForForgotPasswordFlow();
+          await loginPage.verifyTextAfterSubmittingUsernameOrEmail();
+        }
+        if (driver.isIOS) {
+          await loginPage.clickClosePopup();
+          await loginPage.clickAcceptAllButton();
+          await loginPage.clickNextButton();
+          await loginPage.addUsernameOrEmailForForgotPasswordFlow(
+            LoginData.email,
+          );
+          await loginPage.scrollDown();
+          await loginPage.clickSubmitBtnForForgotPasswordFlow();
+          await loginPage.verifyTextAfterSubmittingUsernameOrEmail();
+        }
+      } else if (isAcceptAllVisible) {
+        await loginPage.clickAcceptAllButton();
+        await loginPage.clickTapOnScreenToClosePopup();
+        await loginPage.clickNextButton();
+        await loginPage.addUsernameOrEmailForForgotPasswordFlow(
+          LoginData.email,
+        );
+        await loginPage.scrollDown();
+        await loginPage.clickSubmitBtnForForgotPasswordFlow();
+        await loginPage.verifyTextAfterSubmittingUsernameOrEmail();
+      }
     });
   });
 });

@@ -120,49 +120,49 @@ export class SchedulePage extends LoginPage {
   );
 
   public playerStatusHomeTeamNumberColumn = selector(
-    'android=new UiSelector().descriptionContains("No.").instance(0)',
+    'android=new UiSelector().text("No.").instance(0)',
     '(//XCUIElementTypeStaticText[@name="No."])[1]',
     "Player Status Home Team Number Column",
   );
 
   public playerStatusAwayTeamNumberColumn = selector(
-    'android=new UiSelector().descriptionContains("No.").instance(1)',
+    'android=new UiSelector().text("No.").instance(1)',
     '(//XCUIElementTypeStaticText[@name="No."])[2]',
     "Player Status Away Team Number Column",
   );
 
   public playerStatusHomeTeamNameColumn = selector(
-    'android=new UiSelector().descriptionContains("Name").instance(0)',
+    'android=new UiSelector().text("Name").instance(0)',
     '(//XCUIElementTypeStaticText[@name="Name"])[1]',
     "Player Status Home Team Name Column",
   );
 
   public playerStatusAwayTeamNameColumn = selector(
-    'android=new UiSelector().descriptionContains("Name").instance(1)',
+    'android=new UiSelector().text("Name").instance(1)',
     '(//XCUIElementTypeStaticText[@name="Name"])[2]',
     "Player Status Away Team Name Column",
   );
 
   public playerStatusHomeTeamGoalsColumn = selector(
-    'android=new UiSelector().descriptionContains("G").instance(0)',
+    'android=new UiSelector().text("G").instance(0)',
     '(//XCUIElementTypeStaticText[@name="G"])[1]',
     "Player Status Home Team Goals Column",
   );
 
   public playerStatusAwayTeamGoalsColumn = selector(
-    'android=new UiSelector().descriptionContains("G").instance(1)',
+    'android=new UiSelector().text("G").instance(1)',
     '(//XCUIElementTypeStaticText[@name="G"])[2]',
     "Player Status Away Team Goals Column",
   );
 
   public playerStatusHomeTeamAssistsColumn = selector(
-    'android=new UiSelector().descriptionContains("A").instance(0)',
+    'android=new UiSelector().text("A").instance(0)',
     '(//XCUIElementTypeStaticText[@name="A"])[1]',
     "Player Status Home Team Goals Column",
   );
 
   public playerStatusAwayTeamAssistsColumn = selector(
-    'android=new UiSelector().descriptionContains("A").instance(1)',
+    'android=new UiSelector().text("A").instance(1)',
     '(//XCUIElementTypeStaticText[@name="A"])[2]',
     "Player Status Away Team Goals Column",
   );
@@ -180,10 +180,10 @@ export class SchedulePage extends LoginPage {
   );
 
   public horizontalScrollContainer = selector(
-        'android=new UiSelector().className("android.widget.HorizontalScrollView")',
-        '//XCUIElementTypeOther[@name="main"]/XCUIElementTypeOther[1]',
-        'Horizontal scroll container'
-    )
+    'android=new UiSelector().className("android.widget.HorizontalScrollView")',
+    '//XCUIElementTypeOther[@name="main"]/XCUIElementTypeOther[1]',
+    "Horizontal scroll container",
+  );
 
   public matchCardById = (matchId: string) =>
     selector(
@@ -256,11 +256,20 @@ export class SchedulePage extends LoginPage {
   async openAndValidatePlayerStatusTab() {
     await this.waitUntilVisibleWithRetry(this.playerStatusTab);
     await this.click(this.playerStatusTab);
-     const scorerPage = new ScorerPage();
-    await this.waitUntilVisibleWithRetry(scorerPage.homeTeam);
-    await this.assertElementDisplayed(scorerPage.homeTeam);
-    await this.assertElementDisplayed(scorerPage.awayTeam);
+    const scorerPage = new ScorerPage();
+    const accepAllBtnVisible = await this.isElementVisible(
+      scorerPage.acceptAllButton,
+      15000,
+    );
+    if (accepAllBtnVisible) {
+      console.log("Accept All button is visible, clicking on it.");
+      await this.click(scorerPage.acceptAllButton);
+    }
+    await this.waitUntilVisibleWithRetry(scorerPage.homeTeamInPlayerStatsTab);
+    await this.assertElementDisplayed(scorerPage.homeTeamInPlayerStatsTab);
+    await this.assertElementDisplayed(scorerPage.awayTeamInPlayerStatsTab);
 
+    await this.waitUntilVisibleWithRetry(this.playerStatusHomeTeamNumberColumn);
     await this.assertElementDisplayed(this.playerStatusHomeTeamNumberColumn);
     await this.assertElementDisplayed(this.playerStatusHomeTeamNameColumn);
     await this.assertElementDisplayed(this.playerStatusHomeTeamGoalsColumn);

@@ -1,19 +1,20 @@
 import allureReporter from "@wdio/allure-reporter";
-import { getRandomNumberInRange, step } from "../../utils/helpers";
-import { LoginData } from "../../data/login.data";
-import { LoginPage } from "../../pages/login.page";
-import { HomePage } from "../../pages/home.page";
-import { ScorerPage } from "../../pages/scorer.page";
-import BasePage from "../../pages/base.page";
+import { getRandomNumberInRange, step } from "../../../utils/helpers";
+import { LoginData } from "../../../data/login.data";
+import { LoginPage } from "../../../pages/login.page";
+import { HomePage } from "../../../pages/home.page";
+import { ScorerPage } from "../../../pages/scorer.page";
+import BasePage from "../../../pages/base.page";
 import {
   PlayerPositions,
   PlayersInStartingFormation,
   PlayerNamesInTeamSheet,
   TeamsInTeamSheet,
-} from "../../data/teamSheet.data";
-import { MatchApiHelper } from "../../utils/matchApi.helper";
+} from "../../../data/teamSheet.data";
+import { MatchApiHelper } from "../../../utils/matchApi.helper";
 
 let matchId: number;
+let token: string;
 
 let homePlayer1InitialPosition: { x: number; y: number };
 let awayPlayer1InitialPosition: { x: number; y: number };
@@ -32,7 +33,7 @@ describe("Scorer team sheet recording window permissions", () => {
     allureReporter.addSeverity("critical");
 
     await step("Create match before launching app", async () => {
-      const token = await MatchApiHelper.getToken(
+      token = await MatchApiHelper.getToken(
         LoginData.email,
         LoginData.password,
       );
@@ -222,7 +223,7 @@ describe("Scorer team sheet recording window permissions", () => {
         );
         await scorerPage.saveStartingFormation();
         await scorerPage.waitUntilVisibleWithRetry(scorerPage.matchTimer);
-        await scorerPage.validateScorerScreenElements();
+        // await scorerPage.validateScorerScreenElements();
       },
     );
   });

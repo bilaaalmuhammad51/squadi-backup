@@ -63,15 +63,26 @@ export class LoginPage extends BasePage {
     "~Close",
     "location option popup close button",
   );
+  public tapOnScreenToClosePopup = selector(
+    'android=new UiSelector().text("Select Language")',
+    "",
+    "tap on screen to make close button visible if hidden in DOM",
+  );
   public tapOnScreenForNextButton = selector(
     'android=new UiSelector().text("Football")',
     "",
     "tap on screen to make Next visible if hidden in DOM",
   );
+
   public nextButton = selector(
     'android=new UiSelector().text("Next")',
     "~Next",
     "Next button",
+  );
+  public acceptAllButton = selector(
+    'android=new UiSelector().text("Accept all")',
+    "~Accept all",
+    "Accept all button in cookie consent popup",
   );
   public usernameOrEmailField = selector(
     '-android uiautomator:new UiSelector().className("android.widget.EditText").instance(1)',
@@ -99,22 +110,22 @@ export class LoginPage extends BasePage {
     "sign up",
   );
   public login = selector(
-    '(//android.view.View[@content-desc="Log In"])[2]',
-    '//XCUIElementTypeStaticText[@name="Log In"]',
+    'android=new UiSelector().description("Log In").instance(1)',
+    '-ios predicate string:name == "Log In" AND label == "Log In" AND type == "XCUIElementTypeButton"',
     "Login user",
   );
   public invalidUsernameOrPass = selector(
-    '(//android.view.View[@content-desc="Invalid username or password."])[1]',
-    '(//XCUIElementTypeStaticText[@name="Invalid username or password."])[1]',
+    "~Login Unsuccessful. Incorrect Username or Password. Please note your password is case sensitive.",
+    "~Login Unsuccessful. Incorrect Username or Password. Please note your password is case sensitive.",
     "invalid username or password text",
   );
   public okButton = selector(
-    '(//android.view.View[@content-desc="Invalid username or password."])[2]',
-    '(//XCUIElementTypeStaticText[@name="Invalid username or password."])[2]',
+    "~Ok",
+    '-ios predicate string:name == "Ok"',
     "invalid username or password ok button",
   );
   public viewPassword = selector(
-    '-android uiautomator:new UiSelector().className("android.view.View").instance(13)',
+    '-android uiautomator:new UiSelector().className("android.view.View").instance(12)',
     "//XCUIElementTypeWindow/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]/XCUIElementTypeOther[3]/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther",
     "view password",
   );
@@ -129,15 +140,16 @@ export class LoginPage extends BasePage {
     "Logout button in More tab",
   );
   public confirmLogoutButton = selector(
-    'android=new UiSelector().description("Log Out").instance(1)',
-    '-ios class chain:**/XCUIElementTypeStaticText[`name == "Log Out"`][2]',
+    "~Yes, log out",
+    "~Yes, log out",
     "Confirm logout button in logout popup",
   );
 
   async loginUser(user: string, pass: string) {
     await this.addUserName(user);
     await this.addPassword(pass);
-    await this.click(this.loginButton);
+    await this.waitUntilVisibleWithRetry(this.login);
+    await this.click(this.login);
   }
   async addUserName(user: string) {
     await this.click(this.username);
@@ -156,31 +168,76 @@ export class LoginPage extends BasePage {
     await this.click(this.forgotPassword);
   }
 
-  async closePopupIfVisible() {
-    const isPopupVisible = await this.getElement(
+  async ifClosePopupVisible(): Promise<boolean> {
+    const isVisible = await this.isElementVisible(
       this.locationOptionPopupCloseBtn,
-      { wait: true, timeout: 50000 },
-    )
-      .then(() => true)
-      .catch(() => false);
-    if (isPopupVisible) {
-      await this.click(this.locationOptionPopupCloseBtn);
-    }
+      12000,
+    );
+    return isVisible;
+  }
+
+  async isAcceptAllButtonVisible(): Promise<boolean> {
+    const isVisible = await this.isElementVisible(this.acceptAllButton, 5000);
+    return isVisible;
+  }
+
+  async clickClosePopup() {
+    await this.waitUntilVisibleWithRetry(
+      this.locationOptionPopupCloseBtn,
+      undefined,
+      30000,
+    );
+    await this.click(this.locationOptionPopupCloseBtn);
+    await this.waitUntilInvisibleWithRetry(
+      this.locationOptionPopupCloseBtn,
+      undefined,
+      30000,
+    );
+  }
+
+  async clickTapOnScreenToClosePopup() {
+    await this.waitUntilVisibleWithRetry(
+      this.tapOnScreenToClosePopup,
+      undefined,
+      30000,
+    );
+    await this.click(this.tapOnScreenToClosePopup);
+    await this.waitUntilInvisibleWithRetry(
+      this.locationOptionPopupCloseBtn,
+      undefined,
+      30000,
+    );
+  }
+
+  async clickAcceptAllButton() {
+    await this.waitUntilVisibleWithRetry(
+      this.acceptAllButton,
+      undefined,
+      30000,
+    );
+    await this.click(this.acceptAllButton);
+    await this.waitUntilInvisibleWithRetry(
+      this.acceptAllButton,
+      undefined,
+      30000,
+    );
   }
 
   async clickNextButton() {
-    const isNextBtnVisible = await this.getElement(this.nextButton, {
-      wait: true,
-      timeout: 10000,
-    })
-      .then(() => true)
-      .catch(() => false);
+    const isNextBtnVisible = await this.isElementVisible(
+      this.acceptAllButton,
+      9000,
+    );
     if (isNextBtnVisible) {
       await this.click(this.nextButton);
+      await this.waitUntilInvisibleWithRetry(this.nextButton, undefined, 30000);
     } else {
-      await this.click(this.tapOnScreenForNextButton);
-      await this.waitUntilVisibleWithRetry(this.nextButton, undefined, 30000);
-      await this.click(this.nextButton);
+      console.log("Next button not available to click");
+      if (driver.isAndroid) {
+        await this.click(this.tapOnScreenForNextButton);
+      } else if (driver.isIOS) {
+        await this.click(this.nextButton);
+      }
     }
   }
 
@@ -255,14 +312,15 @@ export class LoginPage extends BasePage {
   }
 
   async validateLoginBtnIsVisible() {
-    await this.handleIOSNotificationPrePrompt();
+    await this.handleStartupScreens();
     await this.scrollDown();
-    await this.waitUntilVisibleWithRetry(this.loginButton);
+    await this.waitUntilVisibleWithRetry(this.loginButton, 5);
   }
 
   async logoutUser() {
     await this.click(this.moreTab);
     await this.scrollUntilElementVisible(this.logoutButton);
+    await this.waitUntilVisibleWithRetry(this.logoutButton);
     await this.click(this.logoutButton);
     await this.waitUntilVisibleWithRetry(this.confirmLogoutButton);
     await this.click(this.confirmLogoutButton);

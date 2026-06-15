@@ -67,26 +67,6 @@ export const config: WebdriverIO.Config = {
 
   capabilities: getCapabilities(),
 
-  // beforeTest: async function (test) {
-  //     const timestamp = new Date().toISOString()
-  //     if (ENV === 'browserstack') {
-  //         await browser.execute(
-  //             'browserstack_executor: ' +
-  //             JSON.stringify({
-  //                 action: 'setSessionName',
-  //                 arguments: {
-  //                     name: `${PLATFORM === 'android' ? 'Android' : 'iOS'}: ${test.title} | ${timestamp}`
-  //                 }
-  //             })
-  //         )
-  //         return
-  //     }
-  //
-  //     await browser.startRecordingScreen({
-  //         forceRestart: true,
-  //         timeLimit: '180'
-  //     })
-  // },
   beforeTest: async function (test) {
     const timestamp = new Date().toISOString();
 
@@ -109,11 +89,8 @@ export const config: WebdriverIO.Config = {
       });
     }
 
-    // ---------- Handle iOS notification pre-prompt ----------
-    if (driver.isIOS) {
-      const basePage = new BasePage();
-      await basePage.handleIOSNotificationPrePrompt();
-    }
+    const basePage = new BasePage();
+    await basePage.handleStartupScreens();
   },
 
   afterTest: async function (test, _context, result) {

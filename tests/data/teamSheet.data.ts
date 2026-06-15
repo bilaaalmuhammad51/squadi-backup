@@ -1,3 +1,10 @@
+export const UserRoles = {
+  Scorer: "Scoring",
+  Manager: "Managing",
+  Referee: "Refereeing",
+  Coach: "Coaching",
+}
+
 export const TeamsInTeamSheet = {
   HomeTeam: "HR-ASN2Club1-D1-T2",
   Awayteam: "HR-ASN2Club2-D1-T3",

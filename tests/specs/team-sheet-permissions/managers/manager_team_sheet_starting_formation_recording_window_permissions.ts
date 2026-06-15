@@ -1,20 +1,22 @@
 import allureReporter from "@wdio/allure-reporter";
-import { step } from "../../utils/helpers";
-import { LoginData } from "../../data/login.data";
-import { LoginPage } from "../../pages/login.page";
-import { HomePage } from "../../pages/home.page";
-import { ScorerPage } from "../../pages/scorer.page";
-import BasePage from "../../pages/base.page";
+import { step } from "../../../utils/helpers";
+import { LoginData } from "../../../data/login.data";
+import { LoginPage } from "../../../pages/login.page";
+import { HomePage } from "../../../pages/home.page";
+import { ScorerPage } from "../../../pages/scorer.page";
+import BasePage from "../../../pages/base.page";
 import {
   PlayerPositions,
   PlayersInStartingFormation,
   PlayerNamesInTeamSheet,
   TeamsInTeamSheet,
-} from "../../data/teamSheet.data";
+} from "../../../data/teamSheet.data";
+import { MatchApiHelper } from "../../../utils/matchApi.helper";
 
-let matchId: string;
+let matchId: number;
+let token: string;
 
-describe("Manager team sheet pre-recording window permissions", () => {
+describe("Manager team sheet recording window permissions", () => {
   it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for respective team", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
@@ -24,6 +26,34 @@ describe("Manager team sheet pre-recording window permissions", () => {
     allureReporter.addFeature("Manager Flow");
     allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
     allureReporter.addSeverity("critical");
+
+    await step("Create match before launching app", async () => {
+      token = await MatchApiHelper.getToken(
+        LoginData.email,
+        LoginData.password,
+      );
+
+      matchId = await MatchApiHelper.createMatch(token, 9);
+
+      console.log("Created Match ID:", matchId);
+
+      allureReporter.addAttachment(
+        "Created Match ID",
+        String(matchId),
+        "text/plain",
+      );
+    });
+    
+    after(async () => {
+      try {
+        if (token && matchId) {
+          await MatchApiHelper.deleteMatch(token, matchId);
+          console.log(`Deleted Match ID: ${matchId}`);
+        }
+      } catch (error) {
+        console.error("Failed to delete match:", error);
+      }
+    });
 
     await step("Verify welcome screen is visible", async () => {
       await loginPage.validateLoginBtnIsVisible();
@@ -73,8 +103,7 @@ describe("Manager team sheet pre-recording window permissions", () => {
     );
 
     await step("Open a match from the Home screen", async () => {
-      matchId = "69731";
-      const matchElement = homePage.matchById(matchId);
+      const matchElement = homePage.matchById(matchId.toString());
       await basePage.scrollUntilElementVisible(matchElement);
       await homePage.assertElementDisplayed(matchElement);
       await homePage.click(matchElement);
@@ -82,7 +111,7 @@ describe("Manager team sheet pre-recording window permissions", () => {
     });
 
     await step("Validate navigation to manager screen", async () => {
-      await scorerPage.validateManagerScreenElements(matchId);
+      await scorerPage.validateManagerScreenElements(matchId.toString());
     });
 
     await step("validate manager page options", async () => {
@@ -121,6 +150,9 @@ describe("Manager team sheet pre-recording window permissions", () => {
     });
 
     await step("click Done button after managing team sheets", async () => {
+      await scorerPage.click(
+        scorerPage.homeTeamSheetTab(TeamsInTeamSheet.HomeTeam),
+      );
       await scorerPage.clickDoneBtn();
     });
 
@@ -192,8 +224,7 @@ describe("Manager team sheet pre-recording window permissions", () => {
     );
 
     await step("Open a match from the Home screen", async () => {
-      matchId = "69731";
-      const matchElement = homePage.matchById(matchId);
+      const matchElement = homePage.matchById(matchId.toString());
       await basePage.scrollUntilElementVisible(matchElement);
       await homePage.assertElementDisplayed(matchElement);
       await homePage.click(matchElement);
@@ -201,7 +232,7 @@ describe("Manager team sheet pre-recording window permissions", () => {
     });
 
     await step("Validate navigation to manager screen", async () => {
-      await scorerPage.validateManagerScreenElements(matchId);
+      await scorerPage.validateManagerScreenElements(matchId.toString());
     });
 
     await step("validate manager page options", async () => {

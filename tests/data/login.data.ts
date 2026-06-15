@@ -4,6 +4,8 @@ export const LoginData = {
   password: "Connect123",
   manager1Email: "shahshahbaz64+manager1@gmail.com",
   manager2Email: "shahshahbaz64+manager2@gmail.com",
+  coachEmail: "shahshahbaz64+coach1@gmail.com",
+  refereeEmail: "shahshahbaz64+referee1only@gmail.com",
 };
 
 export const emailLoginTestData = {
@@ -14,7 +16,7 @@ export const emailLoginTestData = {
 };
 
 export const invalidLoginErrorData = {
-  invalidUsernameOrPassword: "Invalid username or password",
+  invalidUsernameOrPassword: "Incorrect Username or Password",
   cases: [
     {
       name: "unregistered email + valid password",

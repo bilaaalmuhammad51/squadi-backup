@@ -6,6 +6,10 @@ import { HomePage } from "../../pages/home.page";
 import { ScorerPage } from "../../pages/scorer.page";
 import BasePage from "../../pages/base.page";
 import { Timeout } from "../../utils/timers";
+import { MatchApiHelper } from "../../utils/matchApi.helper";
+
+let matchId: number;
+let token: string;
 
 describe("Match Scoring Flow", () => {
   it.skip("should log in with valid credentials, open a match, manage team sheets, start or resume play, and validate score increment and undo actions", async () => {
@@ -17,6 +21,34 @@ describe("Match Scoring Flow", () => {
     allureReporter.addFeature("Scoring Flow");
     allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
     allureReporter.addSeverity("critical");
+
+    await step("Create match before launching app", async () => {
+      token = await MatchApiHelper.getToken(
+        LoginData.email,
+        LoginData.password,
+      );
+
+      matchId = await MatchApiHelper.createMatch(token, 15);
+
+      console.log("Created Match ID:", matchId);
+
+      allureReporter.addAttachment(
+        "Created Match ID",
+        String(matchId),
+        "text/plain",
+      );
+    });
+
+    after(async () => {
+      try {
+        if (token && matchId) {
+          await MatchApiHelper.deleteMatch(token, matchId);
+          console.log(`Deleted Match ID: ${matchId}`);
+        }
+      } catch (error) {
+        console.error("Failed to delete match:", error);
+      }
+    });
 
     await step("Verify welcome screen is visible", async () => {
       await loginPage.validateLoginBtnIsVisible();
@@ -66,8 +98,7 @@ describe("Match Scoring Flow", () => {
     );
 
     await step("Open a match from the Home screen", async () => {
-      const matchId = "69468";
-      const matchElement = homePage.matchById(matchId);
+      const matchElement = homePage.matchById(matchId.toString());
       await basePage.scrollUntilElementVisible(matchElement);
       await homePage.assertElementDisplayed(matchElement);
       await homePage.click(matchElement);

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { LoginData } from "../data/login.data";
 
 const USERS_BASE_URL = "https://api-dev1.squadi.com/users";
 const LIVESCORES_BASE_URL = "https://api-dev1.squadi.com/livescores";
@@ -130,6 +131,105 @@ export class MatchApiHelper {
     if (!matchId) {
       throw new Error(`Match ID not found: ${JSON.stringify(response.data)}`);
     }
+
+    return matchId;
+  }
+
+  static async deleteMatch(token: string, matchId: number): Promise<void> {
+    await axios.delete(`${LIVESCORES_BASE_URL}/matches/id/${matchId}`, {
+      headers: {
+        Authorization: `${token}`,
+        SourceSystem: "WebAdmin",
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    });
+  }
+
+  static async assignReferee(
+    token: string,
+    matchId: number,
+    umpireUserId = 161700,
+  ): Promise<void> {
+    const payload = {
+      matchId,
+      competitionId: 239,
+      organisationId: 58,
+      rosters: [
+        {
+          userId: umpireUserId,
+          roleId: 15,
+          sequence: 1,
+          matchId,
+          umpireName: "Syed Referee1 Only",
+          competitionOrganisationId: 0, // replace with your value
+          umpireType: "USERS",
+          enableAffiliateAssignment: false,
+        },
+      ],
+      officials: [],
+    };
+
+    await axios.post(`${LIVESCORES_BASE_URL}/matches/umpireRosters`, payload, {
+      headers: {
+        Authorization: `${token}`,
+        SourceSystem: "WebAdmin",
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    });
+  }
+
+  static async publishMatchOfficials(
+    token: string,
+    matchId: number,
+  ): Promise<void> {
+    console.log(`Publishing match officials for Match ID: ${matchId}`);
+    console.log(`Using token: ${token}`);
+    const params = new URLSearchParams({
+      timezone: "Asia/Karachi",
+      yearRefId: "6",
+      competitionId: "239",
+      organisationId: "58",
+      matchId: String(matchId),
+      divisionIds: "[]",
+      roundIds: "[]",
+      venueIds: "[]",
+      startDate: "null",
+      endDate: "null",
+      whenPublish: "2",
+      publishedAt: "null",
+    });
+
+    await axios.post(
+      `${LIVESCORES_BASE_URL}/matchUmpire/publishUmpire?${params.toString()}`,
+      null,
+      {
+        headers: {
+          Authorization: `${token}`,
+          SourceSystem: "WebAdmin",
+          Accept: "application/json",
+          // "Content-Type": "application/json",
+        },
+      },
+    );
+  }
+
+  static async createAndPublishMatch(
+    minutesAhead: number = 3,
+  ): Promise<number> {
+    // Generate auth token
+    const token = await MatchApiHelper.getToken(
+      LoginData.email,
+      LoginData.password,
+    );
+
+    // Create match
+    const matchId = await this.createMatch(token, minutesAhead);
+    console.log("Created Match ID:", matchId);
+    await MatchApiHelper.assignReferee(token, matchId);
+
+    await this.publishMatchOfficials(token, matchId);
 
     return matchId;
   }

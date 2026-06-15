@@ -1,6 +1,6 @@
 import { $, browser, expect } from "@wdio/globals";
 import { getPlatform } from "../factories/selector.factory";
-import type { DualSelector } from "../factories/page.factory";
+import { selector, type DualSelector } from "../factories/page.factory";
 import Logger from "../utils/logger";
 import { Timeout } from "../utils/timers";
 
@@ -9,6 +9,23 @@ export default class BasePage {
     '(//XCUIElementTypeStaticText[contains(@name,"Please allow notifications")])[1]';
   private readonly iosNotificationOkButton =
     '(//XCUIElementTypeStaticText[contains(@name, "notifications")])[2]';
+
+  private readonly skipBtnInFirstStartupPage = selector(
+    "~Skip",
+    "~Skip",
+    "Skip button in first startup page",
+  );
+  private readonly GotitBtnInSecondStartupPage = selector(
+    "~Got it",
+    "~Got it",
+    "Got it button in second startup page",
+  );
+  private readonly noThanksBtnInThirdStartupPage = selector(
+    "~No thanks",
+    "~No thanks",
+    "No thanks button in third startup page",
+  );
+
   async resolve(selector: DualSelector) {
     const platform = await getPlatform();
     return $(platform === "android" ? selector.android : selector.ios);
@@ -163,6 +180,23 @@ export default class BasePage {
     throw new Error(`Element still visible after ${maxAttempts} attempts`);
   }
 
+  async isElementVisible(
+    selector: DualSelector,
+    timeout = 5000,
+  ): Promise<boolean> {
+    try {
+      const element = await this.resolve(selector);
+
+      await element.waitForDisplayed({
+        timeout,
+      });
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async click(selector: DualSelector) {
     Logger.info(`Clicking element: ${selector.log}`);
     const element = await this.waitUntilVisibleWithRetry(selector);
@@ -230,49 +264,211 @@ export default class BasePage {
     return text;
   }
 
-    async scrollDown(
-        startXPercent: number = 0.5,
-        startYPercent: number = 0.5,
-        endYPercent: number = 0.1,
-        duration: number = 500
-    ): Promise<void> {
-        const { height, width } = await driver.getWindowRect();
+  async scrollDown(
+    startXPercent: number = 0.5,
+    startYPercent: number = 0.5,
+    endYPercent: number = 0.1,
+    duration: number = 500,
+  ): Promise<void> {
+    const { height, width } = await driver.getWindowRect();
 
-        const startX = Math.floor(width * startXPercent);
-        const startY = Math.floor(height * startYPercent);
-        const endY = Math.floor(height * endYPercent);
+    const startX = Math.floor(width * startXPercent);
+    const endY = Math.floor(height * endYPercent);
+    let startY = Math.floor(height * startYPercent);
 
-        await driver.execute("mobile: swipeGesture", {
-            left: startX - 5,
-            top: endY,
-            width: 10,
-            height: startY - endY,
-            direction: "up",
-            percent: 1.0,
-            speed: duration * 5,
-        });
-    }
-  async scrollUntilElementVisible(selector: DualSelector) {
-    const platform = await getPlatform();
-    let element;
-
-    if (platform === "android") {
-      // Remove "android=" from your selector before using in UiScrollable
-      const uiSelector = selector.android.replace(/^android=/, "");
-
-      element = await $(
-        `android=new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(${uiSelector})`,
-      );
-    } else {
-      // iOS scroll
-      element = await this.resolve(selector);
-      let attempts = 0;
-      while (!(await element.isDisplayed()) && attempts < 5) {
-        await driver.execute("mobile: scroll", { direction: "down" });
-        attempts++;
+    if (driver.isIOS) {
+      // If keyboard is open, clamp startY to above it
+      // This prevents the scroll gesture from starting inside the keyboard
+      const keyboardTopY = await this.getKeyboardTopY();
+      if (keyboardTopY !== null) {
+        startY = Math.min(startY, keyboardTopY - 50);
       }
+
+      // Use performActions directly — does NOT call DELETE /actions (unlike driver.action().perform())
+      // so it works on BrowserStack iOS without the "resource not found" error
+      await driver.performActions([
+        {
+          type: "pointer",
+          id: "finger1",
+          parameters: { pointerType: "touch" },
+          actions: [
+            { type: "pointerMove", duration: 0, x: startX, y: startY },
+            { type: "pointerDown", button: 0 },
+            { type: "pause", duration: 200 },
+            { type: "pointerMove", duration: duration, x: startX, y: endY },
+            { type: "pointerUp", button: 0 },
+          ],
+        },
+      ]);
+      // deliberately NOT calling driver.releaseActions() — it triggers
+      // DELETE /actions which BrowserStack iOS does not support
+    } else {
+      await driver.execute("mobile: swipeGesture", {
+        left: startX - 5,
+        top: endY,
+        width: 10,
+        height: startY - endY,
+        direction: "up",
+        percent: 1.0,
+        speed: duration * 5,
+      });
     }
   }
+
+  private async getKeyboardTopY(): Promise<number | null> {
+    try {
+      const kbd = await driver.$(
+        '-ios predicate string:type == "XCUIElementTypeKeyboard"',
+      );
+      if (await kbd.isExisting()) {
+        return (await kbd.getLocation()).y;
+      }
+    } catch {}
+    return null;
+  }
+
+  async scrollUntilElementVisible(
+    selector: DualSelector,
+    options: {
+      maxScrolls?: number;
+      direction?: "down" | "up";
+      scrollableSelector?: string; // optional anchor for the scroll container
+    } = {},
+  ) {
+    const { maxScrolls = 15, direction = "down", scrollableSelector } = options;
+    const platform = await getPlatform();
+
+    // Helper: check if element exists AND is displayed, without throwing
+    const isElementVisible = async (): Promise<boolean> => {
+      try {
+        const el = await this.resolve(selector);
+        if (!el || !(await el.isExisting())) return false;
+        return await el.isDisplayed();
+      } catch {
+        return false;
+      }
+    };
+
+    // Quick exit if already visible
+    if (await isElementVisible()) {
+      return await this.resolve(selector);
+    }
+
+    if (platform === "android") {
+      const uiSelector = selector.android.replace(/^android=/, "");
+
+      // Try each scrollable container until one works
+      const scrollableContainers = [
+        "new UiSelector().scrollable(true).instance(0)",
+        "new UiSelector().scrollable(true).instance(1)",
+        'new UiSelector().className("androidx.recyclerview.widget.RecyclerView")',
+        'new UiSelector().className("android.widget.ScrollView")',
+      ];
+
+      for (const container of scrollableContainers) {
+        try {
+          const element = await $(
+            `android=new UiScrollable(${container})` +
+              `.setMaxSearchSwipes(${maxScrolls})` +
+              `.scrollIntoView(${uiSelector})`,
+          );
+          if (await element.isExisting()) {
+            // Confirm it's actually on screen
+            if (await element.isDisplayed()) return element;
+          }
+        } catch {
+          // try next container
+        }
+      }
+
+      // Fallback: manual swipe loop
+      return await this.manualScroll(
+        selector,
+        maxScrolls,
+        direction,
+        isElementVisible,
+      );
+    } else {
+      // iOS: prefer mobile: scroll with element anchor when we know the container,
+      // otherwise use a manual swipe loop with bounds checking.
+      let attempts = 0;
+      let lastPageSource = "";
+
+      while (attempts < maxScrolls) {
+        if (await isElementVisible()) {
+          return await this.resolve(selector);
+        }
+
+        // Detect "stuck" — if page source didn't change, we hit the end
+        const currentSource = await driver.getPageSource();
+        if (currentSource === lastPageSource && attempts > 0) {
+          // Try the opposite direction once before giving up
+          if (direction === "down") {
+            await this.iosSwipe("up");
+            if (await isElementVisible()) return await this.resolve(selector);
+          }
+          break;
+        }
+        lastPageSource = currentSource;
+
+        await this.iosSwipe(direction);
+        attempts++;
+      }
+
+      throw new Error(
+        `Element not visible after ${attempts} scrolls: ${JSON.stringify(selector)}`,
+      );
+    }
+  }
+
+  // Helper: manual swipe-based scroll (works on both platforms but used as Android fallback)
+  private async manualScroll(
+    selector: DualSelector,
+    maxScrolls: number,
+    direction: "down" | "up",
+    isElementVisible: () => Promise<boolean>,
+  ) {
+    let attempts = 0;
+    while (attempts < maxScrolls) {
+      if (await isElementVisible()) return await this.resolve(selector);
+      await this.iosSwipe(direction); // works on Android too via W3C actions
+      attempts++;
+    }
+    throw new Error(`Element not visible after ${maxScrolls} manual scrolls`);
+  }
+
+  // Reliable swipe using W3C actions — works on both platforms, no overshoot
+  private async iosSwipe(direction: "up" | "down") {
+    const { width, height } = await driver.getWindowRect();
+    const startX = Math.floor(width / 2);
+    // Use 70% / 30% (not 90% / 10%) to avoid system gesture areas and overshooting
+    const startY =
+      direction === "down"
+        ? Math.floor(height * 0.7)
+        : Math.floor(height * 0.3);
+    const endY =
+      direction === "down"
+        ? Math.floor(height * 0.3)
+        : Math.floor(height * 0.7);
+
+    await driver.performActions([
+      {
+        type: "pointer",
+        id: "finger1",
+        parameters: { pointerType: "touch" },
+        actions: [
+          { type: "pointerMove", duration: 0, x: startX, y: startY },
+          { type: "pointerDown", button: 0 },
+          { type: "pause", duration: 100 },
+          { type: "pointerMove", duration: 600, x: startX, y: endY }, // slower = more reliable
+          { type: "pointerUp", button: 0 },
+        ],
+      },
+    ]);
+    await driver.releaseActions();
+    await driver.pause(400); // let momentum settle before next check
+  }
+
   async handleIOSNotificationPrePrompt() {
     if (!driver.isIOS) return;
     Logger.info("Handling IOS Notification PrePrompt");
@@ -284,6 +480,23 @@ export default class BasePage {
       await $(this.iosNotificationOkButton).click();
       await this.pause(Timeout.THREE_SECONDS);
       await this.scrollDown();
+    }
+  }
+
+  async handleStartupScreens() {
+    const element = await this.resolve(this.skipBtnInFirstStartupPage);
+
+    const isVisible = await element
+      .waitForDisplayed({ timeout: 10000 })
+      .then(() => true)
+      .catch(() => false);
+
+    if (isVisible) {
+      await this.click(this.skipBtnInFirstStartupPage);
+      await this.waitUntilVisible(this.GotitBtnInSecondStartupPage);
+      await this.click(this.GotitBtnInSecondStartupPage);
+      await this.waitUntilVisible(this.noThanksBtnInThirdStartupPage);
+      await this.click(this.noThanksBtnInThirdStartupPage);
     }
   }
 
@@ -355,6 +568,38 @@ export default class BasePage {
     } catch (error) {
       Logger.info(`Element not found: ${selector.log}`);
       return false;
+    }
+  }
+
+  async hideKeyboardSafely() {
+    if (driver.isAndroid) {
+      await driver.hideKeyboard();
+    } else {
+      await driver.performActions([
+        {
+          type: "pointer",
+          id: "finger1",
+          parameters: { pointerType: "touch" },
+          actions: [
+            {
+              type: "pointerMove",
+              duration: 0,
+              x: 10,
+              y: 10,
+            },
+            {
+              type: "pointerDown",
+              button: 0,
+            },
+            {
+              type: "pointerUp",
+              button: 0,
+            },
+          ],
+        },
+      ]);
+
+      await driver.releaseActions();
     }
   }
 }

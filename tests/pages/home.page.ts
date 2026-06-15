@@ -1,4 +1,4 @@
-import { selector } from "../factories/page.factory";
+import { DualSelector, selector } from "../factories/page.factory";
 import { LoginPage } from "./login.page";
 
 export class HomePage extends LoginPage {
@@ -40,6 +40,12 @@ export class HomePage extends LoginPage {
       `Match with ID ${matchId}`,
     );
 
+  public yesBtnForRefereeMatch = selector(
+    "~Yesy",
+    "~Yes",
+    "Yes button in match to accept match as referee",
+  );
+
   async verifyHomeScreenElements() {
     await this.waitUntilVisibleWithRetry(this.liveScores);
     await this.assertElementDisplayed(this.homeTab);
@@ -64,7 +70,27 @@ export class HomePage extends LoginPage {
     await this.assertElementDisplayed(this.laddersTab);
   }
 
-  async openShoduleTab() {
+  private matchYesButton(matchId: string | number): DualSelector {
+    const id = String(matchId);
+    return selector(
+      `android=new UiSelector().descriptionContains("Match ID: ${id}").childSelector(new UiSelector().description("Yes"))`,
+      `//XCUIElementTypeOther[contains(@name, 'Match ID: ${id}')]/following-sibling::XCUIElementTypeStaticText[@name='Yes']`,
+      `Yes button for Match ID ${id}`,
+    );
+  }
+
+  async clickYesForMatch(matchId: string | number): Promise<void> {
+    const sel = this.matchYesButton(matchId);
+    const locator = driver.isIOS ? sel.ios : sel.android;
+
+    console.log(`Clicking Yes button for Match ID: ${matchId}`);
+
+    const el = await driver.$(locator);
+    await el.waitForDisplayed({ timeout: 10_000 });
+    await el.click();
+  }
+
+  async openScheduleTab() {
     await this.waitUntilVisibleWithRetry(this.drawsBtn);
     await this.click(this.drawsBtn);
   }

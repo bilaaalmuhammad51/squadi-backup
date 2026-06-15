@@ -1,17 +1,21 @@
 import allureReporter from "@wdio/allure-reporter";
-import { step } from "../../utils/helpers";
-import { LoginData } from "../../data/login.data";
-import { LoginPage } from "../../pages/login.page";
-import { HomePage } from "../../pages/home.page";
-import { ScorerPage } from "../../pages/scorer.page";
-import BasePage from "../../pages/base.page";
+import { step } from "../../../utils/helpers";
+import { LoginData } from "../../../data/login.data";
+import { LoginPage } from "../../../pages/login.page";
+import { HomePage } from "../../../pages/home.page";
+import { ScorerPage } from "../../../pages/scorer.page";
+import BasePage from "../../../pages/base.page";
 import {
   PlayersInStartingFormation,
   PlayerNamesInTeamSheet,
   TeamsInTeamSheet,
-} from "../../data/teamSheet.data";
+  PlayerPositions,
+} from "../../../data/teamSheet.data";
+import { MatchApiHelper } from "../../../utils/matchApi.helper";
 
-let matchId: string;
+let matchId: number;
+let token: string;
+let matchElement: any;
 
 let homePlayer1InitialPosition: { x: number; y: number };
 let awayPlayer1InitialPosition: { x: number; y: number };
@@ -29,7 +33,124 @@ describe("Manager team sheet locked window permissions", () => {
     allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
     allureReporter.addSeverity("critical");
 
+    await step("Create match before launching app", async () => {
+      token = await MatchApiHelper.getToken(
+        LoginData.email,
+        LoginData.password,
+      );
+
+      matchId = await MatchApiHelper.createMatch(token, 2);
+
+      console.log("Created Match ID:", matchId);
+
+      allureReporter.addAttachment(
+        "Created Match ID",
+        String(matchId),
+        "text/plain",
+      );
+    });
+
+    after(async () => {
+      try {
+        if (token && matchId) {
+          await MatchApiHelper.deleteMatch(token, matchId);
+          console.log(`Deleted Match ID: ${matchId}`);
+        }
+      } catch (error) {
+        console.error("Failed to delete match:", error);
+      }
+    });
+
     await step("Verify welcome screen is visible", async () => {
+      await loginPage.validateLoginBtnIsVisible();
+    });
+
+    await step("Verify welcome screen elements", async () => {
+      await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
+      await loginPage.assertElementDisplayed(
+        loginPage.createAccountOrRegisterProfile,
+      );
+      await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
+      await loginPage.assertElementDisplayed(loginPage.loginButton);
+    });
+
+    await step("Navigate to login screen", async () => {
+      await loginPage.click(loginPage.loginButton);
+    });
+
+    await step("Verify login screen elements", async () => {
+      await loginPage.assertElementDisplayed(loginPage.backButton);
+      await loginPage.assertElementDisplayed(loginPage.loginHeading);
+      await loginPage.assertTextContains(
+        loginPage.loginHeading,
+        LoginData.loginHeading,
+      );
+      await loginPage.assertElementDisplayed(loginPage.rememberPassword);
+      await loginPage.assertElementDisplayed(loginPage.forgotPassword);
+    });
+
+    await step("Enter valid credentials", async () => {
+      await loginPage.addUserName(LoginData.manager2Email);
+      await loginPage.addPassword(LoginData.password);
+    });
+
+    await step("Submit login", async () => {
+      await loginPage.click(loginPage.login);
+    });
+
+    await step(
+      "Validate successful login by checking Home screen",
+      async () => {
+        await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
+        await homePage.assertElementDisplayed(homePage.homeTab);
+        await homePage.assertElementDisplayed(homePage.drawsTab);
+        await homePage.assertElementDisplayed(homePage.laddersTab);
+      },
+    );
+
+    await step("Open a match from the Home screen", async () => {
+      matchElement = homePage.matchById(matchId.toString());
+      await basePage.scrollUntilElementVisible(matchElement);
+      await homePage.assertElementDisplayed(matchElement);
+      await homePage.click(matchElement);
+      await scorerPage.handleErrorPopup();
+    });
+
+    await step("Validate navigation to manager screen", async () => {
+      await scorerPage.validateManagerScreenElements(matchId.toString());
+    });
+
+    await step("validate manager page options", async () => {
+      await scorerPage.validateTeamSheetOption();
+      await scorerPage.validateStartingFormationOption();
+    });
+
+    await step(
+      "Open team sheet option and validate team sheet elements",
+      async () => {
+        await scorerPage.openTeamSheetOption();
+        await scorerPage.validateAwayTeamSheetElements(
+          TeamsInTeamSheet.Awayteam,
+        );
+      },
+    );
+
+    await step("Select players and their positions for home team", async () => {
+      await scorerPage.selectPlayerAndPositionOfTeam(
+        PlayerNamesInTeamSheet.ClubPlayer2,
+        PlayerPositions.Forward,
+      );
+      await scorerPage.clickDoneBtn();
+      await scorerPage.saveStartingFormation();
+      await scorerPage.clickBackBtn();
+    });
+
+    await step("Logout and Log In again with Team2 Manager", async () => {
+      await scorerPage.logoutUser();
+    });
+
+    await step("Verify welcome screen is visible", async () => {
+      await loginPage.gotoLoginTab();
       await loginPage.validateLoginBtnIsVisible();
     });
 
@@ -77,8 +198,6 @@ describe("Manager team sheet locked window permissions", () => {
     );
 
     await step("Open a match from the Home screen", async () => {
-      matchId = "69731";
-      const matchElement = homePage.matchById(matchId);
       await basePage.scrollUntilElementVisible(matchElement);
       await homePage.assertElementDisplayed(matchElement);
       await homePage.click(matchElement);
@@ -86,17 +205,29 @@ describe("Manager team sheet locked window permissions", () => {
     });
 
     await step("Validate navigation to manager screen", async () => {
-      await scorerPage.validateManagerScreenElements(matchId);
+      await scorerPage.validateManagerScreenElements(matchId.toString());
     });
 
-    await step("validate manager page options", async () => {
-      await scorerPage.validateSubstitutionOption();
-      await scorerPage.validateStartingFormationOption();
+    //login completed
+
+    await step("Select players and their positions for away team", async () => {
+      await scorerPage.openTeamSheetOption();
+      await scorerPage.validateHomeTeamSheetElements(TeamsInTeamSheet.HomeTeam);
+      await scorerPage.selectPlayerAndPositionOfTeam(
+        PlayerNamesInTeamSheet.ClubPlayer1,
+        PlayerPositions.Midfielder,
+      );
+    });
+
+    await step("click Done button after managing team sheets", async () => {
+      await scorerPage.clickDoneBtn();
+      await scorerPage.saveStartingFormation();
     });
 
     await step(
       "Open substitutions option and validate substitution elements",
       async () => {
+        await scorerPage.waitUntilTeamSheetBecomesSubstitution(matchElement);
         await scorerPage.openSubstitutionOption();
         await scorerPage.validateHomeSubstitutionElements(
           TeamsInTeamSheet.HomeTeam,
@@ -229,7 +360,7 @@ describe("Manager team sheet locked window permissions", () => {
     );
 
     await step("Open a match from the Home screen", async () => {
-      const matchElement = homePage.matchById(matchId);
+      // const matchElement = homePage.matchById(matchId.toString());
       await basePage.scrollUntilElementVisible(matchElement);
       await homePage.assertElementDisplayed(matchElement);
       await homePage.click(matchElement);
@@ -237,9 +368,10 @@ describe("Manager team sheet locked window permissions", () => {
     });
 
     await step("Validate navigation to manager screen", async () => {
-      await scorerPage.validateManagerScreenElements(matchId);
+      await scorerPage.validateManagerScreenElements(matchId.toString());
     });
 
+    //following steps are to validate that team sheet and starting formation options are locked for team2 manager as team1 manager has already set them and they should not be editable by team2 manager
     await step("validate manager page options", async () => {
       await scorerPage.validateSubstitutionOption();
       await scorerPage.validateStartingFormationOption();
