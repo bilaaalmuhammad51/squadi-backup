@@ -86,14 +86,18 @@ jobs:
 
       - name: Download test APK
         env:
+          # Google Drive share/preview URL for the APK (large file).
           APK_URL: ${{ secrets.APK_URL }}
         run: |
           if [ -z "$APK_URL" ]; then
-            echo "APK_URL secret is not set. Add a direct-download URL for the APK as a repo secret named APK_URL."
+            echo "APK_URL secret is not set. Add the APK's Google Drive share URL as a repo secret named APK_URL."
             exit 1
           fi
           mkdir -p tests/apps
-          curl -fSL "$APK_URL" -o tests/apps/squadi-dev.apk
+          # gdown --fuzzy accepts a Drive share/preview URL and handles the
+          # virus-scan confirmation page that blocks plain curl for big files.
+          pip install --quiet gdown
+          gdown --fuzzy "$APK_URL" -O tests/apps/squadi-dev.apk
           echo "Downloaded APK:"
           ls -la tests/apps/squadi-dev.apk
           # Fail early if we got an HTML error page instead of a real APK
