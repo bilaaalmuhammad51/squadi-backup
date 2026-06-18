@@ -67,7 +67,9 @@ jobs:
         run: npm ci
 
       - name: Install Appium UiAutomator2 driver
-        run: npx appium driver install uiautomator2
+        # Pin to the 3.x line: driver v4+ requires Appium 3, but this project
+        # uses Appium 2 (see package.json). 3.x is the Appium-2-compatible line.
+        run: npx appium driver install uiautomator2@3.10.0
 
       - name: Setup Java (Allure + Android tooling)
         uses: actions/setup-java@v4
