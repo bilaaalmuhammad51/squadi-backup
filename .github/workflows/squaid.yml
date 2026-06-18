@@ -94,10 +94,18 @@ jobs:
             exit 1
           fi
           mkdir -p tests/apps
-          # gdown --fuzzy accepts a Drive share/preview URL and handles the
-          # virus-scan confirmation page that blocks plain curl for big files.
-          pip install --quiet --upgrade "gdown>=5.2.0"
-          gdown --fuzzy "$APK_URL" -O tests/apps/squadi-dev.apk
+          # Extract the Drive file ID from the share/preview URL, then let
+          # gdown download by ID. gdown handles the virus-scan confirmation
+          # page that blocks plain curl for big files (no --fuzzy needed, so
+          # it works regardless of the runner's preinstalled gdown version).
+          FILE_ID=$(echo "$APK_URL" | grep -oE '[-_a-zA-Z0-9]{25,}' | head -1)
+          if [ -z "$FILE_ID" ]; then
+            echo "Could not extract a Google Drive file ID from APK_URL"
+            exit 1
+          fi
+          echo "Drive file ID: $FILE_ID"
+          python3 -m pip install --quiet --upgrade gdown
+          python3 -m gdown "https://drive.google.com/uc?id=$FILE_ID" -O tests/apps/squadi-dev.apk
           echo "Downloaded APK:"
           ls -la tests/apps/squadi-dev.apk
           # Fail early if we got an HTML error page instead of a real APK
