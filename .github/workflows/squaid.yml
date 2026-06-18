@@ -1,0 +1,219 @@
+name: Daily Android Emulator Tests
+
+# Tier 1 of the Asma plan:
+# Fast, frequent regression on an Android emulator running entirely on the
+# GitHub Actions runner (local Appium server + UiAutomator2). No BrowserStack
+# minutes are consumed here - runner minutes only.
+
+on:
+  schedule:
+    # 02:17 UTC daily (off the :00 mark to avoid the cron rush)
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to run tests from
+        required: true
+        default: develop
+      api_level:
+        description: Android API level for the emulator
+        required: true
+        default: "34"
+      spec_path:
+        description: "Spec glob to run (default: all specs)"
+        required: false
+        default: "tests/specs/**/*.ts"
+
+permissions:
+  contents: write # needed to push the Allure report to the gh-pages branch
+
+# Allow the daily emulator run and the weekly BrowserStack run to publish to
+# Pages without cancelling each other.
+concurrency:
+  group: gh-pages-publish
+  cancel-in-progress: false
+
+jobs:
+  emulator-test:
+    name: Android Emulator (local)
+    runs-on: ubuntu-latest
+
+    env:
+      PLATFORM: android
+      ENV: local
+      APP: Squadi
+      TEST_ENV: Dev
+      API_LEVEL: ${{ github.event.inputs.api_level || '34' }}
+      SPEC_PATH: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
+
+      - name: Get commit short SHA
+        id: commit
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Appium UiAutomator2 driver
+        run: npx appium driver install uiautomator2
+
+      - name: Setup Java (Allure + Android tooling)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Enable KVM for hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Clean old reports
+        run: rm -rf allure-results allure-report
+
+      - name: Run tests on Android emulator
+        id: run_tests
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            # Start a local Appium server on 127.0.0.1:4723 (matches wdio local config)
+            npx appium --base-path / --log-timestamp --log appium.log &
+            APPIUM_PID=$!
+
+            # Wait for Appium to be ready (poll /status for up to 60s)
+            for i in $(seq 1 60); do
+              if curl -sSf http://127.0.0.1:4723/status >/dev/null 2>&1; then
+                echo "Appium is up"; break
+              fi
+              if [ "$i" -eq 60 ]; then
+                echo "Appium did not start"; cat appium.log; exit 1
+              fi
+              sleep 1
+            done
+
+            # Execute the suite locally against the booted emulator
+            PLATFORM=android ENV=local APP="$APP" TEST_ENV="$TEST_ENV" \
+              ./node_modules/.bin/wdio run ./wdio.conf.ts --spec "$SPEC_PATH"
+            STATUS=$?
+
+            kill $APPIUM_PID || true
+            exit $STATUS
+
+      - name: Upload Appium log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-log-${{ github.run_number }}
+          path: appium.log
+          if-no-files-found: ignore
+
+      - name: Generate Allure report
+        if: always()
+        run: |
+          if [ -d "allure-results" ]; then
+            npx --no-install allure generate allure-results --clean -o allure-report
+          else
+            mkdir -p allure-report
+            echo "<h1>No Allure results generated</h1>" > allure-report/index.html
+          fi
+
+      - name: Generate test summary
+        if: always()
+        id: summary
+        run: |
+          node <<'EOF'
+          const fs = require("fs");
+          const summaryPath = "allure-report/widgets/summary.json";
+          let stat = {}, ms = 0;
+          if (fs.existsSync(summaryPath)) {
+            const s = JSON.parse(fs.readFileSync(summaryPath, "utf8"));
+            stat = s.statistic || {};
+            ms = s.time?.duration || 0;
+          }
+          const sec = Math.round(ms / 1000);
+          const dur = sec >= 60 ? `${Math.floor(sec/60)}m ${sec%60}s` : `${sec}s`;
+          const out = process.env.GITHUB_OUTPUT;
+          for (const k of ["total","passed","failed","broken","flaky","skipped"]) {
+            fs.appendFileSync(out, `${k}=${stat[k] || 0}\n`);
+          }
+          fs.appendFileSync(out, `duration=${dur}\n`);
+          EOF
+
+      - name: Upload Allure artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-emulator-${{ github.run_number }}
+          path: allure-report
+          retention-days: 14
+
+      - name: Publish Allure report to GitHub Pages (emulator subpath)
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: allure-report
+          destination_dir: emulator
+          keep_files: true
+
+      - name: Send Slack report
+        if: always()
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ env.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "Squadi Daily Emulator Test Result",
+              "blocks": [
+                { "type": "header", "text": { "type": "plain_text", "text": "🤖 Squadi Daily Emulator (Android)" } },
+                { "type": "section", "text": { "type": "mrkdwn", "text": "${{ steps.run_tests.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}" } },
+                { "type": "divider" },
+                {
+                  "type": "section",
+                  "fields": [
+                    { "type": "mrkdwn", "text": "*🧪 Total*\n${{ steps.summary.outputs.total }}" },
+                    { "type": "mrkdwn", "text": "*⏱ Duration*\n${{ steps.summary.outputs.duration }}" },
+                    { "type": "mrkdwn", "text": "*✅ Passed*\n${{ steps.summary.outputs.passed }}" },
+                    { "type": "mrkdwn", "text": "*❌ Failed*\n${{ steps.summary.outputs.failed }}" },
+                    { "type": "mrkdwn", "text": "*⏭ Skipped*\n${{ steps.summary.outputs.skipped }}" },
+                    { "type": "mrkdwn", "text": "*⚠️ Flaky*\n${{ steps.summary.outputs.flaky }}" }
+                  ]
+                },
+                { "type": "divider" },
+                { "type": "context", "elements": [ { "type": "mrkdwn", "text": "💻 Execution: *GitHub Actions emulator (local Appium)*  ·  🔑 Commit: `${{ steps.commit.outputs.short_sha }}`" } ] },
+                {
+                  "type": "actions",
+                  "elements": [
+                    { "type": "button", "text": { "type": "plain_text", "text": "📊 Allure Report" }, "style": "primary", "url": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/emulator/" },
+                    { "type": "button", "text": { "type": "plain_text", "text": "🧾 GitHub Run" }, "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
+                  ]
+                }
+              ]
+            }
+
+      - name: Mark workflow failed if tests failed
+        if: steps.run_tests.outcome != 'success'
+        run: exit 1
