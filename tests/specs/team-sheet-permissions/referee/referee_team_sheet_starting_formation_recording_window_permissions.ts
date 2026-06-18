@@ -1,38 +1,32 @@
 import allureReporter from "@wdio/allure-reporter";
-import { step } from "../../utils/helpers";
-import { LoginData } from "../../data/login.data";
-import { LoginPage } from "../../pages/login.page";
-import { HomePage } from "../../pages/home.page";
-import { ScorerPage } from "../../pages/scorer.page";
-import BasePage from "../../pages/base.page";
+import { step } from "../../../utils/helpers";
+import { LoginData } from "../../../data/login.data";
+import { LoginPage } from "../../../pages/login.page";
+import { HomePage } from "../../../pages/home.page";
+import { ScorerPage } from "../../../pages/scorer.page";
+import BasePage from "../../../pages/base.page";
 import {
   PlayerPositions,
-  PlayersInStartingFormation,
   PlayerNamesInTeamSheet,
   TeamsInTeamSheet,
-} from "../../data/teamSheet.data";
-import { MatchApiHelper } from "../../utils/matchApi.helper";
+} from "../../../data/teamSheet.data";
+import { MatchApiHelper } from "../../../utils/matchApi.helper";
 
 let matchId: number;
 
-describe("Scorer team sheet pre-recording window permissions", () => {
-  it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for both teams", async () => {
+describe("Referee team sheet recording window permissions", () => {
+  it("log in with valid credentials, open a match, update team sheets by adding players", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
     const scorerPage = new ScorerPage();
     const basePage = new BasePage();
 
-    allureReporter.addFeature("Scoring Flow");
+    allureReporter.addFeature("Referee Flow");
     allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
     allureReporter.addSeverity("critical");
 
     await step("Create match before launching app", async () => {
-      const token = await MatchApiHelper.getToken(
-        LoginData.email,
-        LoginData.password,
-      );
-
-      matchId = await MatchApiHelper.createMatch(token, 15);
+      matchId = await MatchApiHelper.createAndPublishMatch(5);
 
       console.log("Created Match ID:", matchId);
 
@@ -41,6 +35,21 @@ describe("Scorer team sheet pre-recording window permissions", () => {
         String(matchId),
         "text/plain",
       );
+    });
+
+    after(async () => {
+      const token = await MatchApiHelper.getToken(
+        LoginData.email,
+        LoginData.password,
+      );
+      try {
+        if (token && matchId) {
+          await MatchApiHelper.deleteMatch(token, matchId);
+          console.log(`Deleted Match ID: ${matchId}`);
+        }
+      } catch (error) {
+        console.error("Failed to delete match:", error);
+      }
     });
 
     await step("Verify welcome screen is visible", async () => {
@@ -72,7 +81,7 @@ describe("Scorer team sheet pre-recording window permissions", () => {
     });
 
     await step("Enter valid credentials", async () => {
-      await loginPage.addUserName(LoginData.email);
+      await loginPage.addUserName(LoginData.refereeEmail);
       await loginPage.addPassword(LoginData.password);
     });
 
@@ -95,19 +104,17 @@ describe("Scorer team sheet pre-recording window permissions", () => {
       await basePage.scrollUntilElementVisible(matchElement);
       await homePage.assertElementDisplayed(matchElement);
       await homePage.click(matchElement);
+      await homePage.clickYesForMatch(matchId);
+      await homePage.click(matchElement);
       await scorerPage.handleErrorPopup();
-      await scorerPage.waitUntilVisibleWithRetry(scorerPage.matchTimer);
     });
 
-    await step("Validate navigation to scorer screen", async () => {
-      await scorerPage.validateScorerScreenElements();
-    });
-
-    await step("Open settings menu and validate options", async () => {
-      await scorerPage.clickSettingsIcon();
-      await scorerPage.validateTeamSheetOption();
-      await scorerPage.validateStartingFormationOption();
-    });
+    await step(
+      "Validate navigation to referee screen and it's options",
+      async () => {
+        await scorerPage.validateRefereeScreenElements(matchId.toString());
+      },
+    );
 
     await step(
       "Open team sheet option and validate team sheet elements",
@@ -124,10 +131,13 @@ describe("Scorer team sheet pre-recording window permissions", () => {
         PlayerNamesInTeamSheet.ClubPlayer1,
         PlayerPositions.Forward,
       );
+      await scorerPage.clickDoneBtn();
     });
 
     await step("Select players and their positions for away team", async () => {
-      await scorerPage.validateAwayTeamSheetElements(TeamsInTeamSheet.Awayteam);
+      await scorerPage.click(
+        scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+      );
       await scorerPage.selectPlayerAndPositionOfTeam(
         PlayerNamesInTeamSheet.ClubPlayer2,
         PlayerPositions.Midfielder,
@@ -136,30 +146,20 @@ describe("Scorer team sheet pre-recording window permissions", () => {
 
     await step("click Done button after managing team sheets", async () => {
       await scorerPage.clickDoneBtn();
-      await scorerPage.clickDoneBtn();
     });
 
-    await step("going back and opening Starting Formation", async () => {
+    await step(
+      "Open Game Referees option and validate it's elements",
+      async () => {
+        await scorerPage.openGameRefereesOption();
+        await scorerPage.validateRefereesElements();
+        await scorerPage.clickBackBtn();
+      },
+    );
+
+    await step("going back and validating Field option", async () => {
+      await scorerPage.waitUntilVisibleWithRetry(scorerPage.fieldOption);
       await scorerPage.clickBackBtn();
-      await scorerPage.clickBackBtn();
-      await scorerPage.openStartingFormationOption();
-    });
-
-    await step("dragging home players in Starting Formation", async () => {
-      await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer1);
-    });
-
-    await step("dragging away players in Starting Formation", async () => {
-      await scorerPage.click(
-        scorerPage.homeTeamSheetTab(TeamsInTeamSheet.Awayteam),
-      );
-      await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer2);
-    });
-
-    await step("save Starting Formation", async () => {
-      await scorerPage.saveStartingFormation();
-      await scorerPage.waitUntilVisibleWithRetry(scorerPage.matchTimer);
-      await scorerPage.validateScorerScreenElements();
     });
   });
 });

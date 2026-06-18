@@ -1,8 +1,8 @@
-import { LoginPage } from "./login.page";
 import { selector } from "../factories/page.factory";
 import { $ } from "../factories/page.factory";
+import { SchedulePage } from "./schedule.page";
 
-export class LaddersPage extends LoginPage {
+export class LaddersPage extends SchedulePage {
   public laddersTab = selector(
     'android=new UiSelector().descriptionContains("Ladders")',
     '-ios predicate string: name CONTAINS "Ladders"',
@@ -60,6 +60,11 @@ export class LaddersPage extends LoginPage {
   async openLaddersTab() {
     await this.waitUntilVisibleWithRetry(this.laddersTab);
     await this.click(this.laddersTab);
+  }
+
+  async isTeamAddedOrNot(): Promise<boolean> {
+    const isNotAdded = await this.isElementVisible(this.addTeamBtn);
+    return !isNotAdded;
   }
 
   async openShortLaddersTab() {

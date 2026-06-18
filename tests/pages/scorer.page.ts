@@ -2,6 +2,7 @@ import { DualSelector, selector } from "../factories/page.factory";
 import { Timeout } from "../utils/timers";
 import { LoginPage } from "./login.page";
 import { HomePage } from "../pages/home.page";
+import { UserRoles } from "../data/teamSheet.data";
 
 export class ScorerPage extends LoginPage {
   public teamSheetAlert = selector(
@@ -22,8 +23,20 @@ export class ScorerPage extends LoginPage {
     "Home Team",
   );
 
+  public homeTeamInPlayerStatsTab = selector(
+    'android=new UiSelector().text("HHR-ASN2Club1-D1-T2")',
+    "~HR-ASN2Club1-D1-T2",
+    "Home Team",
+  );
+
   public awayTeam = selector(
     "~HR-ASN2Club2-D1-T3",
+    "~HR-ASN2Club2-D1-T3",
+    "Away Team",
+  );
+
+  public awayTeamInPlayerStatsTab = selector(
+    'android=new UiSelector().text("HHR-ASN2Club2-D1-T3")',
     "~HR-ASN2Club2-D1-T3",
     "Away Team",
   );
@@ -40,6 +53,13 @@ export class ScorerPage extends LoginPage {
       `android=new UiSelector().descriptionContains("${teamName}")`,
       `-ios predicate string: name CONTAINS "${teamName}"`,
       "Away Team Sheet",
+    );
+
+  public gameCard = (keyword: string, matchId: string) =>
+    selector(
+      `android=new UiSelector().descriptionContains("${keyword}").descriptionContains("Match ID: ${matchId}")`,
+      `-ios predicate string: name CONTAINS "${keyword}" AND name CONTAINS "Match ID: ${matchId}"`,
+      "Game Card",
     );
 
   public selectHomeTeamPlayer = (playerName: string) =>
@@ -191,25 +211,49 @@ export class ScorerPage extends LoginPage {
   public teamSheetOption = selector(
     "~Team Sheet",
     "~Team Sheet",
-    "Team Sheet Option in Settings",
+    "Team Sheet Option in Match",
   );
 
   public substitutionOption = selector(
     "~Substitutions",
     "~Substitutions",
-    "Substitution Option in Settings",
+    "Substitution Option in Match",
   );
 
   public startingFormationOption = selector(
     "~Starting Formation",
     "~Starting Formation",
-    "Starting Formation Option in Settings",
+    "Starting Formation Option in Match",
+  );
+
+  public gameRefereesOption = selector(
+    "~Game Referees",
+    "~Game Referees",
+    "Game Referees Option in Match",
+  );
+
+  public matchRefereeHeading = selector(
+    "~Match referee",
+    "~Match referee",
+    "Match Referee heading in Game Referees",
+  );
+
+  public assistantReferee1Heading = selector(
+    "~Assistant Referee 1",
+    "~Assistant Referee 1",
+    "Assistant Referee 1 heading in Game Referees",
+  );
+
+  public assistantReferee2Heading = selector(
+    "~Assistant Referee 2",
+    "~Assistant Referee 2",
+    "Assistant Referee 2 heading in Game Referees",
   );
 
   public fieldOption = selector(
     'android=new UiSelector().descriptionContains("Field")',
     '-ios predicate string:name CONTAINS "Field"',
-    "Field Option after opening match as a Manager",
+    "Field Option after opening match",
   );
 
   public selectPlayerInTeamSheet = (player: string) =>
@@ -227,11 +271,7 @@ export class ScorerPage extends LoginPage {
     );
 
   public okBtnToSaveShirtNumberInTeamSheet = () =>
-    selector(
-      `android=new UiSelector().description("Enter a shirt number").instance(2)`,
-      `(//XCUIElementTypeStaticText[@name="Enter a shirt number"])[2]`,
-      "OK button to save shirt number in team sheet",
-    );
+    selector(`~Ok`, `~Ok`, "OK button to save shirt number in team sheet");
 
   public cancelBtnForShirtNumberInTeamSheet = () =>
     selector(
@@ -268,15 +308,27 @@ export class ScorerPage extends LoginPage {
   }
 
   async validateManagerScreenElements(matchId: string) {
+    console.log('latest');
     const homePage = new HomePage();
     await this.waitUntilVisibleWithRetry(this.startingFormationOption);
     await this.assertElementDisplayed(this.startingFormationOption);
     const matchElement = homePage.matchById(matchId);
     await this.scrollUntilElementVisible(matchElement);
     await homePage.assertElementDisplayed(matchElement);
-
+    await homePage.assertElementDisplayed(
+      this.gameCard(UserRoles.Manager, matchId),
+    );
     await this.assertElementDisplayed(this.fieldOption);
     await this.assertElementDisplayed(this.ResponsesHeading);
+  }
+  async validateRefereeScreenElements(matchId: string) {
+    await this.waitUntilVisibleWithRetry(this.teamSheetOption);
+    await this.assertElementNotDisplayed(this.startingFormationOption);
+    await this.assertElementDisplayed(
+      this.gameCard(UserRoles.Referee, matchId),
+    );
+    await this.validateGameRefereesOption();
+    await this.assertElementDisplayed(this.fieldOption);
   }
 
   async selectShirtNumberIfNot() {
@@ -423,11 +475,6 @@ export class ScorerPage extends LoginPage {
     await this.click(this.crossCloseBtn);
   }
 
-  async validateTeamSheetOption() {
-    await this.waitUntilVisibleWithRetry(this.teamSheetOption);
-    await this.assertElementDisplayed(this.teamSheetOption);
-  }
-
   async isElementDisplayed(selector: DualSelector): Promise<boolean> {
     try {
       const element = await this.resolve(selector);
@@ -438,6 +485,42 @@ export class ScorerPage extends LoginPage {
   }
 
   async waitUntilTeamSheetBecomesSubstitution(
+    matchElement: any,
+    maxAttempts: number = 20,
+    waitBetweenAttempts: number = 5000,
+  ) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      console.log(
+        `[Attempt ${attempt}] Checking if Team Sheet became Substitution`,
+      );
+
+      await this.scrollUntilElementVisible(matchElement);
+      await this.click(matchElement);
+
+      await browser.pause(3000); // Wait for the match details to load
+
+      const substitutionVisible = await this.isElementDisplayed(
+        this.substitutionOption,
+      );
+
+      if (substitutionVisible) {
+        console.log("Substitution option is now visible");
+        return;
+      }
+
+      console.log("Still showing Team Sheet. Retrying...");
+
+      await this.clickBackBtn();
+
+      await driver.pause(waitBetweenAttempts);
+    }
+
+    throw new Error(
+      `Substitution option did not appear after ${maxAttempts} attempts`,
+    );
+  }
+
+  async waitUntilTeamSheetBecomesSubstitutionForScorer(
     maxAttempts: number = 20,
     waitBetweenAttempts: number = 5000,
   ) {
@@ -473,6 +556,11 @@ export class ScorerPage extends LoginPage {
     );
   }
 
+  async validateTeamSheetOption() {
+    await this.waitUntilVisibleWithRetry(this.teamSheetOption);
+    await this.assertElementDisplayed(this.teamSheetOption);
+  }
+
   async validateSubstitutionOption() {
     await this.waitUntilVisibleWithRetry(this.substitutionOption);
     await this.assertElementDisplayed(this.substitutionOption);
@@ -481,6 +569,11 @@ export class ScorerPage extends LoginPage {
   async validateStartingFormationOption() {
     await this.waitUntilVisibleWithRetry(this.startingFormationOption);
     await this.assertElementDisplayed(this.startingFormationOption);
+  }
+
+  async validateGameRefereesOption() {
+    await this.waitUntilVisibleWithRetry(this.gameRefereesOption);
+    await this.assertElementDisplayed(this.gameRefereesOption);
   }
 
   async openTeamSheetOption() {
@@ -558,12 +651,11 @@ export class ScorerPage extends LoginPage {
 
   async dragPlayer(
     player: string,
-    offSetX: number = 80,
+    offsetX: number = 80,
     offsetY: number = 120,
-  ) {
+  ): Promise<void> {
     const selectorObj = this.playerIconToDragInStartingFormation(player);
     const selector = await this.resolveSelectorObjToString(selectorObj);
-
     const element = await $(selector);
 
     const { x, y } = await element.getLocation();
@@ -571,8 +663,7 @@ export class ScorerPage extends LoginPage {
 
     const startX = x + width / 2;
     const startY = y + height / 2;
-
-    const endX = startX + offSetX;
+    const endX = startX + offsetX;
     const endY = startY + offsetY;
 
     await driver.performActions([
@@ -589,13 +680,23 @@ export class ScorerPage extends LoginPage {
         ],
       },
     ]);
-
-    await driver.releaseActions();
   }
 
   async saveStartingFormation() {
     await this.waitUntilVisibleWithRetry(this.tickButtonInStartingFormation);
     await this.click(this.tickButtonInStartingFormation);
+  }
+
+  async openGameRefereesOption() {
+    await this.waitUntilVisibleWithRetry(this.gameRefereesOption);
+    await this.click(this.gameRefereesOption);
+  }
+
+  async validateRefereesElements() {
+    await this.waitUntilVisibleWithRetry(this.matchRefereeHeading);
+    await this.assertElementDisplayed(this.matchRefereeHeading);
+    await this.assertElementDisplayed(this.assistantReferee1Heading);
+    await this.assertElementDisplayed(this.assistantReferee2Heading);
   }
 
   async startMatch() {
