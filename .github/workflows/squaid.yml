@@ -99,29 +99,9 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: |
-            # Start a local Appium server on 127.0.0.1:4723 (matches wdio local config)
-            npx appium --base-path / --log-timestamp --log appium.log &
-            APPIUM_PID=$!
-
-            # Wait for Appium to be ready (poll /status for up to 60s)
-            for i in $(seq 1 60); do
-              if curl -sSf http://127.0.0.1:4723/status >/dev/null 2>&1; then
-                echo "Appium is up"; break
-              fi
-              if [ "$i" -eq 60 ]; then
-                echo "Appium did not start"; cat appium.log; exit 1
-              fi
-              sleep 1
-            done
-
-            # Execute the suite locally against the booted emulator
-            PLATFORM=android ENV=local APP="$APP" TEST_ENV="$TEST_ENV" \
-              ./node_modules/.bin/wdio run ./wdio.conf.ts --spec "$SPEC_PATH"
-            STATUS=$?
-
-            kill $APPIUM_PID || true
-            exit $STATUS
+          # The runner executes each line of an inline script as a separate
+          # shell, so the full sequence lives in one file instead.
+          script: bash scripts/run-emulator-tests.sh
 
       - name: Upload Appium log
         if: always()
