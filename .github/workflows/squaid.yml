@@ -84,6 +84,30 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      - name: Download test APK
+        env:
+          # Google Drive share/preview URL for the APK (large file).
+          APK_URL: ${{ secrets.APK_URL }}
+        run: |
+          if [ -z "$APK_URL" ]; then
+            echo "APK_URL secret is not set. Add the APK's Google Drive share URL as a repo secret named APK_URL."
+            exit 1
+          fi
+          mkdir -p tests/apps
+          # gdown --fuzzy accepts a Drive share/preview URL and handles the
+          # virus-scan confirmation page that blocks plain curl for big files.
+          pip install --quiet gdown
+          gdown --fuzzy "$APK_URL" -O tests/apps/squadi-dev.apk
+          echo "Downloaded APK:"
+          ls -la tests/apps/squadi-dev.apk
+          # Fail early if we got an HTML error page instead of a real APK
+          if ! file tests/apps/squadi-dev.apk | grep -qiE 'archive|android|zip'; then
+            echo "Downloaded file does not look like an APK:"
+            file tests/apps/squadi-dev.apk
+            head -c 200 tests/apps/squadi-dev.apk
+            exit 1
+          fi
+
       - name: Clean old reports
         run: rm -rf allure-results allure-report
 
