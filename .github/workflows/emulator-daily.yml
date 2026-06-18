@@ -84,6 +84,26 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      - name: Download test APK
+        env:
+          APK_URL: ${{ secrets.APK_URL }}
+        run: |
+          if [ -z "$APK_URL" ]; then
+            echo "APK_URL secret is not set. Add a direct-download URL for the APK as a repo secret named APK_URL."
+            exit 1
+          fi
+          mkdir -p tests/apps
+          curl -fSL "$APK_URL" -o tests/apps/squadi-dev.apk
+          echo "Downloaded APK:"
+          ls -la tests/apps/squadi-dev.apk
+          # Fail early if we got an HTML error page instead of a real APK
+          if ! file tests/apps/squadi-dev.apk | grep -qiE 'archive|android|zip'; then
+            echo "Downloaded file does not look like an APK:"
+            file tests/apps/squadi-dev.apk
+            head -c 200 tests/apps/squadi-dev.apk
+            exit 1
+          fi
+
       - name: Clean old reports
         run: rm -rf allure-results allure-report
 
