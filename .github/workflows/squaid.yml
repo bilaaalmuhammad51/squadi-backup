@@ -96,7 +96,7 @@ jobs:
           mkdir -p tests/apps
           # gdown --fuzzy accepts a Drive share/preview URL and handles the
           # virus-scan confirmation page that blocks plain curl for big files.
-          pip install --quiet gdown
+          pip install --quiet --upgrade "gdown>=5.2.0"
           gdown --fuzzy "$APK_URL" -O tests/apps/squadi-dev.apk
           echo "Downloaded APK:"
           ls -la tests/apps/squadi-dev.apk
