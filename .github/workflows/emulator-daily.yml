@@ -25,7 +25,9 @@ on:
         default: "tests/specs/**/*.ts"
 
 permissions:
-  contents: write # needed to push the Allure report to the gh-pages branch
+  contents: read
+  pages: write # publish via the native GitHub Pages (Actions) deployment
+  id-token: write # required by actions/deploy-pages
 
 # Allow the daily emulator run and the weekly BrowserStack run to publish to
 # Pages without cancelling each other.
@@ -37,6 +39,9 @@ jobs:
   emulator-test:
     name: Android Emulator (local)
     runs-on: ubuntu-latest
+    # Hard cap so a stuck emulator teardown can never run for hours. The whole
+    # job (boot + tests + report) comfortably finishes well under this.
+    timeout-minutes: 30
 
     env:
       PLATFORM: android
@@ -114,6 +119,12 @@ jobs:
       - name: Run tests on Android emulator
         id: run_tests
         continue-on-error: true
+        # Step-level cap on top of the job cap: if the emulator still hangs on
+        # shutdown (the action's teardown is known to stall), force-kill the
+        # step quickly instead of idling. Tests + boot finish well under this;
+        # the script hard-kills the emulator at the end so teardown should be
+        # near-instant. This cap is only the worst-case safety net.
+        timeout-minutes: 12
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ env.API_LEVEL }}
@@ -121,7 +132,10 @@ jobs:
           arch: x86_64
           profile: pixel_6
           force-avd-creation: false
-          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # More RAM/cores so the launcher doesn't ANR ("Pixel Launcher isn't
+          # responding") under load. -no-snapshot-save avoids a slow snapshot
+          # write that can hang teardown.
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 4096 -cores 2
           disable-animations: true
           # The runner executes each line of an inline script as a separate
           # shell, so the full sequence lives in one file instead.
@@ -167,6 +181,21 @@ jobs:
           fs.appendFileSync(out, `duration=${dur}\n`);
           EOF
 
+      - name: Determine test result
+        # Decide pass/fail from the real WDIO exit code (written by the test
+        # script), NOT from the emulator-runner step outcome - that step exits
+        # non-zero because we hard-kill the emulator, even when tests passed.
+        if: always()
+        id: result
+        run: |
+          code=$(cat wdio-exit-code.txt 2>/dev/null || echo "1")
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" = "0" ]; then
+            echo "outcome=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "outcome=failure" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Upload Allure artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -175,14 +204,24 @@ jobs:
           path: allure-report
           retention-days: 14
 
-      - name: Publish Allure report to GitHub Pages (emulator subpath)
+      - name: Assemble Pages site (report under /emulator/)
         if: always()
-        uses: peaceiris/actions-gh-pages@v4
+        run: |
+          rm -rf _site
+          mkdir -p _site/emulator
+          cp -r allure-report/. _site/emulator/
+          # Root redirect so the site root also lands on the emulator report.
+          printf '<!doctype html><meta http-equiv="refresh" content="0; url=./emulator/">' > _site/index.html
+
+      - name: Setup Pages
+        if: always()
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: allure-report
-          destination_dir: emulator
-          keep_files: true
+          path: _site
 
       - name: Send Slack report
         if: always()
@@ -195,7 +234,7 @@ jobs:
               "text": "Squadi Daily Emulator Test Result",
               "blocks": [
                 { "type": "header", "text": { "type": "plain_text", "text": "🤖 Squadi Daily Emulator (Android)" } },
-                { "type": "section", "text": { "type": "mrkdwn", "text": "${{ steps.run_tests.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}" } },
+                { "type": "section", "text": { "type": "mrkdwn", "text": "${{ steps.result.outputs.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}" } },
                 { "type": "divider" },
                 {
                   "type": "section",
@@ -221,5 +260,22 @@ jobs:
             }
 
       - name: Mark workflow failed if tests failed
-        if: steps.run_tests.outcome != 'success'
+        if: steps.result.outputs.outcome != 'success'
         run: exit 1
+
+  # Publish the Allure report via the native GitHub Pages (Actions) deployment.
+  # Kept as its own job (carrying the github-pages environment) so the tests
+  # above run cleanly on any branch. The github-pages environment allows all
+  # branches to deploy, so the report publishes from any branch.
+  deploy-report:
+    name: Publish Allure report to Pages
+    needs: emulator-test
+    if: always()
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy_pages.outputs.page_url }}
+    steps:
+      - name: Publish to GitHub Pages
+        id: deploy_pages
+        uses: actions/deploy-pages@v4
