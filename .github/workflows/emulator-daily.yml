@@ -6,9 +6,9 @@ name: Daily Android Emulator Tests
 # minutes are consumed here - runner minutes only.
 
 on:
-  schedule:
+#  schedule:
     # 02:17 UTC daily (off the :00 mark to avoid the cron rush)
-    - cron: "17 2 * * *"
+#    - cron: "17 2 * * *"
   workflow_dispatch:
     inputs:
       branch:
@@ -86,29 +86,21 @@ jobs:
 
       - name: Download test APK
         env:
-          # Google Drive share/preview URL for the APK (large file).
-          APK_URL: ${{ secrets.APK_URL }}
+          # The test APK is stored as an asset on a GitHub Release in this
+          # repo (tag below). GITHUB_TOKEN can read it directly - no external
+          # service, virus-scan page, or quota to fight with.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APK_RELEASE_TAG: ${{ vars.APK_RELEASE_TAG || 'test-apk' }}
         run: |
-          if [ -z "$APK_URL" ]; then
-            echo "APK_URL secret is not set. Add the APK's Google Drive share URL as a repo secret named APK_URL."
-            exit 1
-          fi
           mkdir -p tests/apps
-          # Extract the Drive file ID from the share/preview URL, then let
-          # gdown download by ID. gdown handles the virus-scan confirmation
-          # page that blocks plain curl for big files (no --fuzzy needed, so
-          # it works regardless of the runner's preinstalled gdown version).
-          FILE_ID=$(echo "$APK_URL" | grep -oE '[-_a-zA-Z0-9]{25,}' | head -1)
-          if [ -z "$FILE_ID" ]; then
-            echo "Could not extract a Google Drive file ID from APK_URL"
-            exit 1
-          fi
-          echo "Drive file ID: $FILE_ID"
-          python3 -m pip install --quiet --upgrade gdown
-          python3 -m gdown "https://drive.google.com/uc?id=$FILE_ID" -O tests/apps/squadi-dev.apk
+          gh release download "$APK_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern squadi-dev.apk \
+            --dir tests/apps \
+            --clobber
           echo "Downloaded APK:"
           ls -la tests/apps/squadi-dev.apk
-          # Fail early if we got an HTML error page instead of a real APK
+          # Fail early if we somehow got something that isn't an APK
           if ! file tests/apps/squadi-dev.apk | grep -qiE 'archive|android|zip'; then
             echo "Downloaded file does not look like an APK:"
             file tests/apps/squadi-dev.apk
