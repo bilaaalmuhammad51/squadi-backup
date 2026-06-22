@@ -12,6 +12,25 @@ APP="${APP:-Squadi}"
 TEST_ENV="${TEST_ENV:-Dev}"
 SPEC_PATH="${SPEC_PATH:-tests/specs/**/*.ts}"
 
+# Let the device settle after boot_completed. The launcher can still be warming
+# up and throw a "Pixel Launcher isn't responding" ANR that overlays the app
+# and breaks the first test. A short pause lets it finish coming up.
+echo "Waiting for the device to settle after boot..."
+adb wait-for-device
+adb shell 'while [ "$(getprop sys.boot_completed)" != "1" ]; do sleep 1; done' || true
+sleep 20
+
+# Dismiss any system ANR / "isn't responding" dialog so it can't cover the app.
+# Tapping "Wait" (or sending keyevents) clears the modal if one is present.
+if adb shell dumpsys window 2>/dev/null | grep -qiE "Application Not Responding|isn't responding|Wait"; then
+  echo "System ANR dialog detected - dismissing it"
+  adb shell input keyevent KEYCODE_DPAD_RIGHT || true
+  adb shell input keyevent KEYCODE_ENTER || true
+  adb shell input keyevent KEYCODE_BACK || true
+fi
+# Make sure the launcher is foregrounded and stable before tests start.
+adb shell input keyevent KEYCODE_HOME || true
+
 # Start a local Appium server on 127.0.0.1:4723 (matches the wdio local config)
 npx appium --base-path / --log-timestamp --log appium.log &
 APPIUM_PID=$!

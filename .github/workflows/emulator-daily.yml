@@ -37,6 +37,9 @@ jobs:
   emulator-test:
     name: Android Emulator (local)
     runs-on: ubuntu-latest
+    # Hard cap so a stuck emulator teardown can never run for hours. The whole
+    # job (boot + tests + report) comfortably finishes well under this.
+    timeout-minutes: 30
 
     env:
       PLATFORM: android
@@ -114,6 +117,10 @@ jobs:
       - name: Run tests on Android emulator
         id: run_tests
         continue-on-error: true
+        # Step-level cap on top of the job cap: if the emulator hangs on
+        # shutdown (the action's teardown is known to stall), kill it here
+        # rather than letting it idle until the job timeout.
+        timeout-minutes: 25
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ env.API_LEVEL }}
@@ -121,7 +128,10 @@ jobs:
           arch: x86_64
           profile: pixel_6
           force-avd-creation: false
-          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # More RAM/cores so the launcher doesn't ANR ("Pixel Launcher isn't
+          # responding") under load. -no-snapshot-save avoids a slow snapshot
+          # write that can hang teardown.
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 4096 -cores 2
           disable-animations: true
           # The runner executes each line of an inline script as a separate
           # shell, so the full sequence lives in one file instead.
