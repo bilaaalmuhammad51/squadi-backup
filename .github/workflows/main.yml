@@ -1,44 +1,87 @@
 name: Squadi Mobile Tests
 
+# Tier 2 of the Asma plan:
+# Weekly real-device coverage on BrowserStack across Android AND iOS.
+# Manual dispatch still runs a single chosen platform on demand.
+
 on:
+  schedule:
+    # 03:23 UTC every Monday (weekly real-device run)
+    - cron: "23 3 * * 1"
   workflow_dispatch:
     inputs:
       branch:
         description: Branch to run tests from
         required: true
-        default: bs-setup
+        default: develop
       platform:
-        description: Platform android or ios
+        description: Select mobile platform to run tests on, android or ios
         required: true
         default: android
+        type: choice
+        options:
+          - android
+          - ios
+          - other
+      app:
+        description: "App to test"
+        required: true
+        default: "Squadi"
+        type: choice
+        options:
+          - Squadi
+          - NetballConnect
+          - football
+      environment:
+        description: "Environment"
+        required: true
+        default: "Dev"
+        type: choice
+        options:
+          - Dev
+          - Staging
+          - Production
+      spec_path:
+        description: "Path to a specific spec file (e.g., tests/specs/login/test_login.ts). Leave default to run only login test, or set to tests/specs/**/*.ts for all specs."
+        required: false
+        default: "tests/specs/login/test_validate_successful_login_flow.ts"
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write # needed to push the Allure report to the gh-pages branch
 
+# Shared with the daily emulator workflow so only one job publishes to the
+# gh-pages branch at a time (avoids push races on the same branch).
 concurrency:
-  group: pages
+  group: gh-pages-publish
   cancel-in-progress: false
 
 jobs:
   test:
-    name: Run Android BrowserStack Login Test
+    name: ${{ matrix.platform }} on BrowserStack
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        # On the weekly schedule run both platforms; on manual dispatch run
+        # only the platform the user selected.
+        platform: ${{ fromJSON(github.event_name == 'schedule' && '["android","ios"]' || format('["{0}"]', github.event.inputs.platform)) }}
+
     env:
-      PLATFORM: ${{ github.event.inputs.platform }}
+      PLATFORM: ${{ matrix.platform }}
+      APP: ${{ github.event.inputs.app || 'Squadi' }}
       ENV: browserstack
+      TEST_ENV: ${{ github.event.inputs.environment || 'Dev' }}
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      SPEC_PATH: tests/specs/login/test_validate_successful_login_flow.ts
+      SPEC_PATH: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
 
     steps:
       - name: Checkout selected branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch }}
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
 
       - name: Validate required secrets
         run: |
@@ -83,7 +126,7 @@ jobs:
         id: run_tests
         continue-on-error: true
         run: |
-          PLATFORM="$PLATFORM" ENV="$ENV" ./node_modules/.bin/wdio run ./wdio.conf.ts --spec "$SPEC_PATH"
+          APP="$APP" PLATFORM="$PLATFORM" ENV="$ENV" TEST_ENV="$TEST_ENV" ./node_modules/.bin/wdio run ./wdio.conf.ts --spec "$SPEC_PATH"
 
       - name: Generate Allure report
         if: always()
@@ -95,12 +138,13 @@ jobs:
             cat > allure-report/index.html <<EOF
           <!DOCTYPE html>
           <html>
-            <head>
-              <title>No Allure Results</title>
-            </head>
+            <head><title>No Allure Results</title></head>
             <body>
               <h1>No Allure results generated</h1>
               <p>WDIO failed before creating allure-results.</p>
+              <p>App: ${{ steps.app_meta.outputs.display_name }}</p>
+              <p>Platform: ${{ env.PLATFORM }}</p>
+              <p>Environment: ${{ env.TEST_ENV }}</p>
             </body>
           </html>
           EOF
@@ -119,6 +163,7 @@ jobs:
           let passed = 0;
           let failed = 0;
           let broken = 0;
+          let flaky = 0;
           let skipped = 0;
           let unknown = 0;
           let duration = "0s";
@@ -131,6 +176,7 @@ jobs:
             passed = stat.passed || 0;
             failed = stat.failed || 0;
             broken = stat.broken || 0;
+            flaky = stat.flaky || 0;
             skipped = stat.skipped || 0;
             unknown = stat.unknown || 0;
 
@@ -146,29 +192,29 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `passed=${passed}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `failed=${failed}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `broken=${broken}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `flaky=${flaky}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `skipped=${skipped}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `unknown=${unknown}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `duration=${duration}\n`);
           EOF
+          echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
 
       - name: Upload Allure artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report-${{ github.run_number }}
+          name: allure-report-browserstack-${{ matrix.platform }}-${{ github.run_number }}
           path: allure-report
           retention-days: 14
 
-      - name: Upload Pages artifact
+      - name: Publish Allure report to GitHub Pages (browserstack subpath)
         if: always()
-        uses: actions/upload-pages-artifact@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: allure-report
-
-      - name: Deploy Allure report to GitHub Pages
-        if: always()
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: allure-report
+          destination_dir: browserstack/${{ matrix.platform }}
+          keep_files: true
 
       - name: Send Slack report
         if: always()
@@ -197,56 +243,38 @@ jobs:
                 {
                   "type": "divider"
                 },
-                {
+            {
                   "type": "section",
                   "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*🧪 Total*\n${{ steps.summary.outputs.total }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*✅ Passed*\n${{ steps.summary.outputs.passed }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*❌ Failed*\n${{ steps.summary.outputs.failed }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*⏭ Skipped*\n${{ steps.summary.outputs.skipped }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*⚠️ Broken*\n${{ steps.summary.outputs.broken }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*⏱ Duration*\n${{ steps.summary.outputs.duration }}"
-                    }
+                    { "type": "mrkdwn", "text": "*📦 App*\n${{ env.APP }}" },
+                    { "type": "mrkdwn", "text": "*🌎 Environment*\n${{ env.TEST_ENV }}" },
+                    { "type": "mrkdwn", "text": "*📱 Platform*\n${{ env.PLATFORM }}" },
+                    { "type": "mrkdwn", "text": "*🌿 Branch*\n`${{ github.event.inputs.branch || github.ref_name }}`" }
                   ]
                 },
-                {
-                  "type": "divider"
+                { "type": "divider" },
+                 {
+                  "type": "section",
+                  "text": { "type": "mrkdwn", "text": "*Test Summary*" }
                 },
                 {
                   "type": "section",
                   "fields": [
+                    { "type": "mrkdwn", "text": "*🧪 Total*\n${{ steps.summary.outputs.total }}" },
+                    { "type": "mrkdwn", "text": "*⏱ Duration*\n${{ steps.summary.outputs.duration }}" },
+                    { "type": "mrkdwn", "text": "*✅ Passed*\n${{ steps.summary.outputs.passed }}" },
+                    { "type": "mrkdwn", "text": "*❌ Failed*\n${{ steps.summary.outputs.failed }}" },
+                    { "type": "mrkdwn", "text": "*⏭ Skipped*\n${{ steps.summary.outputs.skipped }}" },
+                    { "type": "mrkdwn", "text": "*⚠️ Flaky*\n${{ steps.summary.outputs.flaky }}" }
+                  ]
+                },
+                { "type": "divider" },
+                {
+                  "type": "context",
+                  "elements": [
                     {
                       "type": "mrkdwn",
-                      "text": "*🌿 Branch*\n${{ github.event.inputs.branch }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*📱 Platform*\n${{ env.PLATFORM }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*🌎 Environment*\n${{ env.ENV }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*☁️ Execution*\nBrowserStack"
+                      "text": "☁️ Execution: *BrowserStack*  ·  🔑 Commit: `${{ steps.commit.outputs.short_sha }}`"
                     }
                   ]
                 },
@@ -255,20 +283,19 @@ jobs:
                   "elements": [
                     {
                       "type": "button",
-                      "text": {
-                        "type": "plain_text",
-                        "text": "📊 Allure Report"
-                      },
+                      "text": { "type": "plain_text", "text": "📊 View Allure Report" },
                       "style": "primary",
-                      "url": "${{ steps.deployment.outputs.page_url }}"
+                      "url": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/browserstack/${{ matrix.platform }}/"
                     },
                     {
                       "type": "button",
-                      "text": {
-                        "type": "plain_text",
-                        "text": "🧾 GitHub Run"
-                      },
+                      "text": { "type": "plain_text", "text": "🧾 Open GitHub Run" },
                       "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": { "type": "plain_text", "text": "🌐 BrowserStack Session" },
+                      "url": "https://app-automate.browserstack.com/dashboard/v2"
                     }
                   ]
                 }
