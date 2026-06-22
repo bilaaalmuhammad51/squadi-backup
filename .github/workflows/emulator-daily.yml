@@ -264,13 +264,13 @@ jobs:
         run: exit 1
 
   # Publish the Allure report via the native GitHub Pages (Actions) deployment.
-  # Split into its own job because the github-pages environment only allows the
-  # default branch to deploy - keeping it separate means the tests above still
-  # run on any branch; only this publish step is gated to the default branch.
+  # Kept as its own job (carrying the github-pages environment) so the tests
+  # above run cleanly on any branch. The github-pages environment allows all
+  # branches to deploy, so the report publishes from any branch.
   deploy-report:
     name: Publish Allure report to Pages
     needs: emulator-test
-    if: always() && github.ref_name == github.event.repository.default_branch
+    if: always()
     runs-on: ubuntu-latest
     environment:
       name: github-pages
