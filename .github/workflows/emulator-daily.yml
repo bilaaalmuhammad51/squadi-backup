@@ -25,7 +25,9 @@ on:
         default: "tests/specs/**/*.ts"
 
 permissions:
-  contents: write # needed to push the Allure report to the gh-pages branch
+  contents: read
+  pages: write # publish via the native GitHub Pages (Actions) deployment
+  id-token: write # required by actions/deploy-pages
 
 # Allow the daily emulator run and the weekly BrowserStack run to publish to
 # Pages without cancelling each other.
@@ -37,6 +39,10 @@ jobs:
   emulator-test:
     name: Android Emulator (local)
     runs-on: ubuntu-latest
+    # The Pages deployment publishes into this environment.
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy_pages.outputs.page_url }}
     # Hard cap so a stuck emulator teardown can never run for hours. The whole
     # job (boot + tests + report) comfortably finishes well under this.
     timeout-minutes: 30
@@ -202,14 +208,29 @@ jobs:
           path: allure-report
           retention-days: 14
 
-      - name: Publish Allure report to GitHub Pages (emulator subpath)
+      - name: Assemble Pages site (report under /emulator/)
         if: always()
-        uses: peaceiris/actions-gh-pages@v4
+        run: |
+          rm -rf _site
+          mkdir -p _site/emulator
+          cp -r allure-report/. _site/emulator/
+          # Root redirect so the site root also lands on the emulator report.
+          printf '<!doctype html><meta http-equiv="refresh" content="0; url=./emulator/">' > _site/index.html
+
+      - name: Setup Pages
+        if: always()
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: allure-report
-          destination_dir: emulator
-          keep_files: true
+          path: _site
+
+      - name: Publish to GitHub Pages
+        if: always()
+        id: deploy_pages
+        uses: actions/deploy-pages@v4
 
       - name: Send Slack report
         if: always()
