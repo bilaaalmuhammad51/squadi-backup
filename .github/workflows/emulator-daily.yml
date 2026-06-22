@@ -179,6 +179,21 @@ jobs:
           fs.appendFileSync(out, `duration=${dur}\n`);
           EOF
 
+      - name: Determine test result
+        # Decide pass/fail from the real WDIO exit code (written by the test
+        # script), NOT from the emulator-runner step outcome - that step exits
+        # non-zero because we hard-kill the emulator, even when tests passed.
+        if: always()
+        id: result
+        run: |
+          code=$(cat wdio-exit-code.txt 2>/dev/null || echo "1")
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" = "0" ]; then
+            echo "outcome=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "outcome=failure" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Upload Allure artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -207,7 +222,7 @@ jobs:
               "text": "Squadi Daily Emulator Test Result",
               "blocks": [
                 { "type": "header", "text": { "type": "plain_text", "text": "🤖 Squadi Daily Emulator (Android)" } },
-                { "type": "section", "text": { "type": "mrkdwn", "text": "${{ steps.run_tests.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}" } },
+                { "type": "section", "text": { "type": "mrkdwn", "text": "${{ steps.result.outputs.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}" } },
                 { "type": "divider" },
                 {
                   "type": "section",
@@ -233,5 +248,5 @@ jobs:
             }
 
       - name: Mark workflow failed if tests failed
-        if: steps.run_tests.outcome != 'success'
+        if: steps.result.outputs.outcome != 'success'
         run: exit 1

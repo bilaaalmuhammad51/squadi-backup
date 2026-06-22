@@ -55,6 +55,12 @@ PLATFORM=android ENV=local APP="$APP" TEST_ENV="$TEST_ENV" \
   ./node_modules/.bin/wdio run ./wdio.conf.ts --spec "$SPEC_PATH"
 STATUS=$?
 
+# Record the real WDIO result so later steps can decide pass/fail from THIS,
+# not from the android-emulator-runner step's exit code. We hard-kill the
+# emulator below, which makes the action exit non-zero even when tests passed,
+# so the step outcome is not a reliable signal.
+echo "$STATUS" > "${GITHUB_WORKSPACE:-.}/wdio-exit-code.txt"
+
 # Stop the Appium server
 kill "$APPIUM_PID" 2>/dev/null || true
 
