@@ -58,4 +58,16 @@ STATUS=$?
 # Stop the Appium server
 kill "$APPIUM_PID" 2>/dev/null || true
 
+# Tear the emulator down ourselves so the android-emulator-runner action's own
+# shutdown has nothing left to wait on. Its teardown is known to hang for
+# 10+ minutes when the emulator process doesn't exit cleanly; killing it here
+# lets the job move straight on to the report/Slack steps and finish - whether
+# we ran 1 spec or 10, and regardless of pass/fail.
+echo "Tests finished (status $STATUS). Shutting the emulator down..."
+adb emu kill 2>/dev/null || true
+adb kill-server 2>/dev/null || true
+pkill -9 -f qemu-system 2>/dev/null || true
+pkill -9 -f emulator64 2>/dev/null || true
+pkill -9 -f "emulator -avd" 2>/dev/null || true
+
 exit $STATUS
