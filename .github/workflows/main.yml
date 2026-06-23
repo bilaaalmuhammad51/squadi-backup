@@ -1,6 +1,22 @@
-name: Squadi Mobile Tests
+name: Squadi Mobile Tests Browserstack
+
+# Tier 2 of the Asma plan:
+# Weekly real-device coverage on BrowserStack. Android and iOS are scheduled at
+# different times (and the daily emulator run sits between them) so the three
+# never race on the shared Pages site. Each run - weekly OR manual - publishes
+# its own unique report at browserstack/<platform>/<run#>/, just like the
+# emulator's emulator/<run#>/, and coexists with the emulator reports.
 
 on:
+  # Weekly schedule is DISABLED until the BrowserStack App Automate quota is
+  # restored (sessions currently fail at creation). Until then, run on demand
+  # via "Run workflow". When the quota is back, UNCOMMENT the schedule below to
+  # resume the weekly Android (Mon 02:00 PKT) and iOS (Mon 05:00 PKT) runs.
+  # schedule:
+  #   # Mon 02:00 PKT (Sun 21:00 UTC) -> Android
+  #   - cron: "0 21 * * 0"
+  #   # Mon 05:00 PKT (Mon 00:00 UTC) -> iOS
+  #   - cron: "0 0 * * 1"
   workflow_dispatch:
     inputs:
       branch:
@@ -8,14 +24,13 @@ on:
         required: true
         default: develop
       platform:
-        description: Select mobile platform to run tests on, android or ios
+        description: Select mobile platform to run tests on
         required: true
         default: android
         type: choice
         options:
           - android
           - ios
-          - other
       app:
         description: "App to test"
         required: true
@@ -35,39 +50,49 @@ on:
           - Staging
           - Production
       spec_path:
-        description: "Path to a specific spec file (e.g., tests/specs/login/test_login.ts). Leave default to run only login test, or set to tests/specs/**/*.ts for all specs."
+        description: "Spec file/glob, or comma-separated list of files. Default runs the login test; use tests/specs/**/*.ts for all."
         required: false
         default: "tests/specs/login/test_validate_successful_login_flow.ts"
 
 permissions:
   contents: read
+  actions: read # read the previous run's pages-site artifact to keep history
   pages: write
   id-token: write
 
+# Shared with the daily emulator workflow so only one publishes to the shared
+# Pages site at a time (prevents races on the carried-forward pages-site).
 concurrency:
-  group: pages
+  group: pages-site-publish
   cancel-in-progress: false
 
 jobs:
   test:
-    name: ${{ github.event.inputs.app }} on ${{ github.event.inputs.platform }} (${{ github.event.inputs.environment }})
+    name: BrowserStack ${{ github.event.schedule == '0 21 * * 0' && 'android' || github.event.schedule == '0 0 * * 1' && 'ios' || github.event.inputs.platform }}
     runs-on: ubuntu-latest
+    # The Pages deployment publishes into this environment (allows all branches).
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     env:
-      PLATFORM: ${{ github.event.inputs.platform }}
-      APP: ${{ github.event.inputs.app }}
+      # On a scheduled run there are no inputs - map the cron that fired to a
+      # platform; otherwise use the dispatch input. Other values fall back to
+      # sensible defaults so scheduled runs work.
+      PLATFORM: ${{ github.event.schedule == '0 21 * * 0' && 'android' || github.event.schedule == '0 0 * * 1' && 'ios' || github.event.inputs.platform || 'android' }}
+      APP: ${{ github.event.inputs.app || 'Squadi' }}
       ENV: browserstack
-      TEST_ENV: ${{ github.event.inputs.environment }}
+      TEST_ENV: ${{ github.event.inputs.environment || 'Dev' }}
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      SPEC_PATH: ${{ github.event.inputs.spec_path }}
+      SPEC_PATH: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
 
     steps:
       - name: Checkout selected branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch }}
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
 
       - name: Validate required secrets
         run: |
@@ -75,12 +100,10 @@ jobs:
             echo "Missing BROWSERSTACK_USERNAME secret"
             exit 1
           fi
-
           if [ -z "$BROWSERSTACK_ACCESS_KEY" ]; then
             echo "Missing BROWSERSTACK_ACCESS_KEY secret"
             exit 1
           fi
-
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
             echo "Missing SLACK_WEBHOOK_URL secret"
             exit 1
@@ -108,16 +131,26 @@ jobs:
       - name: Clean old reports
         run: rm -rf allure-results allure-report
 
-      - name: Run WDIO login test on BrowserStack
+      - name: Run WDIO tests on BrowserStack
         id: run_tests
         continue-on-error: true
         run: |
-          APP="$APP" PLATFORM="$PLATFORM" ENV="$ENV" TEST_ENV="$TEST_ENV" ./node_modules/.bin/wdio run ./wdio.conf.ts --spec "$SPEC_PATH"
+          # SPEC_PATH may be a single glob/file or a comma-separated list of
+          # files; WDIO needs each as its own --spec.
+          SPEC_ARGS=()
+          IFS=',' read -ra _specs <<< "$SPEC_PATH"
+          for _s in "${_specs[@]}"; do
+            _s="$(echo "$_s" | xargs)"
+            [ -n "$_s" ] && SPEC_ARGS+=(--spec "$_s")
+          done
+          echo "Running '$SPEC_PATH' on BrowserStack ($PLATFORM)"
+          APP="$APP" PLATFORM="$PLATFORM" ENV="$ENV" TEST_ENV="$TEST_ENV" \
+            ./node_modules/.bin/wdio run ./wdio.conf.ts "${SPEC_ARGS[@]}"
 
       - name: Generate Allure report
         if: always()
         run: |
-          if [ -d "allure-results" ]; then
+          if [ -d "allure-results" ] && [ -n "$(ls -A allure-results 2>/dev/null)" ]; then
             npx --no-install allure generate allure-results --clean -o allure-report
           else
             mkdir -p allure-report
@@ -128,7 +161,6 @@ jobs:
             <body>
               <h1>No Allure results generated</h1>
               <p>WDIO failed before creating allure-results.</p>
-              <p>App: ${{ steps.app_meta.outputs.display_name }}</p>
               <p>Platform: ${{ env.PLATFORM }}</p>
               <p>Environment: ${{ env.TEST_ENV }}</p>
             </body>
@@ -142,62 +174,59 @@ jobs:
         run: |
           node <<'EOF'
           const fs = require("fs");
-
           const summaryPath = "allure-report/widgets/summary.json";
-
-          let total = 0;
-          let passed = 0;
-          let failed = 0;
-          let broken = 0;
-          let flaky = 0;
-          let skipped = 0;
-          let unknown = 0;
-          let duration = "0s";
-
+          let stat = {}, ms = 0;
           if (fs.existsSync(summaryPath)) {
-            const summary = JSON.parse(fs.readFileSync(summaryPath, "utf8"));
-            const stat = summary.statistic || {};
-
-            total = stat.total || 0;
-            passed = stat.passed || 0;
-            failed = stat.failed || 0;
-            broken = stat.broken || 0;
-            flaky = stat.flaky || 0;
-            skipped = stat.skipped || 0;
-            unknown = stat.unknown || 0;
-
-            const ms = summary.time?.duration || 0;
-            const seconds = Math.round(ms / 1000);
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-
-            duration = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+            const s = JSON.parse(fs.readFileSync(summaryPath, "utf8"));
+            stat = s.statistic || {};
+            ms = s.time?.duration || 0;
           }
-
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `total=${total}\n`);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `passed=${passed}\n`);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `failed=${failed}\n`);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `broken=${broken}\n`);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `flaky=${flaky}\n`);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `skipped=${skipped}\n`);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `unknown=${unknown}\n`);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `duration=${duration}\n`);
+          const sec = Math.round(ms / 1000);
+          const dur = sec >= 60 ? `${Math.floor(sec/60)}m ${sec%60}s` : `${sec}s`;
+          const out = process.env.GITHUB_OUTPUT;
+          // Count "broken" (tests that errored) as failed so the numbers match.
+          const failed = (stat.failed || 0) + (stat.broken || 0);
+          fs.appendFileSync(out, `total=${stat.total || 0}\n`);
+          fs.appendFileSync(out, `passed=${stat.passed || 0}\n`);
+          fs.appendFileSync(out, `failed=${failed}\n`);
+          fs.appendFileSync(out, `flaky=${stat.flaky || 0}\n`);
+          fs.appendFileSync(out, `skipped=${stat.skipped || 0}\n`);
+          fs.appendFileSync(out, `duration=${dur}\n`);
           EOF
-          echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
 
       - name: Upload Allure artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report-${{ github.run_number }}
+          name: allure-report-browserstack-${{ env.PLATFORM }}-${{ github.run_number }}
           path: allure-report
           retention-days: 14
+
+      - name: Assemble Pages site (per-run report + 30-day history)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RETENTION_DAYS: "30"
+        run: bash scripts/assemble-browserstack-site.sh
+
+      - name: Carry site forward for the next run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-site
+          path: _site
+          retention-days: 31 # just longer than the 30-day report window
+
+      - name: Setup Pages
+        if: always()
+        uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
         if: always()
         uses: actions/upload-pages-artifact@v3
         with:
-          path: allure-report
+          path: _site
 
       - name: Deploy Allure report to GitHub Pages
         if: always()
@@ -212,39 +241,22 @@ jobs:
           webhook-type: incoming-webhook
           payload: |
             {
-              "text": "Squadi Mobile Test Result",
+              "text": "Squadi BrowserStack Test Result",
               "blocks": [
+                { "type": "header", "text": { "type": "plain_text", "text": "📱 Squadi BrowserStack (${{ env.PLATFORM }})" } },
+                { "type": "section", "text": { "type": "mrkdwn", "text": "${{ steps.run_tests.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}" } },
+                { "type": "divider" },
                 {
-                  "type": "header",
-                  "text": {
-                    "type": "plain_text",
-                    "text": "📱 Squadi Mobile Test Result"
-                  }
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "${{ steps.run_tests.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}"
-                  }
-                },
-                {
-                  "type": "divider"
-                },
-            {
                   "type": "section",
                   "fields": [
                     { "type": "mrkdwn", "text": "*📦 App*\n${{ env.APP }}" },
                     { "type": "mrkdwn", "text": "*🌎 Environment*\n${{ env.TEST_ENV }}" },
                     { "type": "mrkdwn", "text": "*📱 Platform*\n${{ env.PLATFORM }}" },
-                    { "type": "mrkdwn", "text": "*🌿 Branch*\n`${{ github.event.inputs.branch }}`" }
+                    { "type": "mrkdwn", "text": "*🌿 Branch*\n`${{ github.event.inputs.branch || github.ref_name }}`" }
                   ]
                 },
                 { "type": "divider" },
-                 {
-                  "type": "section",
-                  "text": { "type": "mrkdwn", "text": "*Test Summary*" }
-                },
+                { "type": "section", "text": { "type": "mrkdwn", "text": "*Test Summary*" } },
                 {
                   "type": "section",
                   "fields": [
@@ -257,34 +269,13 @@ jobs:
                   ]
                 },
                 { "type": "divider" },
-                {
-                  "type": "context",
-                  "elements": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "☁️ Execution: *BrowserStack*  ·  🔑 Commit: `${{ steps.commit.outputs.short_sha }}`"
-                    }
-                  ]
-                },
+                { "type": "context", "elements": [ { "type": "mrkdwn", "text": "☁️ Execution: *BrowserStack*  ·  🔑 Commit: `${{ steps.commit.outputs.short_sha }}`" } ] },
                 {
                   "type": "actions",
                   "elements": [
-                    {
-                      "type": "button",
-                      "text": { "type": "plain_text", "text": "📊 View Allure Report" },
-                      "style": "primary",
-                      "url": "${{ steps.deployment.outputs.page_url }}"
-                    },
-                    {
-                      "type": "button",
-                      "text": { "type": "plain_text", "text": "🧾 Open GitHub Run" },
-                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                    },
-                    {
-                      "type": "button",
-                      "text": { "type": "plain_text", "text": "🌐 BrowserStack Session" },
-                      "url": "https://app-automate.browserstack.com/dashboard/v2"
-                    }
+                    { "type": "button", "text": { "type": "plain_text", "text": "📊 Allure Report" }, "style": "primary", "url": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/browserstack/${{ env.PLATFORM }}/${{ github.run_number }}/" },
+                    { "type": "button", "text": { "type": "plain_text", "text": "🧾 Open GitHub Run" }, "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" },
+                    { "type": "button", "text": { "type": "plain_text", "text": "🌐 BrowserStack" }, "url": "https://app-automate.browserstack.com/dashboard/v2" }
                   ]
                 }
               ]

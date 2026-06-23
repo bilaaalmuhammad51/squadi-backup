@@ -1,0 +1,295 @@
+name: Daily Android Emulator Tests
+
+# Tier 1 of the Asma plan:
+# Fast, frequent regression on an Android emulator running entirely on the
+# GitHub Actions runner (local Appium server + UiAutomator2). No BrowserStack
+# minutes are consumed here - runner minutes only.
+
+on:
+  schedule:
+    # 02:00 PKT daily (21:00 UTC)
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to run tests from
+        required: true
+        default: develop
+      api_level:
+        description: Android API level for the emulator
+        required: true
+        default: "34"
+      spec_path:
+        description: "Spec glob to run (default: all specs)"
+        required: false
+        default: "tests/specs/**/*.ts"
+
+permissions:
+  contents: read
+  actions: read # read the previous run's pages-site artifact to keep history
+  pages: write # publish via the native GitHub Pages (Actions) deployment
+  id-token: write # required by actions/deploy-pages
+
+# Shared with the BrowserStack workflow so only one publishes to the shared
+# Pages site at a time (prevents races on the carried-forward pages-site).
+concurrency:
+  group: pages-site-publish
+  cancel-in-progress: false
+
+jobs:
+  emulator-test:
+    name: Android Emulator (local)
+    runs-on: ubuntu-latest
+    # Safety net against a true runaway only - the emulator is force-killed
+    # after tests so the job ends promptly on its own. A bit above the step cap
+    # to leave room for report/Slack/deploy after the test window.
+    timeout-minutes: 80
+
+    env:
+      PLATFORM: android
+      ENV: local
+      APP: Squadi
+      TEST_ENV: Dev
+      API_LEVEL: ${{ github.event.inputs.api_level || '34' }}
+      SPEC_PATH: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
+
+      - name: Get commit short SHA
+        id: commit
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Appium UiAutomator2 driver
+        # Pin to the 3.x line: driver v4+ requires Appium 3, but this project
+        # uses Appium 2 (see package.json). 3.x is the Appium-2-compatible line.
+        run: npx appium driver install uiautomator2@3.10.0
+
+      - name: Setup Java (Allure + Android tooling)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Enable KVM for hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Download test APK
+        env:
+          # The test APK is stored as an asset on a GitHub Release in this
+          # repo (tag below). GITHUB_TOKEN can read it directly - no external
+          # service, virus-scan page, or quota to fight with.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APK_RELEASE_TAG: ${{ vars.APK_RELEASE_TAG || 'test-apk' }}
+        run: |
+          mkdir -p tests/apps
+          gh release download "$APK_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern squadi-dev.apk \
+            --dir tests/apps \
+            --clobber
+          echo "Downloaded APK:"
+          ls -la tests/apps/squadi-dev.apk
+          # Fail early if we somehow got something that isn't an APK
+          if ! file tests/apps/squadi-dev.apk | grep -qiE 'archive|android|zip'; then
+            echo "Downloaded file does not look like an APK:"
+            file tests/apps/squadi-dev.apk
+            head -c 200 tests/apps/squadi-dev.apk
+            exit 1
+          fi
+
+      - name: Clean old reports
+        run: rm -rf allure-results allure-report
+
+      - name: Run tests on Android emulator
+        id: run_tests
+        continue-on-error: true
+        # Step cap big enough for a full suite (~24 specs run sequentially,
+        # each up to a few minutes, plus emulator boot). The teardown hang is
+        # handled by force-killing the emulator at the end of the script, so
+        # this is only a runaway guard - normal runs end well before it.
+        timeout-minutes: 75
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          # More RAM/cores so the launcher doesn't ANR ("Pixel Launcher isn't
+          # responding") under load. -no-snapshot-save avoids a slow snapshot
+          # write that can hang teardown.
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 4096 -cores 2
+          disable-animations: true
+          # The runner executes each line of an inline script as a separate
+          # shell, so the full sequence lives in one file instead.
+          script: bash scripts/run-emulator-tests.sh
+
+      - name: Upload Appium log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-log-${{ github.run_number }}
+          path: appium.log
+          if-no-files-found: ignore
+
+      - name: Generate Allure report
+        if: always()
+        run: |
+          if [ -d "allure-results" ]; then
+            npx --no-install allure generate allure-results --clean -o allure-report
+          else
+            mkdir -p allure-report
+            echo "<h1>No Allure results generated</h1>" > allure-report/index.html
+          fi
+
+      - name: Generate test summary
+        if: always()
+        id: summary
+        run: |
+          node <<'EOF'
+          const fs = require("fs");
+          const summaryPath = "allure-report/widgets/summary.json";
+          let stat = {}, ms = 0;
+          if (fs.existsSync(summaryPath)) {
+            const s = JSON.parse(fs.readFileSync(summaryPath, "utf8"));
+            stat = s.statistic || {};
+            ms = s.time?.duration || 0;
+          }
+          const sec = Math.round(ms / 1000);
+          const dur = sec >= 60 ? `${Math.floor(sec/60)}m ${sec%60}s` : `${sec}s`;
+          const out = process.env.GITHUB_OUTPUT;
+          // Count "broken" (tests that errored) as failed so the reported
+          // numbers match reality - a broken test is not a pass.
+          const failed = (stat.failed || 0) + (stat.broken || 0);
+          fs.appendFileSync(out, `total=${stat.total || 0}\n`);
+          fs.appendFileSync(out, `passed=${stat.passed || 0}\n`);
+          fs.appendFileSync(out, `failed=${failed}\n`);
+          fs.appendFileSync(out, `broken=${stat.broken || 0}\n`);
+          fs.appendFileSync(out, `flaky=${stat.flaky || 0}\n`);
+          fs.appendFileSync(out, `skipped=${stat.skipped || 0}\n`);
+          fs.appendFileSync(out, `duration=${dur}\n`);
+          EOF
+
+      - name: Determine test result
+        # Decide pass/fail from the real WDIO exit code (written by the test
+        # script), NOT from the emulator-runner step outcome - that step exits
+        # non-zero because we hard-kill the emulator, even when tests passed.
+        if: always()
+        id: result
+        run: |
+          code=$(cat wdio-exit-code.txt 2>/dev/null || echo "1")
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" = "0" ]; then
+            echo "outcome=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "outcome=failure" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload Allure artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-emulator-${{ github.run_number }}
+          path: allure-report
+          retention-days: 14
+
+      - name: Assemble Pages site (per-run report + 3-day history)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RETENTION_DAYS: "3"
+        run: bash scripts/assemble-allure-site.sh
+
+      - name: Carry site forward for the next run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-site
+          path: _site
+          retention-days: 4 # just longer than the 3-day report window
+
+      - name: Setup Pages
+        if: always()
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Send Slack report
+        if: always()
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ env.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "Squadi Daily Emulator Test Result",
+              "blocks": [
+                { "type": "header", "text": { "type": "plain_text", "text": "🤖 Squadi Daily Emulator (Android)" } },
+                { "type": "section", "text": { "type": "mrkdwn", "text": "${{ steps.result.outputs.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}" } },
+                { "type": "divider" },
+                {
+                  "type": "section",
+                  "fields": [
+                    { "type": "mrkdwn", "text": "*🧪 Total*\n${{ steps.summary.outputs.total }}" },
+                    { "type": "mrkdwn", "text": "*⏱ Duration*\n${{ steps.summary.outputs.duration }}" },
+                    { "type": "mrkdwn", "text": "*✅ Passed*\n${{ steps.summary.outputs.passed }}" },
+                    { "type": "mrkdwn", "text": "*❌ Failed*\n${{ steps.summary.outputs.failed }}" },
+                    { "type": "mrkdwn", "text": "*⏭ Skipped*\n${{ steps.summary.outputs.skipped }}" },
+                    { "type": "mrkdwn", "text": "*⚠️ Flaky*\n${{ steps.summary.outputs.flaky }}" }
+                  ]
+                },
+                { "type": "divider" },
+                { "type": "context", "elements": [ { "type": "mrkdwn", "text": "💻 Execution: *GitHub Actions emulator (local Appium)*  ·  🔑 Commit: `${{ steps.commit.outputs.short_sha }}`" } ] },
+                {
+                  "type": "actions",
+                  "elements": [
+                    { "type": "button", "text": { "type": "plain_text", "text": "📊 Allure Report" }, "style": "primary", "url": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/emulator/${{ github.run_number }}/" },
+                    { "type": "button", "text": { "type": "plain_text", "text": "🧾 GitHub Run" }, "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
+                  ]
+                }
+              ]
+            }
+
+      - name: Mark workflow failed if tests failed
+        if: steps.result.outputs.outcome != 'success'
+        run: exit 1
+
+  # Publish the Allure report via the native GitHub Pages (Actions) deployment.
+  # Kept as its own job (carrying the github-pages environment) so the tests
+  # above run cleanly on any branch. The github-pages environment allows all
+  # branches to deploy, so the report publishes from any branch.
+  deploy-report:
+    name: Publish Allure report to Pages
+    needs: emulator-test
+    if: always()
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy_pages.outputs.page_url }}
+    steps:
+      - name: Publish to GitHub Pages
+        id: deploy_pages
+        uses: actions/deploy-pages@v4

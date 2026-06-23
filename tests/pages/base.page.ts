@@ -1,3 +1,4 @@
+import { AssertionError } from "node:assert";
 import { $, browser, expect } from "@wdio/globals";
 import { getPlatform } from "../factories/selector.factory";
 import { selector, type DualSelector } from "../factories/page.factory";
@@ -134,7 +135,13 @@ export default class BasePage {
       }
     }
 
-    throw new Error(`Element not visible after ${maxAttempts} attempts`);
+    // Throw an AssertionError whose message contains "expect" - the Allure
+    // reporter classifies a test as "failed" (vs "broken") only when the error
+    // message starts with "assertionerror" or includes "expect"; the error
+    // type alone is not enough.
+    throw new AssertionError({
+      message: `Expected element ${selector.log} to be visible, but it was not after ${maxAttempts} attempts`,
+    });
   }
 
   async waitUntilInvisibleWithRetry(
