@@ -40,9 +40,10 @@ jobs:
   emulator-test:
     name: Android Emulator (local)
     runs-on: ubuntu-latest
-    # Hard cap so a stuck emulator teardown can never run for hours. The whole
-    # job (boot + tests + report) comfortably finishes well under this.
-    timeout-minutes: 30
+    # Safety net against a true runaway only - the emulator is force-killed
+    # after tests so the job ends promptly on its own. A bit above the step cap
+    # to leave room for report/Slack/deploy after the test window.
+    timeout-minutes: 80
 
     env:
       PLATFORM: android
@@ -120,12 +121,11 @@ jobs:
       - name: Run tests on Android emulator
         id: run_tests
         continue-on-error: true
-        # Step-level cap on top of the job cap: if the emulator still hangs on
-        # shutdown (the action's teardown is known to stall), force-kill the
-        # step quickly instead of idling. Tests + boot finish well under this;
-        # the script hard-kills the emulator at the end so teardown should be
-        # near-instant. This cap is only the worst-case safety net.
-        timeout-minutes: 12
+        # Step cap big enough for a full suite (~24 specs run sequentially,
+        # each up to a few minutes, plus emulator boot). The teardown hang is
+        # handled by force-killing the emulator at the end of the script, so
+        # this is only a runaway guard - normal runs end well before it.
+        timeout-minutes: 75
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ env.API_LEVEL }}
