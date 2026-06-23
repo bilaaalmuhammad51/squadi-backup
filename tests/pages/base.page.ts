@@ -1,3 +1,4 @@
+import { AssertionError } from "node:assert";
 import { $, browser, expect } from "@wdio/globals";
 import { getPlatform } from "../factories/selector.factory";
 import { selector, type DualSelector } from "../factories/page.factory";
@@ -134,7 +135,11 @@ export default class BasePage {
       }
     }
 
-    throw new Error(`Element not visible after ${maxAttempts} attempts`);
+    // Throw an AssertionError (not a plain Error) so Allure categorises this
+    // as "failed" rather than "broken".
+    throw new AssertionError({
+      message: `Element ${selector.log} not visible after ${maxAttempts} attempts`,
+    });
   }
 
   async waitUntilInvisibleWithRetry(

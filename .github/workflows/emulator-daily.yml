@@ -26,6 +26,7 @@ on:
 
 permissions:
   contents: read
+  actions: read # read the previous run's pages-site artifact to keep history
   pages: write # publish via the native GitHub Pages (Actions) deployment
   id-token: write # required by actions/deploy-pages
 
@@ -175,9 +176,15 @@ jobs:
           const sec = Math.round(ms / 1000);
           const dur = sec >= 60 ? `${Math.floor(sec/60)}m ${sec%60}s` : `${sec}s`;
           const out = process.env.GITHUB_OUTPUT;
-          for (const k of ["total","passed","failed","broken","flaky","skipped"]) {
-            fs.appendFileSync(out, `${k}=${stat[k] || 0}\n`);
-          }
+          // Count "broken" (tests that errored) as failed so the reported
+          // numbers match reality - a broken test is not a pass.
+          const failed = (stat.failed || 0) + (stat.broken || 0);
+          fs.appendFileSync(out, `total=${stat.total || 0}\n`);
+          fs.appendFileSync(out, `passed=${stat.passed || 0}\n`);
+          fs.appendFileSync(out, `failed=${failed}\n`);
+          fs.appendFileSync(out, `broken=${stat.broken || 0}\n`);
+          fs.appendFileSync(out, `flaky=${stat.flaky || 0}\n`);
+          fs.appendFileSync(out, `skipped=${stat.skipped || 0}\n`);
           fs.appendFileSync(out, `duration=${dur}\n`);
           EOF
 
@@ -204,14 +211,21 @@ jobs:
           path: allure-report
           retention-days: 14
 
-      - name: Assemble Pages site (report under /emulator/)
+      - name: Assemble Pages site (per-run report + 3-day history)
         if: always()
-        run: |
-          rm -rf _site
-          mkdir -p _site/emulator
-          cp -r allure-report/. _site/emulator/
-          # Root redirect so the site root also lands on the emulator report.
-          printf '<!doctype html><meta http-equiv="refresh" content="0; url=./emulator/">' > _site/index.html
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RETENTION_DAYS: "3"
+        run: bash scripts/assemble-allure-site.sh
+
+      - name: Carry site forward for the next run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-site
+          path: _site
+          retention-days: 4 # just longer than the 3-day report window
 
       - name: Setup Pages
         if: always()
@@ -252,7 +266,7 @@ jobs:
                 {
                   "type": "actions",
                   "elements": [
-                    { "type": "button", "text": { "type": "plain_text", "text": "📊 Allure Report" }, "style": "primary", "url": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/emulator/" },
+                    { "type": "button", "text": { "type": "plain_text", "text": "📊 Allure Report" }, "style": "primary", "url": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/emulator/${{ github.run_number }}/" },
                     { "type": "button", "text": { "type": "plain_text", "text": "🧾 GitHub Run" }, "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
                   ]
                 }
