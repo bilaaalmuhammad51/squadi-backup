@@ -226,8 +226,8 @@ describe("Coach team sheet post match window permissions", () => {
       await scorerPage.handleErrorPopup();
     });
 
-    await step("Validate navigation to manager screen", async () => {
-      await scorerPage.validateManagerScreenElements(matchId.toString());
+    await step("Validate navigation to coach screen", async () => {
+      await scorerPage.validateCoachScreenElements(matchId.toString());
     });
 
     await step("Wait for locked window", async () => {

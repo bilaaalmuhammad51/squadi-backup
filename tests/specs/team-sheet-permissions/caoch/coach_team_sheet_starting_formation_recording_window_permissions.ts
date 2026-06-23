@@ -110,11 +110,11 @@ describe("Coach team sheet pre-recording window permissions", () => {
       await scorerPage.handleErrorPopup();
     });
 
-    await step("Validate navigation to manager screen", async () => {
-      await scorerPage.validateManagerScreenElements(matchId.toString());
+    await step("Validate navigation to coach screen", async () => {
+      await scorerPage.validateCoachScreenElements(matchId.toString());
     });
 
-    await step("validate manager page options", async () => {
+    await step("validate coach page options", async () => {
       await scorerPage.validateTeamSheetOption();
       await scorerPage.validateStartingFormationOption();
     });

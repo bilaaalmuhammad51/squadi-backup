@@ -14,7 +14,7 @@ import { MatchApiHelper } from "../../../utils/matchApi.helper";
 
 let matchId: number;
 
-describe("Referee team sheet recording window permissions", () => {
+describe("Referee team sheet locked window permissions", () => {
   it("log in with valid credentials, open a match, update team sheets by adding players", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
@@ -26,7 +26,7 @@ describe("Referee team sheet recording window permissions", () => {
     allureReporter.addSeverity("critical");
 
     await step("Create match before launching app", async () => {
-      matchId = await MatchApiHelper.createAndPublishMatch(5);
+      matchId = await MatchApiHelper.createAndPublishMatch(-10);
 
       console.log("Created Match ID:", matchId);
 

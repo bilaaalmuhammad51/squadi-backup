@@ -308,7 +308,6 @@ export class ScorerPage extends LoginPage {
   }
 
   async validateManagerScreenElements(matchId: string) {
-    console.log('latest');
     const homePage = new HomePage();
     await this.waitUntilVisibleWithRetry(this.startingFormationOption);
     await this.assertElementDisplayed(this.startingFormationOption);
@@ -321,6 +320,21 @@ export class ScorerPage extends LoginPage {
     await this.assertElementDisplayed(this.fieldOption);
     await this.assertElementDisplayed(this.ResponsesHeading);
   }
+
+  async validateCoachScreenElements(matchId: string) {
+    const homePage = new HomePage();
+    await this.waitUntilVisibleWithRetry(this.startingFormationOption);
+    await this.assertElementDisplayed(this.startingFormationOption);
+    const matchElement = homePage.matchById(matchId);
+    await this.scrollUntilElementVisible(matchElement);
+    await homePage.assertElementDisplayed(matchElement);
+    await homePage.assertElementDisplayed(
+      this.gameCard(UserRoles.Coach, matchId),
+    );
+    await this.assertElementDisplayed(this.fieldOption);
+    await this.assertElementDisplayed(this.ResponsesHeading);
+  }
+
   async validateRefereeScreenElements(matchId: string) {
     await this.waitUntilVisibleWithRetry(this.teamSheetOption);
     await this.assertElementNotDisplayed(this.startingFormationOption);
