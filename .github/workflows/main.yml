@@ -1,13 +1,6 @@
 name: Squadi Mobile Tests
 
-# Tier 2 of the Asma plan:
-# Weekly real-device coverage on BrowserStack across Android AND iOS.
-# Manual dispatch still runs a single chosen platform on demand.
-
 on:
-  schedule:
-    # 03:23 UTC every Monday (weekly real-device run)
-    - cron: "23 3 * * 1"
   workflow_dispatch:
     inputs:
       branch:
@@ -47,41 +40,34 @@ on:
         default: "tests/specs/login/test_validate_successful_login_flow.ts"
 
 permissions:
-  contents: write # needed to push the Allure report to the gh-pages branch
+  contents: read
+  pages: write
+  id-token: write
 
-# Shared with the daily emulator workflow so only one job publishes to the
-# gh-pages branch at a time (avoids push races on the same branch).
 concurrency:
-  group: gh-pages-publish
+  group: pages
   cancel-in-progress: false
 
 jobs:
   test:
-    name: ${{ matrix.platform }} on BrowserStack
+    name: ${{ github.event.inputs.app }} on ${{ github.event.inputs.platform }} (${{ github.event.inputs.environment }})
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        # On the weekly schedule run both platforms; on manual dispatch run
-        # only the platform the user selected.
-        platform: ${{ fromJSON(github.event_name == 'schedule' && '["android","ios"]' || format('["{0}"]', github.event.inputs.platform)) }}
-
     env:
-      PLATFORM: ${{ matrix.platform }}
-      APP: ${{ github.event.inputs.app || 'Squadi' }}
+      PLATFORM: ${{ github.event.inputs.platform }}
+      APP: ${{ github.event.inputs.app }}
       ENV: browserstack
-      TEST_ENV: ${{ github.event.inputs.environment || 'Dev' }}
+      TEST_ENV: ${{ github.event.inputs.environment }}
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      SPEC_PATH: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
+      SPEC_PATH: ${{ github.event.inputs.spec_path }}
 
     steps:
       - name: Checkout selected branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch || github.ref_name }}
+          ref: ${{ github.event.inputs.branch }}
 
       - name: Validate required secrets
         run: |
@@ -203,18 +189,20 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report-browserstack-${{ matrix.platform }}-${{ github.run_number }}
+          name: allure-report-${{ github.run_number }}
           path: allure-report
           retention-days: 14
 
-      - name: Publish Allure report to GitHub Pages (browserstack subpath)
+      - name: Upload Pages artifact
         if: always()
-        uses: peaceiris/actions-gh-pages@v4
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: allure-report
-          destination_dir: browserstack/${{ matrix.platform }}
-          keep_files: true
+          path: allure-report
+
+      - name: Deploy Allure report to GitHub Pages
+        if: always()
+        id: deployment
+        uses: actions/deploy-pages@v4
 
       - name: Send Slack report
         if: always()
@@ -249,7 +237,7 @@ jobs:
                     { "type": "mrkdwn", "text": "*📦 App*\n${{ env.APP }}" },
                     { "type": "mrkdwn", "text": "*🌎 Environment*\n${{ env.TEST_ENV }}" },
                     { "type": "mrkdwn", "text": "*📱 Platform*\n${{ env.PLATFORM }}" },
-                    { "type": "mrkdwn", "text": "*🌿 Branch*\n`${{ github.event.inputs.branch || github.ref_name }}`" }
+                    { "type": "mrkdwn", "text": "*🌿 Branch*\n`${{ github.event.inputs.branch }}`" }
                   ]
                 },
                 { "type": "divider" },
@@ -285,7 +273,7 @@ jobs:
                       "type": "button",
                       "text": { "type": "plain_text", "text": "📊 View Allure Report" },
                       "style": "primary",
-                      "url": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/browserstack/${{ matrix.platform }}/"
+                      "url": "${{ steps.deployment.outputs.page_url }}"
                     },
                     {
                       "type": "button",

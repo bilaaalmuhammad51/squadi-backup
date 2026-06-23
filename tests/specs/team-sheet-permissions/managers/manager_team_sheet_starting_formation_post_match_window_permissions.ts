@@ -21,7 +21,7 @@ let awayPlayer1InitialPosition: { x: number; y: number };
 let homePlayer1FinalPosition: { x: number; y: number };
 let awayPlayer1FinalPosition: { x: number; y: number };
 
-describe("Manager team sheet locked window permissions", () => {
+describe("Manager team sheet post match window permissions", () => {
   it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for respective team", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
