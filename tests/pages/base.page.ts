@@ -135,10 +135,12 @@ export default class BasePage {
       }
     }
 
-    // Throw an AssertionError (not a plain Error) so Allure categorises this
-    // as "failed" rather than "broken".
+    // Throw an AssertionError whose message contains "expect" - the Allure
+    // reporter classifies a test as "failed" (vs "broken") only when the error
+    // message starts with "assertionerror" or includes "expect"; the error
+    // type alone is not enough.
     throw new AssertionError({
-      message: `Element ${selector.log} not visible after ${maxAttempts} attempts`,
+      message: `Expected element ${selector.log} to be visible, but it was not after ${maxAttempts} attempts`,
     });
   }
 
