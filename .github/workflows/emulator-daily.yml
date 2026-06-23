@@ -30,10 +30,10 @@ permissions:
   pages: write # publish via the native GitHub Pages (Actions) deployment
   id-token: write # required by actions/deploy-pages
 
-# Allow the daily emulator run and the weekly BrowserStack run to publish to
-# Pages without cancelling each other.
+# Shared with the BrowserStack workflow so only one publishes to the shared
+# Pages site at a time (prevents races on the carried-forward pages-site).
 concurrency:
-  group: gh-pages-publish
+  group: pages-site-publish
   cancel-in-progress: false
 
 jobs:

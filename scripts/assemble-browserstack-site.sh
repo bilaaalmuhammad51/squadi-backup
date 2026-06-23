@@ -1,42 +1,45 @@
 #!/usr/bin/env bash
 #
-# Builds the full GitHub Pages site (_site/) for the native "GitHub Actions"
-# Pages deployment, while preserving per-run history.
+# Builds the full GitHub Pages site (_site/) for the BrowserStack workflow,
+# sharing ONE accumulated site with the emulator workflow so their reports
+# coexist (nothing is wiped). Mirrors scripts/assemble-allure-site.sh.
 #
-# actions/deploy-pages replaces the whole site each run, so to keep multiple
-# per-run reports we carry the accumulated site forward as a workflow artifact
-# named "pages-site": each run restores the previous one, adds its own report
-# under emulator/<run_number>/, prunes anything older than RETENTION_DAYS, and
-# rebuilds an index. The workflow then deploys _site and re-uploads it as the
-# next run's "pages-site".
+# Every BrowserStack run (weekly schedule OR manual dispatch) publishes its own
+# unique report under browserstack/<platform>/<run#>/ - just like the emulator's
+# emulator/<run#>/. The whole site is carried forward as the "pages-site"
+# artifact: this run restores it, adds its report, prunes browserstack runs
+# older than RETENTION_DAYS, and rebuilds the combined root index. The workflow
+# then deploys _site and re-uploads it as pages-site.
 #
 # Required env:
 #   GH_TOKEN          - token with actions:read (the workflow GITHUB_TOKEN)
 #   GITHUB_REPOSITORY - owner/repo
 #   GITHUB_WORKSPACE  - checkout dir containing allure-report/
+#   PLATFORM          - android | ios
 #   RUN_NUMBER        - github.run_number (this run's unique id)
 # Optional:
-#   RETENTION_DAYS    - days of reports to keep (default 3)
+#   RETENTION_DAYS    - days of BrowserStack reports to keep (default 30)
 
 set -uo pipefail
 
 : "${GH_TOKEN:?GH_TOKEN is required}"
 : "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required}"
+: "${PLATFORM:?PLATFORM is required}"
 : "${RUN_NUMBER:?RUN_NUMBER is required}"
 WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
-RETENTION_DAYS="${RETENTION_DAYS:-3}"
+RETENTION_DAYS="${RETENTION_DAYS:-30}"
 
 cd "$WORKSPACE"
 rm -rf _site
-mkdir -p _site/emulator
+mkdir -p _site
 
-# 1. Restore the previously accumulated site from the latest "pages-site"
-#    artifact (if any). The artifact's contents are the _site tree.
+# 1. Restore the shared accumulated site (emulator + any prior browserstack
+#    reports) from the latest "pages-site" artifact.
 art_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts" --paginate \
   -q '[.artifacts[] | select(.name=="pages-site" and .expired==false)] | sort_by(.created_at) | last | .id' \
   2>/dev/null || true)"
 if [ -n "${art_id:-}" ] && [ "${art_id}" != "null" ]; then
-  echo "Restoring previous site from artifact ${art_id}"
+  echo "Restoring shared site from artifact ${art_id}"
   if gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${art_id}/zip" > prev.zip 2>/dev/null; then
     unzip -q -o prev.zip -d _site || echo "Could not unzip previous site (starting fresh)"
     rm -f prev.zip
@@ -44,18 +47,19 @@ if [ -n "${art_id:-}" ] && [ "${art_id}" != "null" ]; then
 else
   echo "No previous pages-site artifact - starting fresh"
 fi
-mkdir -p _site/emulator
+touch _site/.nojekyll
+mkdir -p "_site/browserstack/${PLATFORM}"
 
 # 2. Add this run's report under its own immutable path.
-rm -rf "_site/emulator/${RUN_NUMBER}"
-mkdir -p "_site/emulator/${RUN_NUMBER}"
-cp -r "${WORKSPACE}/allure-report/." "_site/emulator/${RUN_NUMBER}/"
-date +%s > "_site/emulator/${RUN_NUMBER}/.published-at"
+rm -rf "_site/browserstack/${PLATFORM}/${RUN_NUMBER}"
+mkdir -p "_site/browserstack/${PLATFORM}/${RUN_NUMBER}"
+cp -r "${WORKSPACE}/allure-report/." "_site/browserstack/${PLATFORM}/${RUN_NUMBER}/"
+date +%s > "_site/browserstack/${PLATFORM}/${RUN_NUMBER}/.published-at"
 
-# 3. Prune run folders older than RETENTION_DAYS.
+# 3. Prune browserstack run folders older than RETENTION_DAYS (both platforms).
 now="$(date +%s)"
 cutoff=$(( RETENTION_DAYS * 86400 ))
-for dir in _site/emulator/*/; do
+for dir in _site/browserstack/*/*/; do
   [ -d "$dir" ] || continue
   marker="${dir}.published-at"
   ts=0
@@ -68,9 +72,7 @@ for dir in _site/emulator/*/; do
 done
 
 # 4. Rebuild the combined root index listing BOTH sections (emulator +
-#    browserstack) so a daily run doesn't drop the BrowserStack links that the
-#    weekly workflow added to the shared site.
-touch _site/.nojekyll
+#    browserstack) so this run preserves the emulator links in the shared site.
 {
   echo '<!doctype html><meta charset="utf-8"><title>Squadi Test Reports</title>'
   echo '<h1>Squadi Test Reports</h1>'
@@ -92,5 +94,5 @@ touch _site/.nojekyll
   done
 } > _site/index.html
 
-echo "Assembled site. Reports currently retained:"
-ls -1d _site/emulator/*/ 2>/dev/null | sed 's#_site/emulator/##; s#/##' | sort -nr
+echo "Assembled site. Published browserstack/${PLATFORM}/${RUN_NUMBER}/. Sections present:"
+ls -1d _site/emulator/*/ _site/browserstack/*/*/ 2>/dev/null || true
