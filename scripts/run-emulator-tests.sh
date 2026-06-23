@@ -50,9 +50,19 @@ for i in $(seq 1 60); do
   sleep 1
 done
 
+# Build the --spec args. SPEC_PATH may be a single glob/file or a
+# comma-separated list of files; WDIO needs each one as its own --spec, so
+# split on commas (trimming whitespace) and pass them individually.
+SPEC_ARGS=()
+IFS=',' read -ra _specs <<< "$SPEC_PATH"
+for _s in "${_specs[@]}"; do
+  _s="$(echo "$_s" | xargs)" # trim surrounding whitespace
+  [ -n "$_s" ] && SPEC_ARGS+=(--spec "$_s")
+done
+
 # Execute the suite locally against the booted emulator
 PLATFORM=android ENV=local APP="$APP" TEST_ENV="$TEST_ENV" \
-  ./node_modules/.bin/wdio run ./wdio.conf.ts --spec "$SPEC_PATH"
+  ./node_modules/.bin/wdio run ./wdio.conf.ts "${SPEC_ARGS[@]}"
 STATUS=$?
 
 # Record the real WDIO result so later steps can decide pass/fail from THIS,
