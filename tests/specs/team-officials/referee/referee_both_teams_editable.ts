@@ -5,37 +5,26 @@ import { LoginPage } from "../../../pages/login.page";
 import { HomePage } from "../../../pages/home.page";
 import { ScorerPage } from "../../../pages/scorer.page";
 import BasePage from "../../../pages/base.page";
-import {
-  PlayerPositions,
-  PlayersInStartingFormation,
-  PlayerNamesInTeamSheet,
-  TeamsInTeamSheet,
-} from "../../../data/teamSheet.data";
+import { TeamsInTeamSheet } from "../../../data/teamSheet.data";
 import { MatchApiHelper } from "../../../utils/matchApi.helper";
+import { TeamOfficialsPage } from "../../../pages/teamOfficials.page";
 
 let matchId: number;
-let token: string;
 
-describe("Coach team sheet recording window permissions", () => {
-  it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for respective team", async () => {
+describe("Referee team sheet pre-recording window permissions", () => {
+  it("log in with valid credentials, open a match, update team sheets by adding players", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
     const scorerPage = new ScorerPage();
     const basePage = new BasePage();
+    const teamOfficialsPage = new TeamOfficialsPage();
 
-    allureReporter.addFeature("Coach Flow");
+    allureReporter.addFeature("Referee Flow");
     allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
     allureReporter.addSeverity("critical");
 
     await step("Create match before launching app", async () => {
-      token = await MatchApiHelper.getToken(
-        LoginData.email,
-        LoginData.password,
-      );
-
-      matchId = await MatchApiHelper.createMatch(token, 5);
-
-      console.log("Created Match ID:", matchId);
+      matchId = await MatchApiHelper.createAndPublishMatch(420);
 
       allureReporter.addAttachment(
         "Created Match ID",
@@ -45,6 +34,10 @@ describe("Coach team sheet recording window permissions", () => {
     });
 
     after(async () => {
+      const token = await MatchApiHelper.getToken(
+        LoginData.email,
+        LoginData.password,
+      );
       try {
         if (token && matchId) {
           await MatchApiHelper.deleteMatch(token, matchId);
@@ -84,7 +77,7 @@ describe("Coach team sheet recording window permissions", () => {
     });
 
     await step("Enter valid credentials", async () => {
-      await loginPage.addUserName(LoginData.coachEmail);
+      await loginPage.addUserName(LoginData.refereeEmail);
       await loginPage.addPassword(LoginData.password);
     });
 
@@ -107,64 +100,51 @@ describe("Coach team sheet recording window permissions", () => {
       await basePage.scrollUntilElementVisible(matchElement);
       await homePage.assertElementDisplayed(matchElement);
       await homePage.click(matchElement);
+      await homePage.clickYesForMatch(matchId);
+      await homePage.click(matchElement);
       await scorerPage.handleErrorPopup();
     });
 
-    await step("Validate navigation to coach screen", async () => {
-      await scorerPage.validateCoachScreenElements(matchId.toString());
-    });
-
-    await step("validate coach page options", async () => {
-      await scorerPage.validateTeamSheetOption();
-      await scorerPage.validateStartingFormationOption();
-    });
-
     await step(
-      "Open team sheet option and validate team sheet elements",
+      "Validate navigation to referee screen and it's options",
       async () => {
-        await scorerPage.openTeamSheetOption();
-        await scorerPage.validateHomeTeamSheetElements(
-          TeamsInTeamSheet.HomeTeam,
-        );
+        await scorerPage.validateRefereeScreenElements(matchId.toString());
       },
     );
 
-    await step("Select players and their positions for home team", async () => {
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.ClubPlayer1,
-        PlayerPositions.Forward,
-      );
-      await scorerPage.clickDoneBtn();
+    await step("Open Team Officials and validate it's elements", async () => {
+      expect(
+        await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable(),
+      ).toBeTruthy();
+      await teamOfficialsPage.openTeamOfficials();
+      await teamOfficialsPage.assertTeamOfficialsScreenElements();
     });
-
-    await step("Select players and their positions for away team", async () => {
-      // await scorerPage.validateAwayTeamSheetElements(TeamsInTeamSheet.Awayteam);
-      await scorerPage.click(scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam));
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.ClubPlayer2,
-        PlayerPositions.Midfielder,
-      );
+    await step("Select Manger and Coach for Team1", async () => {
+      await teamOfficialsPage.searchAndSelectManager("Syed");
+      await teamOfficialsPage.searchAndSelectCoach("Syed");
+      await teamOfficialsPage.clickConfirmTeamOfficials();
     });
-
-    await step("click Done button after managing team sheets", async () => {
-      await scorerPage.clickDoneBtn();
+    await step("Select Manger and Coach for Team2", async () => {
+      await teamOfficialsPage.searchAndSelectManager("Syed");
+      await teamOfficialsPage.searchAndSelectCoach("Syed");
+      await teamOfficialsPage.clickConfirmTeamOfficials();
     });
-
-    await step("dragging home players in Starting Formation", async () => {
-      await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer1);
-    });
-
-    await step("dragging away players in Starting Formation", async () => {
-      await scorerPage.click(
-        scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
-      );
-      await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer2);
-    });
-
-    await step("save Starting Formation", async () => {
-      await scorerPage.saveStartingFormation();
-      await scorerPage.waitUntilVisibleWithRetry(scorerPage.fieldOption);
-      await scorerPage.clickBackBtn();
-    });
+    await step(
+      "Open Team Officials and verify selected Coaches and Managers",
+      async () => {
+        await teamOfficialsPage.openTeamOfficials();
+        await teamOfficialsPage.validateSelectedRolesUsers(
+          "Syed Manager1",
+          "Syed Coach1",
+        );
+        await teamOfficialsPage.click(
+          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+        );
+        await teamOfficialsPage.validateSelectedRolesUsers(
+          "Syed Manager2",
+          "Syed Coach1",
+        );
+      },
+    );
   });
 });
