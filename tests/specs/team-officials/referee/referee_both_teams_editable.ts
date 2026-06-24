@@ -5,30 +5,26 @@ import { LoginPage } from "../../../pages/login.page";
 import { HomePage } from "../../../pages/home.page";
 import { ScorerPage } from "../../../pages/scorer.page";
 import BasePage from "../../../pages/base.page";
-import {
-  PlayerPositions,
-  PlayerNamesInTeamSheet,
-  TeamsInTeamSheet,
-} from "../../../data/teamSheet.data";
+import { TeamsInTeamSheet } from "../../../data/teamSheet.data";
 import { MatchApiHelper } from "../../../utils/matchApi.helper";
+import { TeamOfficialsPage } from "../../../pages/teamOfficials.page";
 
 let matchId: number;
 
-describe("Referee team sheet recording window permissions", () => {
+describe("Referee team sheet pre-recording window permissions", () => {
   it("log in with valid credentials, open a match, update team sheets by adding players", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
     const scorerPage = new ScorerPage();
     const basePage = new BasePage();
+    const teamOfficialsPage = new TeamOfficialsPage();
 
     allureReporter.addFeature("Referee Flow");
     allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
     allureReporter.addSeverity("critical");
 
     await step("Create match before launching app", async () => {
-      matchId = await MatchApiHelper.createAndPublishMatch(5);
-
-      console.log("Created Match ID:", matchId);
+      matchId = await MatchApiHelper.createAndPublishMatch(420);
 
       allureReporter.addAttachment(
         "Created Match ID",
@@ -116,51 +112,39 @@ describe("Referee team sheet recording window permissions", () => {
       },
     );
 
+    await step("Open Team Officials and validate it's elements", async () => {
+      expect(
+        await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable(),
+      ).toBeTruthy();
+      await teamOfficialsPage.openTeamOfficials();
+      await teamOfficialsPage.assertTeamOfficialsScreenElements();
+    });
+    await step("Select Manger and Coach for Team1", async () => {
+      await teamOfficialsPage.searchAndSelectManager("Syed");
+      await teamOfficialsPage.searchAndSelectCoach("Syed");
+      await teamOfficialsPage.clickConfirmTeamOfficials();
+    });
+    await step("Select Manger and Coach for Team2", async () => {
+      await teamOfficialsPage.searchAndSelectManager("Syed");
+      await teamOfficialsPage.searchAndSelectCoach("Syed");
+      await teamOfficialsPage.clickConfirmTeamOfficials();
+    });
     await step(
-      "Open team sheet option and validate team sheet elements",
+      "Open Team Officials and verify selected Coaches and Managers",
       async () => {
-        await scorerPage.openTeamSheetOption();
-        await scorerPage.validateHomeTeamSheetElements(
-          TeamsInTeamSheet.HomeTeam,
+        await teamOfficialsPage.openTeamOfficials();
+        await teamOfficialsPage.validateSelectedRolesUsers(
+          "Syed Manager1",
+          "Syed Coach1",
+        );
+        await teamOfficialsPage.click(
+          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+        );
+        await teamOfficialsPage.validateSelectedRolesUsers(
+          "Syed Manager2",
+          "Syed Coach1",
         );
       },
     );
-
-    await step("Select players and their positions for home team", async () => {
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.ClubPlayer1,
-        PlayerPositions.Forward,
-      );
-      await scorerPage.clickDoneBtn();
-    });
-
-    await step("Select players and their positions for away team", async () => {
-      await scorerPage.click(
-        scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
-      );
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.ClubPlayer2,
-        PlayerPositions.Midfielder,
-      );
-    });
-
-    await step("click Done button after managing team sheets", async () => {
-      await scorerPage.clickDoneBtn();
-      await scorerPage.clickBackBtn();
-    });
-
-    await step(
-      "Open Game Referees option and validate it's elements",
-      async () => {
-        await scorerPage.openGameRefereesOption();
-        await scorerPage.validateRefereesElements();
-        await scorerPage.clickBackBtn();
-      },
-    );
-
-    await step("going back and validating Field option", async () => {
-      await scorerPage.waitUntilVisibleWithRetry(scorerPage.fieldOption);
-      await scorerPage.clickBackBtn();
-    });
   });
 });

@@ -185,7 +185,7 @@ export class LoginPage extends BasePage {
     await this.waitUntilVisibleWithRetry(
       this.locationOptionPopupCloseBtn,
       undefined,
-      30000,
+      2000,
     );
     await this.click(this.locationOptionPopupCloseBtn);
     await this.waitUntilInvisibleWithRetry(

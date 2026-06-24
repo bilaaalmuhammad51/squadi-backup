@@ -81,6 +81,116 @@ describe("Referee team sheet recording window permissions", () => {
     });
 
     await step("Enter valid credentials", async () => {
+      await loginPage.addUserName(LoginData.email);
+      await loginPage.addPassword(LoginData.password);
+    });
+
+    await step("Submit login", async () => {
+      await loginPage.click(loginPage.login);
+    });
+
+    await step(
+      "Validate successful login by checking Home screen",
+      async () => {
+        await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
+        await homePage.assertElementDisplayed(homePage.homeTab);
+        await homePage.assertElementDisplayed(homePage.drawsTab);
+        await homePage.assertElementDisplayed(homePage.laddersTab);
+      },
+    );
+
+    await step("Open a match from the Home screen", async () => {
+      const matchElement = homePage.matchById(matchId.toString());
+      await basePage.scrollUntilElementVisible(matchElement);
+      await homePage.assertElementDisplayed(matchElement);
+      await homePage.click(matchElement);
+      await scorerPage.handleErrorPopup();
+      await scorerPage.waitUntilVisibleWithRetry(scorerPage.matchTimer);
+    });
+
+    await step("Validate Start button is visible", async () => {
+      await scorerPage.scrollDown();
+      await scorerPage.assertElementDisplayed(scorerPage.startBtn);
+    });
+
+    // Updating Team Sheet before Recording time
+    await step("Open settings menu and validate options", async () => {
+      await scorerPage.clickSettingsIcon();
+      await scorerPage.validateTeamSheetOption();
+      await scorerPage.validateStartingFormationOption();
+    });
+
+    await step(
+      "Open team sheet option and validate team sheet elements",
+      async () => {
+        await scorerPage.openTeamSheetOption();
+        await scorerPage.validateHomeTeamSheetElements(
+          TeamsInTeamSheet.HomeTeam,
+        );
+      },
+    );
+
+    await step("Select players and their positions for home team", async () => {
+      await scorerPage.selectPlayerAndPositionOfTeam(
+        PlayerNamesInTeamSheet.ClubPlayer1,
+        PlayerPositions.Forward,
+      );
+      await scorerPage.clickDoneBtn();
+    });
+
+    await step("Select players and their positions for away team", async () => {
+      await scorerPage.validateAwayTeamSheetElements(TeamsInTeamSheet.Awayteam);
+      await scorerPage.selectPlayerAndPositionOfTeam(
+        PlayerNamesInTeamSheet.ClubPlayer2,
+        PlayerPositions.Midfielder,
+      );
+      await scorerPage.clickDoneBtn();
+    });
+
+    await step("wait for recording time to start", async () => {
+      await scorerPage.clickBackBtn();
+      await scorerPage.clickBackBtn();
+      await scorerPage.clickCloseBtnInSettings();
+    });
+
+    await step("Validate navigation to scorer screen", async () => {
+      await scorerPage.startMatch();
+      await scorerPage.clickBackBtn();
+      await scorerPage.logoutUser();
+      await scorerPage.gotoLoginTab();
+    });
+
+    await step("setup and start match by scorer user", async () => {});
+    await step("Verify welcome screen is visible", async () => {
+      await loginPage.gotoLoginTab();
+      await loginPage.validateLoginBtnIsVisible();
+    });
+
+    await step("Verify welcome screen elements", async () => {
+      await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
+      await loginPage.assertElementDisplayed(
+        loginPage.createAccountOrRegisterProfile,
+      );
+      await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
+      await loginPage.assertElementDisplayed(loginPage.loginButton);
+    });
+
+    await step("Navigate to login screen", async () => {
+      await loginPage.click(loginPage.loginButton);
+    });
+
+    await step("Verify login screen elements", async () => {
+      await loginPage.assertElementDisplayed(loginPage.backButton);
+      await loginPage.assertElementDisplayed(loginPage.loginHeading);
+      await loginPage.assertTextContains(
+        loginPage.loginHeading,
+        LoginData.loginHeading,
+      );
+      await loginPage.assertElementDisplayed(loginPage.rememberPassword);
+      await loginPage.assertElementDisplayed(loginPage.forgotPassword);
+    });
+
+    await step("Enter valid credentials", async () => {
       await loginPage.addUserName(LoginData.refereeEmail);
       await loginPage.addPassword(LoginData.password);
     });

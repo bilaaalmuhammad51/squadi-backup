@@ -6,9 +6,9 @@ name: Daily Android Emulator Tests
 # minutes are consumed here - runner minutes only.
 
 on:
-#  schedule:
-    # 02:17 UTC daily (off the :00 mark to avoid the cron rush)
-#    - cron: "17 2 * * *"
+  schedule:
+    # 12:00 PKT daily (07:00 UTC)
+    - cron: "0 7 * * *"
   workflow_dispatch:
     inputs:
       branch:

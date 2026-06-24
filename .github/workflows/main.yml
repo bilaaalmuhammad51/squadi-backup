@@ -8,11 +8,15 @@ name: Squadi Mobile Tests Browserstack
 # emulator's emulator/<run#>/, and coexists with the emulator reports.
 
 on:
-  schedule:
-    # Mon 02:00 PKT (Sun 21:00 UTC) -> Android
-    - cron: "0 21 * * 0"
-    # Mon 05:00 PKT (Mon 00:00 UTC) -> iOS
-    - cron: "0 0 * * 1"
+  # Weekly schedule is DISABLED until the BrowserStack App Automate quota is
+  # restored (sessions currently fail at creation). Until then, run on demand
+  # via "Run workflow". When the quota is back, UNCOMMENT the schedule below to
+  # resume the weekly Android (Mon 02:00 PKT) and iOS (Mon 05:00 PKT) runs.
+  # schedule:
+  #   # Mon 02:00 PKT (Sun 21:00 UTC) -> Android
+  #   - cron: "0 21 * * 0"
+  #   # Mon 05:00 PKT (Mon 00:00 UTC) -> iOS
+  #   - cron: "0 0 * * 1"
   workflow_dispatch:
     inputs:
       branch:

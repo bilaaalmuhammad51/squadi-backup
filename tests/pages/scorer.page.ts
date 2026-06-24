@@ -331,6 +331,30 @@ export class ScorerPage extends LoginPage {
     await this.assertElementDisplayed(this.fieldOption);
   }
 
+  async validateCoachScreenElements(matchId: string) {
+    const homePage = new HomePage();
+    await this.waitUntilVisibleWithRetry(this.startingFormationOption);
+    await this.assertElementDisplayed(this.startingFormationOption);
+    const matchElement = homePage.matchById(matchId);
+    await this.scrollUntilElementVisible(matchElement);
+    await homePage.assertElementDisplayed(matchElement);
+    await homePage.assertElementDisplayed(
+      this.gameCard(UserRoles.Coach, matchId),
+    );
+    await this.assertElementDisplayed(this.fieldOption);
+    await this.assertElementDisplayed(this.ResponsesHeading);
+  }
+
+  async validateRefereeScreenElements(matchId: string) {
+    await this.waitUntilVisibleWithRetry(this.teamSheetOption);
+    await this.assertElementNotDisplayed(this.startingFormationOption);
+    await this.assertElementDisplayed(
+      this.gameCard(UserRoles.Referee, matchId),
+    );
+    await this.validateGameRefereesOption();
+    await this.assertElementDisplayed(this.fieldOption);
+  }
+
   async selectShirtNumberIfNot() {
     try {
       await this.waitUntilInvisibleWithRetry(this.enterShirtNumberPopup);

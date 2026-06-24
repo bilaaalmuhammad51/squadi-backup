@@ -146,6 +146,7 @@ describe("Referee team sheet pre-recording window permissions", () => {
 
     await step("click Done button after managing team sheets", async () => {
       await scorerPage.clickDoneBtn();
+      await scorerPage.clickBackBtn();
     });
 
     await step(
