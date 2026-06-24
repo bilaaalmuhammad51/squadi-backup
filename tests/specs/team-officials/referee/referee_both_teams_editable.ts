@@ -12,7 +12,7 @@ import { TeamOfficialsPage } from "../../../pages/teamOfficials.page";
 let matchId: number;
 
 describe("Referee team sheet pre-recording window permissions", () => {
-  it("log in with valid credentials, open a match, update team sheets by adding players", async () => {
+  it("log in with valid credentials, open a match, update team officials by adding respective roles", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
     const scorerPage = new ScorerPage();

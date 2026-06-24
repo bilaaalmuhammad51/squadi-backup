@@ -23,6 +23,12 @@ export class RegisterProfilePage extends LoginPage {
     await this.type(this.inputFieldByIndex(index), value);
   };
 
+  public mobileInputField = selector(
+    '//android.widget.EditText[@hint="e.g. 0400123456"]',
+    "~e.g. 0400123456",
+    "Mobile input field in registration page",
+  );
+
   public genderDropdown = selector(
     "~Gender",
     "~Select...",
@@ -110,8 +116,10 @@ export class RegisterProfilePage extends LoginPage {
     await this.waitUntilVisibleWithRetry(option);
     await this.click(option);
   }
-  async addPhoneNumber(number: number): Promise<void> {
-    await this.enterTextInFieldByIndex(4, number);
+  async addPhoneNumber(number: string): Promise<void> {
+    // await this.enterTextInFieldByIndex(4, number);
+    await this.click(this.mobileInputField);
+    await this.type(this.mobileInputField, number);
   }
   async verifyAndAcceptTerms(): Promise<void> {
     await this.assertElementDisplayed(this.sponsorsCheckbox);
