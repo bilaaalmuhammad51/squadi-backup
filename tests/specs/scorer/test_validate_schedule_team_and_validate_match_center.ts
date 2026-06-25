@@ -51,10 +51,6 @@ describe("Match scheduling/draws Flow", () => {
       await homePage.loginFlow(LoginData.email, LoginData.password);
     });
 
-    await step("Complete match flow if needed", async () => {
-      // await scorerPage.completeMatchFlowIfNeeded("69435");
-    });
-
     await step("Open shodule tab and validate flow", async () => {
       await step("Open Shodule Tab", async () => {
         await homePage.openScheduleTab();

@@ -8,21 +8,44 @@ export class MatchApiHelper {
   static async getToken(username: string, password: string): Promise<string> {
     const encoded = Buffer.from(`${username}:${password}`).toString("base64");
 
-    const response = await axios.get(`${USERS_BASE_URL}/users/loginWithTfa`, {
-      headers: {
-        Authorization: `BWSA ${encoded}`,
-        SourceSystem: "WebAdmin",
-        Accept: "application/json",
-      },
-    });
+    try {
+      const response = await axios.get(`${USERS_BASE_URL}/users/loginWithTfa`, {
+        headers: {
+          Authorization: `BWSA ${encoded}`,
+          SourceSystem: "WebAdmin",
+          Accept: "application/json",
+        },
+      });
 
-    const token = response.data?.authToken;
+      const token = response.data?.authToken;
 
-    if (!token) {
-      throw new Error(`Auth token not found: ${JSON.stringify(response.data)}`);
+      if (!token) {
+        throw new Error(
+          `Auth token not found: ${JSON.stringify(response.data)}`,
+        );
+      }
+
+      return token;
+    } catch (err: any) {
+      // TEMP DIAGNOSTICS: surface the real cause behind a 403 in CI.
+      if (axios.isAxiosError(err)) {
+        console.error("=== getToken request failed ===");
+        console.error("URL:", `${USERS_BASE_URL}/users/loginWithTfa`);
+        console.error("Status:", err.response?.status, err.response?.statusText);
+        console.error(
+          "Response headers:",
+          JSON.stringify(err.response?.headers, null, 2),
+        );
+        console.error(
+          "Response body:",
+          typeof err.response?.data === "string"
+            ? err.response?.data?.slice(0, 1000)
+            : JSON.stringify(err.response?.data, null, 2),
+        );
+        console.error("================================");
+      }
+      throw err;
     }
-
-    return token;
   }
 
   static getPakistanFutureTimeUtc(minutesAhead: number = 3): string {
