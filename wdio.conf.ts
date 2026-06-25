@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import { androidCaps } from "./tests/config/android.capabilities";
 import { iosCaps } from "./tests/config/ios.capabilities";
+import { iosSimulatorCaps } from "./tests/config/ios.simulator.capabilities";
 import { browserstackAndroidCaps } from "./tests/config/browserstack.android.capabilities";
 import { browserstackIosCaps } from "./tests/config/browserstack.ios.capabilities";
 import Logger from "./tests/utils/logger";
@@ -139,6 +140,10 @@ function getBrowserstackCaps() {
 
 function getLocalCaps() {
   if (PLATFORM === "ios") {
+    // IOS_TARGET=simulator -> Xcode Simulator (.app); otherwise real device.
+    if ((process.env.IOS_TARGET || "").toLowerCase() === "simulator") {
+      return [iosSimulatorCaps];
+    }
     return [iosCaps];
   }
 

@@ -1,0 +1,273 @@
+name: Daily iOS Simulator Tests
+
+# Tier 1 (iOS) of the Asma plan:
+# Fast, frequent regression on an Xcode iOS Simulator running entirely on a
+# GitHub macOS runner (local Appium server + XCUITest driver). No BrowserStack
+# minutes are consumed here - runner minutes only.
+#
+# NOTE: requires a SIMULATOR build of the app (a .app compiled with the
+# iphonesimulator SDK), stored as a GitHub Release asset (see "Download iOS
+# simulator app" below). A real-device .ipa will NOT run on a simulator.
+
+on:
+  schedule:
+    # 02:00 PKT daily (21:00 UTC)
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to run tests from
+        required: true
+        default: develop
+      device_name:
+        description: iOS Simulator device (e.g. iPhone 15)
+        required: true
+        default: "iPhone 15"
+      platform_version:
+        description: "iOS version (leave blank to let Appium pick an available one)"
+        required: false
+        default: ""
+      spec_path:
+        description: "Spec glob/file, or comma-separated list (default: all specs)"
+        required: false
+        default: "tests/specs/**/*.ts"
+
+permissions:
+  contents: read
+  actions: read # read the previous run's pages-site artifact to keep history
+  pages: write # publish via the native GitHub Pages (Actions) deployment
+  id-token: write # required by actions/deploy-pages
+
+# Shared with the emulator/BrowserStack workflows so only one publishes to the
+# shared Pages site at a time (prevents races on the carried-forward pages-site).
+concurrency:
+  group: pages-site-publish
+  cancel-in-progress: false
+
+jobs:
+  ios-simulator-test:
+    name: iOS Simulator (local)
+    runs-on: macos-14
+    # Safety net only - simulators are shut down after tests so the job ends on
+    # its own. Sized so a full suite (plus the first-run WDA build) fits.
+    timeout-minutes: 90
+
+    env:
+      PLATFORM: ios
+      ENV: local
+      IOS_TARGET: simulator
+      APP: Squadi
+      TEST_ENV: Dev
+      IOS_DEVICE_NAME: ${{ github.event.inputs.device_name || 'iPhone 15' }}
+      IOS_PLATFORM_VERSION: ${{ github.event.inputs.platform_version || '' }}
+      SPEC_PATH: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
+
+      - name: Get commit short SHA
+        id: commit
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Appium XCUITest driver
+        # XCUITest 7.x is the Appium-2-compatible line (this project uses Appium 2).
+        run: npx appium driver install xcuitest@7.27.0
+
+      - name: Setup Java (Allure report generation)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Download iOS simulator app
+        # The simulator .app build is stored as a GitHub Release asset
+        # (Runner.app.zip under the tag below). Must be an iphonesimulator
+        # build - a real-device .ipa will not run on a simulator.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IOS_APP_RELEASE_TAG: ${{ vars.IOS_APP_RELEASE_TAG || 'ios-sim-app' }}
+        run: |
+          mkdir -p tests/apps
+          gh release download "$IOS_APP_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "Runner.app.zip" \
+            --dir tests/apps \
+            --clobber
+          rm -rf tests/apps/Runner.app
+          unzip -q tests/apps/Runner.app.zip -d tests/apps
+          if [ ! -d tests/apps/Runner.app ]; then
+            echo "Runner.app not found after unzip:"; ls -la tests/apps; exit 1
+          fi
+          # Sanity-check it's a SIMULATOR build (iphonesimulator), not device.
+          PLATFORM_NAME=$(/usr/libexec/PlistBuddy -c "Print :DTPlatformName" tests/apps/Runner.app/Info.plist 2>/dev/null || echo "")
+          echo "App DTPlatformName: $PLATFORM_NAME"
+          if [ "$PLATFORM_NAME" != "iphonesimulator" ]; then
+            echo "::warning::App is not an iphonesimulator build (got '$PLATFORM_NAME') - it may not run on the simulator."
+          fi
+          echo "IOS_APP_PATH=$GITHUB_WORKSPACE/tests/apps/Runner.app" >> "$GITHUB_ENV"
+
+      - name: Clean old reports
+        run: rm -rf allure-results allure-report
+
+      - name: Run tests on iOS Simulator
+        id: run_tests
+        continue-on-error: true
+        timeout-minutes: 75
+        run: bash scripts/run-simulator-tests.sh
+
+      - name: Upload Appium log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-log-ios-${{ github.run_number }}
+          path: appium.log
+          if-no-files-found: ignore
+
+      - name: Generate Allure report
+        if: always()
+        run: |
+          if [ -d "allure-results" ]; then
+            npx --no-install allure generate allure-results --clean -o allure-report
+          else
+            mkdir -p allure-report
+            echo "<h1>No Allure results generated</h1>" > allure-report/index.html
+          fi
+
+      - name: Generate test summary
+        if: always()
+        id: summary
+        run: |
+          node <<'EOF'
+          const fs = require("fs");
+          const summaryPath = "allure-report/widgets/summary.json";
+          let stat = {}, ms = 0;
+          if (fs.existsSync(summaryPath)) {
+            const s = JSON.parse(fs.readFileSync(summaryPath, "utf8"));
+            stat = s.statistic || {};
+            ms = s.time?.duration || 0;
+          }
+          const sec = Math.round(ms / 1000);
+          const dur = sec >= 60 ? `${Math.floor(sec/60)}m ${sec%60}s` : `${sec}s`;
+          const out = process.env.GITHUB_OUTPUT;
+          const failed = (stat.failed || 0) + (stat.broken || 0);
+          fs.appendFileSync(out, `total=${stat.total || 0}\n`);
+          fs.appendFileSync(out, `passed=${stat.passed || 0}\n`);
+          fs.appendFileSync(out, `failed=${failed}\n`);
+          fs.appendFileSync(out, `flaky=${stat.flaky || 0}\n`);
+          fs.appendFileSync(out, `skipped=${stat.skipped || 0}\n`);
+          fs.appendFileSync(out, `duration=${dur}\n`);
+          EOF
+
+      - name: Determine test result
+        # Decide pass/fail from the real WDIO exit code (written by the script),
+        # not the test step (which we let continue-on-error).
+        if: always()
+        id: result
+        run: |
+          code=$(cat wdio-exit-code.txt 2>/dev/null || echo "1")
+          if [ "$code" = "0" ]; then
+            echo "outcome=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "outcome=failure" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload Allure artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-ios-simulator-${{ github.run_number }}
+          path: allure-report
+          retention-days: 14
+
+      - name: Assemble Pages site (per-run report + 3-day history)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RETENTION_DAYS: "3"
+        run: bash scripts/assemble-ios-simulator-site.sh
+
+      - name: Carry site forward for the next run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-site
+          path: _site
+          retention-days: 4
+
+      - name: Setup Pages
+        if: always()
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Send Slack report
+        if: always()
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ env.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "Squadi Daily iOS Simulator Test Result",
+              "blocks": [
+                { "type": "header", "text": { "type": "plain_text", "text": "🍏 Squadi Daily iOS Simulator" } },
+                { "type": "section", "text": { "type": "mrkdwn", "text": "${{ steps.result.outputs.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}" } },
+                { "type": "divider" },
+                {
+                  "type": "section",
+                  "fields": [
+                    { "type": "mrkdwn", "text": "*🧪 Total*\n${{ steps.summary.outputs.total }}" },
+                    { "type": "mrkdwn", "text": "*⏱ Duration*\n${{ steps.summary.outputs.duration }}" },
+                    { "type": "mrkdwn", "text": "*✅ Passed*\n${{ steps.summary.outputs.passed }}" },
+                    { "type": "mrkdwn", "text": "*❌ Failed*\n${{ steps.summary.outputs.failed }}" },
+                    { "type": "mrkdwn", "text": "*⏭ Skipped*\n${{ steps.summary.outputs.skipped }}" },
+                    { "type": "mrkdwn", "text": "*📱 Device*\n${{ env.IOS_DEVICE_NAME }}" }
+                  ]
+                },
+                { "type": "divider" },
+                { "type": "context", "elements": [ { "type": "mrkdwn", "text": "💻 Execution: *GitHub macOS runner (Xcode Simulator, local Appium)*  ·  🔑 Commit: `${{ steps.commit.outputs.short_sha }}`" } ] },
+                {
+                  "type": "actions",
+                  "elements": [
+                    { "type": "button", "text": { "type": "plain_text", "text": "📊 Allure Report" }, "style": "primary", "url": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/ios-simulator/${{ github.run_number }}/" },
+                    { "type": "button", "text": { "type": "plain_text", "text": "🧾 GitHub Run" }, "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
+                  ]
+                }
+              ]
+            }
+
+      - name: Mark workflow failed if tests failed
+        if: steps.result.outputs.outcome != 'success'
+        run: exit 1
+
+  # Publish the Allure report via the native GitHub Pages (Actions) deployment.
+  deploy-report:
+    name: Publish Allure report to Pages
+    needs: ios-simulator-test
+    if: always()
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy_pages.outputs.page_url }}
+    steps:
+      - name: Publish to GitHub Pages
+        id: deploy_pages
+        uses: actions/deploy-pages@v4
