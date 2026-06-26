@@ -44,16 +44,16 @@ describe("Scorer team sheet pre-recording window permissions", () => {
       );
     });
 
-    // after(async () => {
-    //   try {
-    //     if (token && matchId) {
-    //       await MatchApiHelper.deleteMatch(token, matchId);
-    //       console.log(`Deleted Match ID: ${matchId}`);
-    //     }
-    //   } catch (error) {
-    //     console.error("Failed to delete match:", error);
-    //   }
-    // });
+    after(async () => {
+      try {
+        if (token && matchId) {
+          await MatchApiHelper.deleteMatch(token, matchId);
+          console.log(`Deleted Match ID: ${matchId}`);
+        }
+      } catch (error) {
+        console.error("Failed to delete match:", error);
+      }
+    });
 
     await step("Verify welcome screen is visible", async () => {
       await loginPage.validateLoginBtnIsVisible();

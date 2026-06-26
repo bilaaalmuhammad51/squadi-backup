@@ -70,7 +70,7 @@ describe("Authentication, Registration Flow", () => {
         );
         await registerProfilePage.selectOrganisation(RegisterData.organisation);
         await registerProfilePage.scrollDown();
-        await registerProfilePage.addPhoneNumber(RegisterData.phoneNumber);
+        await registerProfilePage.addPhoneNumber((RegisterData.phoneNumber).toString());
         await driver.hideKeyboard();
       });
 
