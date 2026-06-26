@@ -16,7 +16,7 @@ import { MatchApiHelper } from "../../../utils/matchApi.helper";
 let matchId: number;
 let token: string;
 
-describe("Coach team sheet pre-recording window permissions", () => {
+describe("Coach team sheet recording window permissions", () => {
   it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for respective team", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
