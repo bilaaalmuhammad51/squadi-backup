@@ -11,7 +11,7 @@ import { TeamOfficialsPage } from "../../../pages/teamOfficials.page";
 
 let matchId: number;
 
-describe("Referee team sheet pre-recording window permissions", () => {
+describe("Referee team officials - both teams editable", () => {
   it("log in with valid credentials, open a match, update team officials by adding respective roles", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
