@@ -345,16 +345,6 @@ export class ScorerPage extends LoginPage {
     await this.assertElementDisplayed(this.ResponsesHeading);
   }
 
-  async validateRefereeScreenElements(matchId: string) {
-    await this.waitUntilVisibleWithRetry(this.teamSheetOption);
-    await this.assertElementNotDisplayed(this.startingFormationOption);
-    await this.assertElementDisplayed(
-      this.gameCard(UserRoles.Referee, matchId),
-    );
-    await this.validateGameRefereesOption();
-    await this.assertElementDisplayed(this.fieldOption);
-  }
-
   async selectShirtNumberIfNot() {
     try {
       await this.waitUntilInvisibleWithRetry(this.enterShirtNumberPopup);

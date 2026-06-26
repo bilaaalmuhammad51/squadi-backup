@@ -491,15 +491,27 @@ export default class BasePage {
   }
 
   async handleStartupScreens() {
-    const element = await this.resolve(this.skipBtnInFirstStartupPage);
-
-    const isVisible = await element
-      .waitForDisplayed({ timeout: 10000 })
+    // The onboarding screen can be slow to render on CI runners. Try the
+    // accessibility-id Skip first; if it isn't found, fall back to a text
+    // locator. Click the element we actually found (instead of re-resolving via
+    // click(), which would re-run the long waitUntilVisibleWithRetry loop and
+    // waste up to ~60s when the screen is briefly slow).
+    let skip = await this.resolve(this.skipBtnInFirstStartupPage);
+    let isVisible = await skip
+      .waitForDisplayed({ timeout: 15000 })
       .then(() => true)
       .catch(() => false);
 
+    if (!isVisible && driver.isAndroid) {
+      const byText = await $('//*[@text="Skip"]');
+      if (await byText.isDisplayed().catch(() => false)) {
+        skip = byText;
+        isVisible = true;
+      }
+    }
+
     if (isVisible) {
-      await this.click(this.skipBtnInFirstStartupPage);
+      await skip.click();
       await this.waitUntilVisible(this.GotitBtnInSecondStartupPage);
       await this.click(this.GotitBtnInSecondStartupPage);
       await this.waitUntilVisible(this.noThanksBtnInThirdStartupPage);
