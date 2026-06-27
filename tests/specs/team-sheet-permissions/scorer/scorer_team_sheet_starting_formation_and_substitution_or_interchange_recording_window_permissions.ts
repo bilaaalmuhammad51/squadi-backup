@@ -49,16 +49,16 @@ describe("Scorer team sheet recording window permissions", () => {
       );
     });
 
-      after(async () => {
-          try {
-              if (token && matchId) {
-                  await MatchApiHelper.deleteMatch(token, matchId);
-                  console.log(`Deleted Match ID: ${matchId}`);
-              }
-          } catch (error) {
-              console.error("Failed to delete match:", error);
-          }
-      });
+    after(async () => {
+      try {
+        if (token && matchId) {
+          await MatchApiHelper.deleteMatch(token, matchId);
+          console.log(`Deleted Match ID: ${matchId}`);
+        }
+      } catch (error) {
+        console.error("Failed to delete match:", error);
+      }
+    });
 
     await step("Verify welcome screen is visible", async () => {
       await loginPage.validateLoginBtnIsVisible();
@@ -156,7 +156,7 @@ describe("Scorer team sheet recording window permissions", () => {
     });
 
     await step(
-      "validate auto tab switch to away team sheet and its elements",
+      "click done button to save for home team and auto tab switch to away team sheet of away team",
       async () => {
         await scorerPage.clickDoneBtn();
       },
@@ -234,7 +234,6 @@ describe("Scorer team sheet recording window permissions", () => {
         );
         await scorerPage.saveStartingFormation();
         await scorerPage.waitUntilVisibleWithRetry(scorerPage.matchTimer);
-        // await scorerPage.validateScorerScreenElements();
       },
     );
   });

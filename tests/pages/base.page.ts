@@ -27,6 +27,10 @@ export default class BasePage {
     "No thanks button in third startup page",
   );
 
+  public doneBtn = selector("~Done", "~Done", "Done Button");
+
+  public backBtn = selector("~Back", "~Back", "Back Button");
+
   async resolve(selector: DualSelector) {
     const platform = await getPlatform();
     return $(platform === "android" ? selector.android : selector.ios);
@@ -620,5 +624,15 @@ export default class BasePage {
 
       await driver.releaseActions();
     }
+  }
+
+  async clickDoneBtn() {
+    await this.waitUntilVisibleWithRetry(this.doneBtn);
+    await this.click(this.doneBtn);
+  }
+
+  async clickBackBtn() {
+    await this.waitUntilVisibleWithRetry(this.backBtn);
+    await this.click(this.backBtn);
   }
 }

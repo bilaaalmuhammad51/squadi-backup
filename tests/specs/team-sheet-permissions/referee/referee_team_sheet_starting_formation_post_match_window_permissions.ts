@@ -14,7 +14,7 @@ import { MatchApiHelper } from "../../../utils/matchApi.helper";
 
 let matchId: number;
 
-describe("Referee team sheet post match window permissions", () => {
+describe("Referee team sheet post-match window permissions", () => {
   it("log in with valid credentials, open a match, update team sheets by adding players", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
@@ -237,6 +237,9 @@ describe("Referee team sheet post match window permissions", () => {
     );
 
     await step("Select players and their positions for home team", async () => {
+      await scorerPage.selectOrUnselectPlayerInSubstitution(
+        PlayerNamesInTeamSheet.ClubPlayer1,
+      );
       await scorerPage.selectPlayerAndPositionOfTeam(
         PlayerNamesInTeamSheet.ClubPlayer1,
         PlayerPositions.Forward,
@@ -245,8 +248,12 @@ describe("Referee team sheet post match window permissions", () => {
     });
 
     await step("Select players and their positions for away team", async () => {
+      await scorerPage.openTeamSheetOption();
       await scorerPage.click(
         scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+      );
+      await scorerPage.selectOrUnselectPlayerInSubstitution(
+        PlayerNamesInTeamSheet.ClubPlayer2,
       );
       await scorerPage.selectPlayerAndPositionOfTeam(
         PlayerNamesInTeamSheet.ClubPlayer2,
@@ -256,7 +263,6 @@ describe("Referee team sheet post match window permissions", () => {
 
     await step("click Done button after managing team sheets", async () => {
       await scorerPage.clickDoneBtn();
-      await scorerPage.clickBackBtn();
     });
 
     await step(
