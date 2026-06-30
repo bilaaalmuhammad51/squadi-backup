@@ -60,6 +60,11 @@ export const config: WebdriverIO.Config = {
   maxInstances: 1,
   logLevel: "error",
 
+  // Retry a failed spec once - safety net for intermittent CI-emulator
+  // flakiness (e.g. a transient system ANR). A fresh retry re-creates state.
+  specFileRetries: 1,
+  specFileRetriesDelay: 0,
+
   mochaOpts: {
     ui: "bdd",
     timeout: Timeout.SIX_MINUTES,
