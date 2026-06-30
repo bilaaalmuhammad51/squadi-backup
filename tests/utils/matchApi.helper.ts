@@ -208,7 +208,6 @@ export class MatchApiHelper {
     matchId: number,
   ): Promise<void> {
     console.log(`Publishing match officials for Match ID: ${matchId}`);
-    console.log(`Using token: ${token}`);
     const params = new URLSearchParams({
       timezone: "Asia/Karachi",
       yearRefId: "6",
@@ -249,7 +248,6 @@ export class MatchApiHelper {
 
     // Create match
     const matchId = await this.createMatch(token, minutesAhead);
-    console.log("Created Match ID:", matchId);
     await MatchApiHelper.assignReferee(token, matchId);
 
     await this.publishMatchOfficials(token, matchId);

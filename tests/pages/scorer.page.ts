@@ -156,9 +156,6 @@ export class ScorerPage extends LoginPage {
     "Error Popup",
   );
 
-  public doneBtn = selector("~Done", "~Done", "Done Button");
-  public backBtn = selector("~Back", "~Back", "Back Button");
-
   public crossCloseBtn = selector(
     'android=new UiSelector().className("android.widget.Button")',
     '-ios predicate string: type == "XCUIElementTypeButton"',
@@ -308,7 +305,6 @@ export class ScorerPage extends LoginPage {
   }
 
   async validateManagerScreenElements(matchId: string) {
-    console.log('latest');
     const homePage = new HomePage();
     await this.waitUntilVisibleWithRetry(this.startingFormationOption);
     await this.assertElementDisplayed(this.startingFormationOption);
@@ -343,16 +339,6 @@ export class ScorerPage extends LoginPage {
     );
     await this.assertElementDisplayed(this.fieldOption);
     await this.assertElementDisplayed(this.ResponsesHeading);
-  }
-
-  async validateRefereeScreenElements(matchId: string) {
-    await this.waitUntilVisibleWithRetry(this.teamSheetOption);
-    await this.assertElementNotDisplayed(this.startingFormationOption);
-    await this.assertElementDisplayed(
-      this.gameCard(UserRoles.Referee, matchId),
-    );
-    await this.validateGameRefereesOption();
-    await this.assertElementDisplayed(this.fieldOption);
   }
 
   async selectShirtNumberIfNot() {
@@ -477,16 +463,6 @@ export class ScorerPage extends LoginPage {
       await (await this.getElement(this.errorPopup)).isDisplayed();
       await this.click(this.errorPopup);
     } catch {}
-  }
-
-  async clickDoneBtn() {
-    await this.waitUntilVisibleWithRetry(this.doneBtn);
-    await this.click(this.doneBtn);
-  }
-
-  async clickBackBtn() {
-    await this.waitUntilVisibleWithRetry(this.backBtn);
-    await this.click(this.backBtn);
   }
 
   async clickSettingsIcon() {

@@ -3,7 +3,7 @@ import { step } from "../../utils/helpers";
 import { LoginData } from "../../data/login.data";
 import { LoginPage } from "../../pages/login.page";
 
-describe("Authentication - Login Flow", () => {
+describe("Authentication - Forgot Password Flow", () => {
   it("should allow a registered user to recover forgotten password and log in", async () => {
     allureReporter.addFeature("Authentication");
     allureReporter.addStory("Login");

@@ -1,4 +1,4 @@
-import { DualSelector, selector } from "../factories/page.factory";
+import { selector } from "../factories/page.factory";
 import BasePage from "./base.page";
 
 export class TeamOfficialsPage extends BasePage {
@@ -48,15 +48,21 @@ export class TeamOfficialsPage extends BasePage {
   private confirmTeamOfficialsBtn = selector(
     "~Confirm Team Officials",
     "~Confirm Team Officials",
-    "Confirm Team Officials Button"
-  )
+    "Confirm Team Officials Button",
+  );
 
   private selectedRoleUser = (name: string) =>
     selector(
-    `//android.widget.EditText[@text="${name}"]`,
-    `-ios predicate string:value == "${name}"`,
-    `Selected ${name}`
-  )
+      `//android.widget.EditText[@text="${name}"]`,
+      `-ios predicate string:value == "${name}"`,
+      `Selected ${name}`,
+    );
+
+  private teamOfficialsNotAvailableForTeam = selector(
+    "~Team officials data is not available yet",
+    "~Team officials data is not available yet",
+    "Team officials data is not available yet for the team",
+  );
 
   async validateIfTeamOfficialsMenuAvailable(): Promise<boolean> {
     const isVisible = await this.isElementVisible(this.teamOfficialsMenuOption);
@@ -105,5 +111,10 @@ export class TeamOfficialsPage extends BasePage {
     await this.waitUntilVisibleWithRetry(this.managerHeading);
     await this.assertElementDisplayed(this.selectedRoleUser(manager));
     await this.assertElementDisplayed(this.selectedRoleUser(coach));
+  }
+
+  async teamSheetNotAvailableForTeam() {
+    await this.waitUntilVisibleWithRetry(this.teamOfficialsNotAvailableForTeam);
+    await this.assertElementDisplayed(this.teamOfficialsNotAvailableForTeam);
   }
 }

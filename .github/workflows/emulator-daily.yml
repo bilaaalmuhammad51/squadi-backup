@@ -43,7 +43,7 @@ jobs:
     # Safety net against a true runaway only - the emulator is force-killed
     # after tests so the job ends promptly on its own. A bit above the step cap
     # to leave room for report/Slack/deploy after the test window.
-    timeout-minutes: 80
+    timeout-minutes: 130
 
     env:
       PLATFORM: android
@@ -125,7 +125,7 @@ jobs:
         # each up to a few minutes, plus emulator boot). The teardown hang is
         # handled by force-killing the emulator at the end of the script, so
         # this is only a runaway guard - normal runs end well before it.
-        timeout-minutes: 75
+        timeout-minutes: 120
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ env.API_LEVEL }}
@@ -247,7 +247,7 @@ jobs:
             {
               "text": "Squadi Daily Emulator Test Result",
               "blocks": [
-                { "type": "header", "text": { "type": "plain_text", "text": "🤖 Squadi Daily Emulator (Android)" } },
+                { "type": "header", "text": { "type": "plain_text", "text": "📱 Squadi Daily Emulator (Android)" } },
                 { "type": "section", "text": { "type": "mrkdwn", "text": "${{ steps.result.outputs.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}" } },
                 { "type": "divider" },
                 {
