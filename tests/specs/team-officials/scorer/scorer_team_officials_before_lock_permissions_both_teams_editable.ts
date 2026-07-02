@@ -10,6 +10,7 @@ import { MatchApiHelper } from "../../../utils/matchApi.helper";
 import { TeamOfficialsPage } from "../../../pages/teamOfficials.page";
 
 let matchId: number;
+let token: string;
 
 describe("Scorer team officials before lock permissions - both teams editable before lock", () => {
   it("log in with valid credentials, open a match, update team officials by adding respective roles", async () => {
@@ -20,11 +21,18 @@ describe("Scorer team officials before lock permissions - both teams editable be
     const teamOfficialsPage = new TeamOfficialsPage();
 
     allureReporter.addFeature("Referee Flow");
-    allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
+    allureReporter.addStory("Login, Team Officials Permissions Flow");
     allureReporter.addSeverity("critical");
 
     await step("Create match before launching app", async () => {
-      matchId = await MatchApiHelper.createAndPublishMatch(420);
+      token = await MatchApiHelper.getToken(
+        LoginData.email,
+        LoginData.password,
+      );
+
+      matchId = await MatchApiHelper.createMatch(token, 0);
+
+      console.log("Created Match ID:", matchId);
 
       allureReporter.addAttachment(
         "Created Match ID",
@@ -34,7 +42,7 @@ describe("Scorer team officials before lock permissions - both teams editable be
     });
 
     after(async () => {
-      const token = await MatchApiHelper.getToken(
+      token = await MatchApiHelper.getToken(
         LoginData.email,
         LoginData.password,
       );
@@ -119,7 +127,7 @@ describe("Scorer team officials before lock permissions - both teams editable be
         await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable(),
       ).toBeTruthy();
       await teamOfficialsPage.openTeamOfficials();
-      await teamOfficialsPage.assertTeamOfficialsScreenElements();
+      await teamOfficialsPage.assertTeamOfficialsEnabledElements();
     });
 
     await step("Select Manger and Coach for Team1", async () => {
