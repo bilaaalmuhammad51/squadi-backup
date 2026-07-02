@@ -20,11 +20,11 @@ describe("Referee team officials before lock permissions - both teams editable b
     const teamOfficialsPage = new TeamOfficialsPage();
 
     allureReporter.addFeature("Referee Flow");
-    allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
+    allureReporter.addStory("Login, Team Officials Permissions Flow");
     allureReporter.addSeverity("critical");
 
     await step("Create match before launching app", async () => {
-      matchId = await MatchApiHelper.createAndPublishMatch(420);
+      matchId = await MatchApiHelper.createAndPublishMatch(10);
 
       allureReporter.addAttachment(
         "Created Match ID",
@@ -117,7 +117,7 @@ describe("Referee team officials before lock permissions - both teams editable b
         await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable(),
       ).toBeTruthy();
       await teamOfficialsPage.openTeamOfficials();
-      await teamOfficialsPage.assertTeamOfficialsScreenElements();
+      await teamOfficialsPage.assertTeamOfficialsEnabledElements();
     });
     await step("Select Manger and Coach for Team1", async () => {
       await teamOfficialsPage.searchAndSelectManager("Syed");

@@ -4,6 +4,7 @@ import { LoginData } from "../../../data/login.data";
 import { LoginPage } from "../../../pages/login.page";
 import { HomePage } from "../../../pages/home.page";
 import { ScorerPage } from "../../../pages/scorer.page";
+import BasePage from "../../../pages/base.page";
 import { TeamsInTeamSheet } from "../../../data/teamSheet.data";
 import { MatchApiHelper } from "../../../utils/matchApi.helper";
 import { TeamOfficialsPage } from "../../../pages/teamOfficials.page";
@@ -11,14 +12,15 @@ import { TeamOfficialsPage } from "../../../pages/teamOfficials.page";
 let matchId: number;
 let token: string;
 
-describe("Home team Manager team officials before lock permissions - only home team editable", () => {
+describe("Scorer team officials after lock permissions - both teams editable before lock", () => {
   it("log in with valid credentials, open a match, update team officials by adding respective roles", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
     const scorerPage = new ScorerPage();
+    const basePage = new BasePage();
     const teamOfficialsPage = new TeamOfficialsPage();
 
-    allureReporter.addFeature("Home Manager Flow");
+    allureReporter.addFeature("Referee Flow");
     allureReporter.addStory("Login, Team Officials Permissions Flow");
     allureReporter.addSeverity("critical");
 
@@ -83,7 +85,7 @@ describe("Home team Manager team officials before lock permissions - only home t
     });
 
     await step("Enter valid credentials", async () => {
-      await loginPage.addUserName(LoginData.manager1Email);
+      await loginPage.addUserName(LoginData.email);
       await loginPage.addPassword(LoginData.password);
     });
 
@@ -103,53 +105,39 @@ describe("Home team Manager team officials before lock permissions - only home t
 
     await step("Open a match from the Home screen", async () => {
       const matchElement = homePage.matchById(matchId.toString());
-      await homePage.scrollUntilElementVisible(matchElement);
+      await basePage.scrollUntilElementVisible(matchElement);
       await homePage.assertElementDisplayed(matchElement);
       await homePage.click(matchElement);
       await scorerPage.handleErrorPopup();
+      await scorerPage.waitUntilVisibleWithRetry(scorerPage.matchTimer);
     });
 
-    await step("Validate navigation to manager screen", async () => {
-      await scorerPage.validateManagerScreenElements(matchId.toString());
+    await step("Validate navigation to scorer screen", async () => {
+      await scorerPage.validateScorerScreenElements();
     });
 
-    await step("validate manager page options", async () => {
-      await scorerPage.validateTeamSheetOption();
+    await step("Open settings menu and validate options", async () => {
+      await scorerPage.clickSettingsIcon();
+      await scorerPage.validateSubstitutionOption();
       await scorerPage.validateStartingFormationOption();
     });
 
-    await step("Open Team Officials and validate it's elements", async () => {
+    await step("Validate and Open Team Officials", async () => {
       expect(
         await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable(),
       ).toBeTruthy();
       await teamOfficialsPage.openTeamOfficials();
-      await teamOfficialsPage.assertTeamOfficialsEnabledElements();
     });
-    await step("Select Manger and Coach for Team1", async () => {
-      await teamOfficialsPage.searchAndSelectManager("Syed");
-      await teamOfficialsPage.searchAndSelectCoach("Syed");
-      await teamOfficialsPage.clickConfirmTeamOfficials();
+
+    await step("Validate disabled Home Team elements", async () => {
+      await teamOfficialsPage.assertDisabledTeamOfficialsElements();
     });
-    await step(
-      "validate team officials not available for away team",
-      async () => {
-        await teamOfficialsPage.teamSheetNotAvailableForTeam();
-        await teamOfficialsPage.clickBackBtn();
-      },
-    );
-    await step(
-      "Open Team Officials and verify selected Coaches and Managers",
-      async () => {
-        await teamOfficialsPage.openTeamOfficials();
-        await teamOfficialsPage.validateSelectedRolesUsers(
-          "Syed Manager1",
-          "Syed Coach1",
-        );
-        await teamOfficialsPage.click(
-          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
-        );
-        await teamOfficialsPage.teamSheetNotAvailableForTeam();
-      },
-    );
+
+    await step("Validate disabled Away Team elements", async () => {
+      await teamOfficialsPage.click(
+        scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+      );
+      await teamOfficialsPage.assertDisabledTeamOfficialsElements();
+    });
   });
 });
