@@ -39,7 +39,7 @@ describe("Manager team sheet locked window permissions", () => {
         LoginData.password,
       );
 
-      matchId = await MatchApiHelper.createMatch(token, 2);
+      matchId = await MatchApiHelper.createMatch(token, 20);
 
       console.log("Created Match ID:", matchId);
 
@@ -227,6 +227,10 @@ describe("Manager team sheet locked window permissions", () => {
     await step(
       "Open substitutions option and validate substitution elements",
       async () => {
+        await MatchApiHelper.updateMatchStartTime(token, matchId, 0);
+        if (driver.isAndroid) {
+          await scorerPage.handleMatchTimeUpdatePopup(matchId.toString());
+        }
         await scorerPage.waitUntilTeamSheetBecomesSubstitution(matchElement);
         await scorerPage.openSubstitutionOption();
         await scorerPage.validateHomeSubstitutionElements(

@@ -11,7 +11,7 @@ import { TeamOfficialsPage } from "../../../pages/teamOfficials.page";
 let matchId: number;
 let token: string;
 
-describe("Home team Manager team officials before lock permissions - only home team editable", () => {
+describe("Away team Manager team officials before lock permissions - only away team editable", () => {
   it("log in with valid credentials, open a match, update team officials by adding respective roles", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();

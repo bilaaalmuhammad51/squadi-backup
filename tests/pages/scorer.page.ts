@@ -174,6 +174,12 @@ export class ScorerPage extends LoginPage {
     "Team Sheet not available message",
   );
 
+  public teamSheetNotCompletedMsg = selector(
+    "~The Team sheet was not completed before the start time. The referee or your club admin will now need to complete it.",
+    "~The Team sheet was not completed before the start time. The referee or your club admin will now need to complete it.",
+    "Team Sheet not completed message",
+  );
+
   public enterShirtNumberPopup = selector(
     "",
     '//XCUIElementTypeOther[@name="Enter a shirt number"]',
@@ -204,6 +210,13 @@ export class ScorerPage extends LoginPage {
     "//XCUIElementTypeOther[2]/XCUIElementTypeButton[2]",
     "Settings Icon",
   );
+
+  public matchTimeUpdatePopup = (matchId: string) =>
+    selector(
+      `android=new UiSelector().descriptionContains("Match ${matchId} has been changed by the competition organiser").instance(1)`,
+      "",
+      "",
+    );
 
   public teamSheetOption = selector(
     "~Team Sheet",
@@ -387,6 +400,11 @@ export class ScorerPage extends LoginPage {
     await this.assertElementDisplayed(this.teamSheetNotAvailableMsg);
   }
 
+  async validateTeamSheetNotCompleted() {
+    await this.waitUntilVisibleWithRetry(this.teamSheetNotCompletedMsg);
+    await this.assertElementDisplayed(this.teamSheetNotCompletedMsg);
+  }
+
   async submitHomeTeamPlayersIfNotSubmitted(playerName: string) {
     const isSubmitted = await this.isElementPresent(
       this.teamSheetSubmittedMsg,
@@ -481,6 +499,18 @@ export class ScorerPage extends LoginPage {
       return await element.isDisplayed();
     } catch (error) {
       return false;
+    }
+  }
+
+  async handleMatchTimeUpdatePopup(matchId: string) {
+    const isVisible = await this.isElementVisible(
+      this.locationOptionPopupCloseBtn,
+      5000,
+    );
+    if (isVisible) {
+      await this.waitUntilInvisibleWithRetry(
+        this.matchTimeUpdatePopup(matchId),
+      );
     }
   }
 
