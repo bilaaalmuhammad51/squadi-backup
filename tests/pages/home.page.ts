@@ -7,22 +7,12 @@ export class HomePage extends LoginPage {
     '//XCUIElementTypeButton[contains(@name, "Home")]',
     "Home Tab",
   );
-  public drawsTab = selector(
-    "~Draws\nTab 2 of 5",
-    '//XCUIElementTypeButton[contains(@name, "Draws")]',
-    "draws Tab",
-  );
   public laddersTab = selector(
     "~Ladders\nTab 3 of 5",
     '//XCUIElementTypeButton[contains(@name, "Ladders")]',
     "Ladders Tab",
   );
   public liveScores = selector("~Live Scores", "~Live Scores", "live scores");
-  public addTeamOrLeague = selector(
-    "~Add a Team or League\nto your watchlist to get started\nAdd a Team or League",
-    "~Add a Team or League\nto your watchlist to get started\nAdd a Team or League",
-    "add team or league",
-  );
   public welcomeBackHeading = selector(
     "//android.view.View[contains(@content-desc, 'Welcome back')]",
     "",
@@ -33,6 +23,13 @@ export class HomePage extends LoginPage {
     '-ios predicate string: name CONTAINS "Draws"',
     "Draws Button",
   );
+
+  public loginButtonOnHomeTab = selector(
+    "~Login",
+    "~Login",
+    "Login button on Home tab",
+  )
+
   public matchById = (matchId: string) =>
     selector(
       `android=new UiSelector().descriptionContains("Match ID: ${matchId}")`,
@@ -45,6 +42,19 @@ export class HomePage extends LoginPage {
     "~Yes",
     "Yes button in match to accept match as referee",
   );
+
+  async gotoHomeTab() {
+    await this.waitUntilVisibleWithRetry(this.homeTab);
+    await this.click(this.homeTab);
+  }
+
+  async assertHomeTabElements() {
+    await this.waitUntilVisibleWithRetry(this.welcomeBackHeading);
+    await this.assertElementDisplayed(this.welcomeBackHeading);
+    await this.assertElementDisplayed(this.loginButtonOnHomeTab);
+    await this.assertElementDisplayed(this.addTeamOrLeague);
+    await this.assertElementDisplayed(this.squadiFinderOptionInMoreTab);
+  }
 
   async verifyHomeScreenElements() {
     await this.waitUntilVisibleWithRetry(this.liveScores);

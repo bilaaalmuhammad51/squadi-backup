@@ -129,16 +129,157 @@ export class LoginPage extends BasePage {
     "//XCUIElementTypeWindow/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]/XCUIElementTypeOther[3]/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther",
     "view password",
   );
+
+  public drawsTab = selector(
+    'android=new UiSelector().className("android.widget.ImageView").descriptionContains("Draws").clickable(true)',
+    '//XCUIElementTypeButton[contains(@name, "Draws")]',
+    "draws Tab",
+  );
+
+  public addTeamOrLeague = selector(
+    "~Add a Team or League",
+    "~Add a Team or League",
+    "add team or league",
+  );
+
+  public UpdatesTab = selector(
+    'android=new UiSelector().className("android.widget.ImageView").descriptionContains("Updates").clickable(true)',
+    "",
+    "Updates Tab",
+  );
+
+  public newsColumn = selector(
+    'android=new UiSelector().descriptionContains("News")',
+    "",
+    "News Column in Updates tab",
+  )
+
+  public notificationsColumn = selector(
+    'android=new UiSelector().descriptionContains("Notifications")',
+    "",
+    "Notifications Column in Updates tab",
+  )
+
   public moreTab = selector(
     'android=new UiSelector().descriptionContains("More")',
     '-ios predicate string:name CONTAINS "More"',
     "More tab in bottom navigation",
   );
-  public logoutButton = selector(
-    'android=new UiSelector().description("Log Out")',
-    "~Log Out",
-    "Logout button in More tab",
+
+  public laddersOptionInMoreTab = selector(
+    "~Ladders",
+    "~Ladders",
+    "Ladders option in More tab",
   );
+
+  public squadiFinderOptionInMoreTab = selector(
+    "~squadi Finder",
+    "~squadi Finder",
+    "squadi Finder option in More tab",
+  );
+
+  public createAccountOrRegisterProfileOptionInMoreTab = selector(
+    "~Create Account or Register Profile",
+    "~Create Account or Register Profile",
+    "Create Account or Register Profile option in More tab",
+  );
+
+  public chooseLanguageOptionInMoreTab = selector(
+    "~Choose Language",
+    "~Choose Language",
+    "Choose Language option in More tab",
+  );
+
+  public privacyPreferencesOptionInMoreTab = selector(
+    "~Privacy Preferences",
+    "~Privacy Preferences",
+    "Privacy Preferences option in More tab",
+  );
+
+  public aboutUsOptionInMoreTab = selector(
+    "~About Us",
+    "~About Us",
+    "About Us option in More tab",
+  );
+
+  public registerOptionInMoreTab = selector(
+    "~Register",
+    "~Register",
+    "Register option in More tab",
+  );
+
+  public myScheduleOptionInMoreTab = selector(
+    "~My Schedule",
+    "~My Schedule",
+    "My Schedule option in More tab",
+  );
+
+  public myEventsOptionInMoreTab = selector(
+    "~My Events",
+    "~My Events",
+    "My Events option in More tab",
+  );
+
+  public appSettingsOptionInMoreTab = selector(
+    "~App Settings",
+    "~App Settings",
+    "App Settings option in More tab",
+  );
+
+  public myProfileOptionInMoreTab = selector(
+    "~My Profile",
+    "~My Profile",
+    "My Profile option in More tab",
+  );
+
+  public IDCardOptionInMoreTab = selector(
+    "~ID Card",
+    "~ID Card",
+    "ID Card option in More tab",
+  );
+
+  public fieldClosureOptionInMoreTab = selector(
+    "~Field Closure",
+    "~Field Closure",
+    "Field Closure option in More tab",
+  );
+
+  public updatesOptionInMoreTab = selector(
+    "~Updates",
+    "~Updates",
+    "Updates option in More tab",
+  );
+
+  public shopOptionInMoreTab = selector(
+    "~Shop",
+    "~Shop",
+    "Shop option in More tab",
+  );
+
+  public buzzerOptionInMoreTab = selector(
+    "~Buzzer",
+    "~Buzzer",
+    "Buzzer option in More tab",
+  );
+
+  public userVideosOptionInMoreTab = selector(
+    "~User Videos",
+    "~User Videos",
+    "User Videos option in More tab",
+  );
+
+  public shareAppOptionInMoreTab = selector(
+    "~Share App",
+    "~Share App",
+    "Share App option in More tab",
+  );
+
+  public logoutOptionInMoreTab = selector(
+    "~Log Out",
+    "~Log Out",
+    "Logout option in More tab",
+  );
+
   public confirmLogoutButton = selector(
     "~Yes, log out",
     "~Yes, log out",
@@ -311,6 +452,60 @@ export class LoginPage extends BasePage {
     await this.click(this.loginTab);
   }
 
+  async gotoMoreTab() {
+    await this.waitUntilVisibleWithRetry(this.moreTab);
+    await this.click(this.moreTab);
+  }
+
+  async assertMoreTabAvailableOptionsWhenLoggedOut() {
+    await this.waitUntilVisibleWithRetry(this.laddersOptionInMoreTab);
+    await this.assertElementDisplayed(this.laddersOptionInMoreTab);
+    await this.assertElementDisplayed(this.squadiFinderOptionInMoreTab);
+    await this.assertElementDisplayed(
+      this.createAccountOrRegisterProfileOptionInMoreTab,
+    );
+    await this.assertElementDisplayed(this.chooseLanguageOptionInMoreTab);
+    await this.assertElementDisplayed(this.privacyPreferencesOptionInMoreTab);
+    await this.assertElementDisplayed(this.aboutUsOptionInMoreTab);
+  }
+
+  async assertMoreTabUnavailableOptionsWhenLoggedOut() {
+    await this.waitUntilVisibleWithRetry(this.chooseLanguageOptionInMoreTab);
+    await this.assertElementNotDisplayed(this.myScheduleOptionInMoreTab);
+    await this.assertElementNotDisplayed(this.myEventsOptionInMoreTab);
+    await this.assertElementNotDisplayed(this.appSettingsOptionInMoreTab);
+    await this.assertElementNotDisplayed(this.myProfileOptionInMoreTab);
+    await this.assertElementNotDisplayed(this.IDCardOptionInMoreTab);
+    await this.assertElementNotDisplayed(this.fieldClosureOptionInMoreTab);
+    await this.assertElementNotDisplayed(this.updatesOptionInMoreTab);
+    await this.assertElementNotDisplayed(this.shopOptionInMoreTab);
+    await this.assertElementNotDisplayed(this.buzzerOptionInMoreTab);
+    await this.assertElementNotDisplayed(this.userVideosOptionInMoreTab);
+    await this.assertElementNotDisplayed(this.shareAppOptionInMoreTab);
+    await this.assertElementNotDisplayed(this.logoutOptionInMoreTab);
+  }
+
+  async gotoDrawsTab() {
+    await this.waitUntilVisibleWithRetry(this.drawsTab);
+    await this.click(this.drawsTab);
+  }
+
+  async assertDrawsTabElements() {
+    await this.waitUntilVisibleWithRetry(this.addTeamOrLeague);
+    await this.assertElementDisplayed(this.addTeamOrLeague);
+  }
+
+  async gotoUpdatesTab() {
+    await this.waitUntilVisibleWithRetry(this.UpdatesTab);
+    await this.click(this.UpdatesTab);
+  }
+
+  async assertUpdatesTabElements() {
+    await this.waitUntilVisibleWithRetry(this.newsColumn);
+    await this.assertElementDisplayed(this.newsColumn);
+    await this.assertElementDisplayed(this.notificationsColumn);
+  }
+
   async validateLoginBtnIsVisible() {
     await this.handleStartupScreens();
     await this.scrollDown();
@@ -319,9 +514,9 @@ export class LoginPage extends BasePage {
 
   async logoutUser() {
     await this.click(this.moreTab);
-    await this.scrollUntilElementVisible(this.logoutButton);
-    await this.waitUntilVisibleWithRetry(this.logoutButton);
-    await this.click(this.logoutButton);
+    await this.scrollUntilElementVisible(this.logoutOptionInMoreTab);
+    await this.waitUntilVisibleWithRetry(this.logoutOptionInMoreTab);
+    await this.click(this.logoutOptionInMoreTab);
     await this.waitUntilVisibleWithRetry(this.confirmLogoutButton);
     await this.click(this.confirmLogoutButton);
   }

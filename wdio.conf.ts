@@ -62,7 +62,7 @@ export const config: WebdriverIO.Config = {
 
   // Retry a failed spec once - safety net for intermittent CI-emulator
   // flakiness (e.g. a transient system ANR). A fresh retry re-creates state.
-  specFileRetries: 1,
+  specFileRetries: 0,
   specFileRetriesDelay: 0,
 
   mochaOpts: {

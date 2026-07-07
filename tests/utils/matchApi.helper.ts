@@ -31,7 +31,11 @@ export class MatchApiHelper {
       if (axios.isAxiosError(err)) {
         console.error("=== getToken request failed ===");
         console.error("URL:", `${USERS_BASE_URL}/users/loginWithTfa`);
-        console.error("Status:", err.response?.status, err.response?.statusText);
+        console.error(
+          "Status:",
+          err.response?.status,
+          err.response?.statusText,
+        );
         console.error(
           "Response headers:",
           JSON.stringify(err.response?.headers, null, 2),
@@ -156,6 +160,101 @@ export class MatchApiHelper {
     }
 
     return matchId;
+  }
+
+  static async getMatch(token: string, matchId: number): Promise<any> {
+    const response = await axios.get(
+      `${LIVESCORES_BASE_URL}/matches/id/${matchId}`,
+      {
+        headers: {
+          Authorization: `${token}`,
+          SourceSystem: "WebAdmin",
+          Accept: "application/json",
+        },
+      },
+    );
+    return response.data;
+  }
+
+  static async updateMatchStartTime(
+    token: string,
+    matchId: number,
+    minutesAhead: number = 3,
+  ): Promise<void> {
+    const startTime = this.getPakistanFutureTimeUtc(minutesAhead);
+    const match = await this.getMatch(token, matchId);
+    const payload = {
+      id: match.id,
+      startTime,
+
+      divisionId: match.divisionId,
+      type: match.type,
+      competitionId: match.competitionId,
+
+      team1Id: match.team1Id,
+      team2Id: match.team2Id,
+
+      venueCourtId: match.venueCourtId,
+      roundId: match.roundId,
+
+      matchDuration: match.matchDuration,
+      mainBreakDuration: match.mainBreakDuration,
+      breakDuration: match.breakDuration,
+
+      team1Score: match.team1Score,
+      team2Score: match.team2Score,
+
+      hasPenalty: match.hasPenalty,
+      team1PenaltyScore: match.team1PenaltyScore,
+      team2PenaltyScore: match.team2PenaltyScore,
+
+      resultStatus: match.resultStatus,
+      team1ResultId: match.team1ResultId,
+      team2ResultId: match.team2ResultId,
+
+      matchStatus: match.matchStatus ?? "NOT_STARTED",
+      matchSubstatusRefId: match.matchSubstatusRefId,
+
+      endTime: match.endTime,
+
+      // Preserve existing rosters, mapped to the shape the create/update endpoint expects.
+      rosters: (match.rosters ?? []).map((r: any) => ({
+        roleId: r.roleId,
+        userId: r.userId,
+        teamId: r.teamId,
+        sequence: r.sequence,
+      })),
+
+      isFinals: match.isFinals,
+      isLocked: match.isResultsLocked ?? false,
+
+      extraTimeType: match.extraTimeType,
+      extraTimeDuration: match.extraTimeDuration,
+      extraTimeMainBreak: match.extraTimeMainBreak,
+      extraTimeBreak: match.extraTimeBreak,
+      extraTimeWinByGoals: match.extraTimeWinByGoals,
+      extraTimeFor: match.extraTimeFor,
+
+      subCourt: match.subCourt,
+
+      competitionOrganisationId: match.competitionOrganisationId ?? null,
+
+      matchScoresData: [],
+      matchTeamOfficials: [],
+      officials: [],
+
+      canRegenLadderPoints: false,
+      isEndingMatch: false,
+    };
+
+    await axios.post(`${LIVESCORES_BASE_URL}/matches`, payload, {
+      headers: {
+        Authorization: `${token}`,
+        SourceSystem: "WebAdmin",
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    });
   }
 
   static async deleteMatch(token: string, matchId: number): Promise<void> {

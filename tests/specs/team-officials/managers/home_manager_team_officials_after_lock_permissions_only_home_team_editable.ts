@@ -11,7 +11,7 @@ import { TeamOfficialsPage } from "../../../pages/teamOfficials.page";
 let matchId: number;
 let token: string;
 
-describe("Home team Manager team officials before lock permissions - only home team editable", () => {
+describe("Home team Manager team officials after lock permissions - home team not editable", () => {
   it("log in with valid credentials, open a match, update team officials by adding respective roles", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
@@ -28,7 +28,7 @@ describe("Home team Manager team officials before lock permissions - only home t
         LoginData.password,
       );
 
-      matchId = await MatchApiHelper.createMatch(token, 10);
+      matchId = await MatchApiHelper.createMatch(token, 0);
 
       console.log("Created Match ID:", matchId);
 
@@ -114,7 +114,6 @@ describe("Home team Manager team officials before lock permissions - only home t
     });
 
     await step("validate manager page options", async () => {
-      await scorerPage.validateTeamSheetOption();
       await scorerPage.validateStartingFormationOption();
     });
 
@@ -133,7 +132,7 @@ describe("Home team Manager team officials before lock permissions - only home t
     await step(
       "validate team officials not available for away team",
       async () => {
-        await teamOfficialsPage.teamSheetNotAvailableForTeam();
+        await teamOfficialsPage.assertDisabledTeamOfficialsElements();
         await teamOfficialsPage.clickBackBtn();
       },
     );
@@ -148,7 +147,7 @@ describe("Home team Manager team officials before lock permissions - only home t
         await teamOfficialsPage.click(
           scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
         );
-        await teamOfficialsPage.teamSheetNotAvailableForTeam();
+        await teamOfficialsPage.assertDisabledTeamOfficialsElements();
       },
     );
   });
