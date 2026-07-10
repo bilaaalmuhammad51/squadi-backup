@@ -122,6 +122,14 @@ describe("Away team Manager team officials before lock permissions - only away t
       await teamOfficialsPage.searchAndSelectManager("Syed");
       await teamOfficialsPage.searchAndSelectCoach("Syed");
       await teamOfficialsPage.clickConfirmTeamOfficials();
+      const isVisible =
+        await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable();
+      if (isVisible) {
+        await teamOfficialsPage.openTeamOfficials();
+        await teamOfficialsPage.click(
+          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.HomeTeam),
+        );
+      }
     });
     await step("Validate team sheet not available for Home Team", async () => {
       await teamOfficialsPage.teamSheetNotAvailableForTeam();
@@ -131,6 +139,9 @@ describe("Away team Manager team officials before lock permissions - only away t
       "Open Team Officials and verify selected Coaches and Managers",
       async () => {
         await teamOfficialsPage.openTeamOfficials();
+        await teamOfficialsPage.click(
+          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+        );
         await teamOfficialsPage.validateSelectedRolesUsers(
           "Syed Manager2",
           "Syed Coach1",

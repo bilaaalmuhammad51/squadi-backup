@@ -122,33 +122,20 @@ describe("Home team Manager team officials after lock permissions - home team no
         await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable(),
       ).toBeTruthy();
       await teamOfficialsPage.openTeamOfficials();
-      await teamOfficialsPage.assertTeamOfficialsEnabledElements();
     });
-    await step("Select Manger and Coach for Team1", async () => {
-      await teamOfficialsPage.searchAndSelectManager("Syed");
-      await teamOfficialsPage.searchAndSelectCoach("Syed");
-      await teamOfficialsPage.clickConfirmTeamOfficials();
+
+    await step("Validate disabled Home Team elements", async () => {
+      await teamOfficialsPage.click(
+        scorerPage.awayTeamSheetTab(TeamsInTeamSheet.HomeTeam),
+      );
+      await teamOfficialsPage.assertDisabledTeamOfficialsElements();
     });
-    await step(
-      "validate team officials not available for away team",
-      async () => {
-        await teamOfficialsPage.assertDisabledTeamOfficialsElements();
-        await teamOfficialsPage.clickBackBtn();
-      },
-    );
-    await step(
-      "Open Team Officials and verify selected Coaches and Managers",
-      async () => {
-        await teamOfficialsPage.openTeamOfficials();
-        await teamOfficialsPage.validateSelectedRolesUsers(
-          "Syed Manager1",
-          "Syed Coach1",
-        );
-        await teamOfficialsPage.click(
-          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
-        );
-        await teamOfficialsPage.assertDisabledTeamOfficialsElements();
-      },
-    );
+
+    await step("Validate disabled Away Team elements", async () => {
+      await teamOfficialsPage.click(
+        scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+      );
+      await teamOfficialsPage.assertDisabledTeamOfficialsElements();
+    });
   });
 });
