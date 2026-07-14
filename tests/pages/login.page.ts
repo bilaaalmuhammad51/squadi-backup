@@ -142,7 +142,7 @@ export class LoginPage extends BasePage {
     "add team or league",
   );
 
-  public UpdatesTab = selector(
+  public updatesTab = selector(
     'android=new UiSelector().className("android.widget.ImageView").descriptionContains("Updates").clickable(true)',
     "",
     "Updates Tab",
@@ -152,13 +152,13 @@ export class LoginPage extends BasePage {
     'android=new UiSelector().descriptionContains("News")',
     "",
     "News Column in Updates tab",
-  )
+  );
 
   public notificationsColumn = selector(
     'android=new UiSelector().descriptionContains("Notifications")',
     "",
     "Notifications Column in Updates tab",
-  )
+  );
 
   public moreTab = selector(
     'android=new UiSelector().descriptionContains("More")',
@@ -189,6 +189,24 @@ export class LoginPage extends BasePage {
     "~Choose Language",
     "Choose Language option in More tab",
   );
+
+  public englishLanguage = selector(
+    "~English",
+    "~English",
+    "English language option in Choose Language screen",
+  );
+
+  public englishUSALanguage = selector(
+    "~English (U.S.A)",
+    "~English (U.S.A)",
+    "English (U.S.A) language option in Choose Language screen",
+  );
+
+  public applyButtonInChooseLanguageScreen = selector(
+    "~Apply",
+    "~Apply",
+    "Apply button in Choose Language screen",
+  )
 
   public privacyPreferencesOptionInMoreTab = selector(
     "~Privacy Preferences",
@@ -485,6 +503,29 @@ export class LoginPage extends BasePage {
     await this.assertElementNotDisplayed(this.logoutOptionInMoreTab);
   }
 
+  async clickChooseLanguageOptionInMoreTab() {
+    await this.waitUntilVisibleWithRetry(this.chooseLanguageOptionInMoreTab);
+    await this.click(this.chooseLanguageOptionInMoreTab);
+  }
+
+  async chooseEnglishLanguage() {
+    await this.waitUntilVisibleWithRetry(this.englishLanguage);
+    await this.click(this.englishLanguage);
+    await this.clickApplyButtonToApplyLanguageChange();
+  }
+
+  async chooseEnglishUSALanguage() {
+    await this.waitUntilVisibleWithRetry(this.englishUSALanguage);
+    await this.click(this.englishUSALanguage);
+    await this.clickApplyButtonToApplyLanguageChange();
+  }
+
+  async clickApplyButtonToApplyLanguageChange() {
+    await this.waitUntilVisibleWithRetry(this.applyButtonInChooseLanguageScreen);
+    await this.click(this.applyButtonInChooseLanguageScreen);
+    await this.waitUntilVisibleWithRetry(this.chooseLanguageOptionInMoreTab);
+  }
+
   async gotoDrawsTab() {
     await this.waitUntilVisibleWithRetry(this.drawsTab);
     await this.click(this.drawsTab);
@@ -496,8 +537,8 @@ export class LoginPage extends BasePage {
   }
 
   async gotoUpdatesTab() {
-    await this.waitUntilVisibleWithRetry(this.UpdatesTab);
-    await this.click(this.UpdatesTab);
+    await this.waitUntilVisibleWithRetry(this.updatesTab);
+    await this.click(this.updatesTab);
   }
 
   async assertUpdatesTabElements() {
