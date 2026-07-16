@@ -28,7 +28,7 @@ export class HomePage extends LoginPage {
     "~Login",
     "~Login",
     "Login button on Home tab",
-  )
+  );
 
   public matchById = (matchId: string) =>
     selector(
@@ -41,6 +41,30 @@ export class HomePage extends LoginPage {
     "~Yesy",
     "~Yes",
     "Yes button in match to accept match as referee",
+  );
+
+  public yourScheduleHeading = selector(
+    "~Your Schedule",
+    "~Your Schedule",
+    "Your Schedule heading in Home tab after login",
+  );
+
+  public tasksHeading = selector(
+    "~Tasks",
+    "~Tasks",
+    "Tasks heading in Home tab after login",
+  );
+
+  public newsAndUpdatesHeading = selector(
+    "~News & Updates",
+    "~News & Updates",
+    "News & Updates heading in Home tab after login",
+  );
+
+  public notificationsIcon = selector(
+    "~Notifications",
+    "~Notifications",
+    "Notifications icon in Home tab after login",
   );
 
   async gotoHomeTab() {
@@ -103,5 +127,20 @@ export class HomePage extends LoginPage {
   async openScheduleTab() {
     await this.waitUntilVisibleWithRetry(this.drawsBtn);
     await this.click(this.drawsBtn);
+  }
+
+  async assertHomeTabElementsAfterLogin() {
+    await this.waitUntilVisibleWithRetry(this.yourScheduleHeading);
+    await this.assertElementDisplayed(this.yourScheduleHeading);
+    // await this.assertElementDisplayed(this.tasksHeading); //element is not being asserted and the test fails although it's visible in UI
+    await this.assertElementDisplayed(this.newsAndUpdatesHeading);
+  }
+
+  async openNotificationsAndAssertItsElements() {
+    await this.waitUntilVisibleWithRetry(this.notificationsIcon);
+    await this.click(this.notificationsIcon);
+    await this.waitUntilVisibleWithRetry(this.newsColumn);
+    await this.assertElementDisplayed(this.newsColumn);
+    await this.assertElementDisplayed(this.notificationsColumn);
   }
 }

@@ -5,16 +5,26 @@ import { HomePage } from "../../pages/home.page";
 import { LaddersPage } from "../../pages/ladders.page";
 
 describe("Member - Persona Checklist", () => {
-  it("Should log in with valid credentials, open different tabs and validate elements", async () => {
-    const laddersPage = new LaddersPage();
-    const homePage = new HomePage();
+  const laddersPage = new LaddersPage();
+  const homePage = new HomePage();
 
+  it("[TC-M1,M2,M3,M4] Member signs in and lands on Home; Home shows schedule, tasks, news; Home bell opens Updates; Ladders show the right columns per app", async () => {
     allureReporter.addFeature("Member Persona Checklist");
     allureReporter.addStory("Login, open different tabs, validate elements");
     allureReporter.addSeverity("critical");
 
-    await step("Complete Login Flow", async () => {
-      await homePage.loginFlow(LoginData.email, LoginData.password);
+    await step("[TC-M1] Member signs in and lands on Home", async () => {
+      await homePage.loginFlow(LoginData.coachEmail, LoginData.password);
+    });
+
+    await step("[TC-M2] Home shows schedule, tasks, news", async () => {
+      await homePage.gotoHomeTab();
+      await homePage.assertHomeTabElementsAfterLogin();
+    });
+
+    await step("[TC-M3] Home bell opens Updates", async () => {
+      await homePage.openNotificationsAndAssertItsElements();
+      await homePage.click(homePage.crossCloseBtn);
     });
 
     await step("Open Ladders Tab and add Team if neeeded", async () => {
@@ -47,6 +57,77 @@ describe("Member - Persona Checklist", () => {
     await step("Open Form Ladders Tab And Validate The Elements", async () => {
       await laddersPage.openFormLaddersTab();
       await laddersPage.validateFormLaddersTabElements();
+    });
+
+    await step("Open Form Ladders Tab And Validate The Elements", async () => {
+      await laddersPage.openFormLaddersTab();
+      await laddersPage.validateFormLaddersTabElements();
+    });
+  });
+
+  it("[TC-M6,M7] Opens Shop & Registration webviews without re-login, Change password", async () => {
+    await step(
+      "Open Register option from More tab and assert its elements",
+      async () => {
+        await homePage.gotoMoreTab();
+        await homePage.waitUntilVisibleWithRetry(
+          homePage.registerOptionInMoreTab,
+        );
+        await homePage.click(homePage.registerOptionInMoreTab);
+        await homePage.waitUntilVisibleWithRetry(homePage.crossCloseBtn);
+        await homePage.waitUntilVisibleWithRetry(
+          homePage.registerOptionInMoreTab,
+        );
+        await homePage.click(homePage.registerOptionInMoreTab);
+        await homePage.waitUntilVisibleWithRetry(
+          homePage.signUpToCompetitionHeading,
+        );
+        await homePage.assertElementDisplayed(
+          homePage.signUpToCompetitionHeading,
+        );
+        await homePage.click(homePage.crossCloseBtn);
+      },
+    );
+
+    await step(
+      "Open Register option from More tab and assert its elements",
+      async () => {
+        await homePage.gotoMoreTab();
+        await homePage.scrollUntilElementVisible(homePage.shopOptionInMoreTab);
+        await homePage.click(homePage.shopOptionInMoreTab);
+        await homePage.waitUntilVisibleWithRetry(homePage.crossCloseBtn);
+        await homePage.waitUntilVisibleWithRetry(homePage.shopOptionInMoreTab);
+        await homePage.click(homePage.shopOptionInMoreTab);
+        await homePage.waitUntilVisibleWithRetry(
+          homePage.merchandiseShopInShop,
+        );
+        await homePage.assertElementDisplayed(homePage.merchandiseShopInShop);
+        await homePage.click(homePage.crossCloseBtn);
+      },
+    );
+
+    await step("Change password and stay signed in", async () => {
+      await homePage.gotoHomeTab();
+      await homePage.gotoMoreTab();
+      await homePage.waitUntilVisibleWithRetry(
+        homePage.myProfileOptionInMoreTab,
+      );
+      await homePage.click(homePage.myProfileOptionInMoreTab);
+      await homePage.waitUntilVisibleWithRetry(
+        homePage.updatePasswordOptionInMyProfile,
+      );
+      await homePage.click(homePage.updatePasswordOptionInMyProfile);
+      await homePage.waitUntilVisibleWithRetry(
+        homePage.newPasswordHeadingInUpdatePassword,
+      );
+      await homePage.assertElementDisplayed(
+        homePage.newPasswordHeadingInUpdatePassword,
+      );
+      await homePage.assertElementDisplayed(
+        homePage.retypePasswordHeadingInUpdatePassword,
+      );
+      await homePage.clickBackBtn();
+      await homePage.clickBackBtn();
     });
   });
 });

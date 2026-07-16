@@ -158,7 +158,7 @@ describe("Manager team sheet post-match window permissions", () => {
     await step("wait for recording time to start", async () => {
       await scorerPage.clickBackBtn();
       await scorerPage.clickBackBtn();
-      await scorerPage.clickCloseBtnInSettings();
+      await scorerPage.clickCloseCrossBtn();
     });
 
     await step("Validate navigation to scorer screen", async () => {

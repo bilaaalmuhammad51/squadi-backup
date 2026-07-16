@@ -206,7 +206,7 @@ export class LoginPage extends BasePage {
     "~Apply",
     "~Apply",
     "Apply button in Choose Language screen",
-  )
+  );
 
   public privacyPreferencesOptionInMoreTab = selector(
     "~Privacy Preferences",
@@ -224,6 +224,12 @@ export class LoginPage extends BasePage {
     "~Register",
     "~Register",
     "Register option in More tab",
+  );
+
+  public signUpToCompetitionHeading = selector(
+    '//android.view.View[@text="Sign up to Competition"]',
+    "",
+    "Sign up to Competition heading in Register option from More tab",
   );
 
   public myScheduleOptionInMoreTab = selector(
@@ -250,6 +256,24 @@ export class LoginPage extends BasePage {
     "My Profile option in More tab",
   );
 
+  public updatePasswordOptionInMyProfile = selector(
+    "~Update Password",
+    "~Update Password",
+    "Update Password option in My Profile from More tab",
+  );
+
+  public newPasswordHeadingInUpdatePassword = selector(
+    "~New Password",
+    "~New Password",
+    "New Password heading in Update Password section",
+  );
+
+  public retypePasswordHeadingInUpdatePassword = selector(
+    "~Re-type Password",
+    "~Re-type Password",
+    "Re-type Password heading in Update Password section",
+  );
+
   public IDCardOptionInMoreTab = selector(
     "~ID Card",
     "~ID Card",
@@ -272,6 +296,12 @@ export class LoginPage extends BasePage {
     "~Shop",
     "~Shop",
     "Shop option in More tab",
+  );
+
+  public merchandiseShopInShop = selector(
+    '//android.widget.TextView[@text="Merchandise Shop"]',
+    "",
+    "Merchandise Shop heading in Shop from More tab",
   );
 
   public buzzerOptionInMoreTab = selector(
@@ -303,6 +333,17 @@ export class LoginPage extends BasePage {
     "~Yes, log out",
     "Confirm logout button in logout popup",
   );
+
+  public crossCloseBtn = selector(
+    'android=new UiSelector().className("android.widget.Button")',
+    '-ios predicate string: type == "XCUIElementTypeButton"',
+    "Cross/Close Button in Settings",
+  );
+
+  async clickCloseCrossBtn() {
+    await this.waitUntilVisibleWithRetry(this.crossCloseBtn);
+    await this.click(this.crossCloseBtn);
+  }
 
   async loginUser(user: string, pass: string) {
     await this.addUserName(user);
@@ -521,7 +562,9 @@ export class LoginPage extends BasePage {
   }
 
   async clickApplyButtonToApplyLanguageChange() {
-    await this.waitUntilVisibleWithRetry(this.applyButtonInChooseLanguageScreen);
+    await this.waitUntilVisibleWithRetry(
+      this.applyButtonInChooseLanguageScreen,
+    );
     await this.click(this.applyButtonInChooseLanguageScreen);
     await this.waitUntilVisibleWithRetry(this.chooseLanguageOptionInMoreTab);
   }
