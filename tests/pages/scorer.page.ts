@@ -156,12 +156,6 @@ export class ScorerPage extends LoginPage {
     "Error Popup",
   );
 
-  public crossCloseBtn = selector(
-    'android=new UiSelector().className("android.widget.Button")',
-    '-ios predicate string: type == "XCUIElementTypeButton"',
-    "Cross/Close Button in Settings",
-  );
-
   public ResponsesHeading = selector(
     "~Responses",
     "~Responses",
@@ -488,11 +482,6 @@ export class ScorerPage extends LoginPage {
     await this.click(this.settingIcon);
   }
 
-  async clickCloseBtnInSettings() {
-    await this.waitUntilVisibleWithRetry(this.crossCloseBtn);
-    await this.click(this.crossCloseBtn);
-  }
-
   async isElementDisplayed(selector: DualSelector): Promise<boolean> {
     try {
       const element = await this.resolve(selector);
@@ -575,7 +564,7 @@ export class ScorerPage extends LoginPage {
       console.log("Still showing Team Sheet. Retrying...");
 
       // Go back
-      await this.clickCloseBtnInSettings();
+      await this.clickCloseCrossBtn();
 
       // Wait before retry
       await driver.pause(waitBetweenAttempts);
