@@ -228,6 +228,19 @@ export default class BasePage {
     Logger.info(`Element text/content-desc: "${text}"`);
     expect(text).toContain(expected);
   }
+
+  async assertSwitchState(selector: DualSelector, checked: boolean) {
+    Logger.info(
+      `Asserting ${selector.log} is ${checked ? "checked" : "unchecked"}`,
+    );
+
+    const element = await this.resolve(selector);
+
+    const actual = (await element.getAttribute("checked")) === "true";
+
+    expect(actual).toBe(checked);
+  }
+
   async expectElementState(element: any, state: any) {
     await browser.waitUntil(
       async () => {
@@ -255,6 +268,38 @@ export default class BasePage {
       },
     );
   }
+
+  async waitUntilElementEnabledState(
+    selector: DualSelector,
+    enabled: boolean,
+    timeout: number = Timeout.FIVE_SECONDS,
+  ) {
+    Logger.info(
+      `Waiting for element ${selector.log} to become ${enabled ? "enabled" : "disabled"}`,
+    );
+
+    const element = await this.resolve(selector);
+
+    await browser.waitUntil(
+      async () => {
+        const isEnabled = await element.isEnabled();
+        return isEnabled === enabled;
+      },
+      {
+        timeout,
+        timeoutMsg: `Element ${selector.log} did not become ${
+          enabled ? "enabled" : "disabled"
+        } within ${timeout}ms`,
+      },
+    );
+
+    Logger.info(
+      `Element ${selector.log} is now ${enabled ? "enabled" : "disabled"}`,
+    );
+
+    return element;
+  }
+
   async getText(selector: DualSelector): Promise<string> {
     const element = await this.resolve(selector);
     const text = await element.getText();
@@ -366,7 +411,22 @@ export default class BasePage {
     }
 
     if (platform === "android") {
-      const uiSelector = selector.android.replace(/^android=/, "");
+      let uiSelector: string;
+
+      if (selector.android.startsWith("android=")) {
+        uiSelector = selector.android.replace(/^android=/, "");
+      } else if (selector.android.startsWith("~")) {
+        const desc = selector.android.substring(1);
+        uiSelector = `new UiSelector().description("${desc}")`;
+      } else {
+        // Can't build a UiSelector from this locator
+        return await this.manualScroll(
+          selector,
+          maxScrolls,
+          direction,
+          isElementVisible,
+        );
+      }
 
       // Try each scrollable container until one works
       const scrollableContainers = [
