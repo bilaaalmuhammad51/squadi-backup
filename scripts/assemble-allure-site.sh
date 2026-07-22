@@ -53,6 +53,11 @@ cp -r "${WORKSPACE}/allure-report/." "_site/emulator/${RUN_NUMBER}/"
 date +%s > "_site/emulator/${RUN_NUMBER}/.published-at"
 
 # 3. Prune run folders older than RETENTION_DAYS.
+#
+# A folder with no .published-at marker is treated as stale and pruned. Older
+# runs uploaded before include-hidden-files was set lost their markers in the
+# artifact round-trip; without this they would never age out. This run's own
+# folder always has a fresh marker (written in step 2), so it is never at risk.
 now="$(date +%s)"
 cutoff=$(( RETENTION_DAYS * 86400 ))
 for dir in _site/emulator/*/; do
@@ -60,8 +65,13 @@ for dir in _site/emulator/*/; do
   marker="${dir}.published-at"
   ts=0
   [ -f "$marker" ] && ts="$(cat "$marker" 2>/dev/null || echo 0)"
+  if [ "$ts" -le 0 ]; then
+    echo "Pruning $dir (no age marker)"
+    rm -rf "$dir"
+    continue
+  fi
   age=$(( now - ts ))
-  if [ "$ts" -gt 0 ] && [ "$age" -gt "$cutoff" ]; then
+  if [ "$age" -gt "$cutoff" ]; then
     echo "Pruning $dir (age $(( age / 86400 ))d > ${RETENTION_DAYS}d)"
     rm -rf "$dir"
   fi

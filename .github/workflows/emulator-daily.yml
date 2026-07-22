@@ -43,7 +43,7 @@ jobs:
     # Safety net against a true runaway only - the emulator is force-killed
     # after tests so the job ends promptly on its own. A bit above the step cap
     # to leave room for report/Slack/deploy after the test window.
-    timeout-minutes: 130
+    timeout-minutes: 190
 
     env:
       PLATFORM: android
@@ -121,11 +121,12 @@ jobs:
       - name: Run tests on Android emulator
         id: run_tests
         continue-on-error: true
-        # Step cap big enough for a full suite (~24 specs run sequentially,
-        # each up to a few minutes, plus emulator boot). The teardown hang is
-        # handled by force-killing the emulator at the end of the script, so
-        # this is only a runaway guard - normal runs end well before it.
-        timeout-minutes: 120
+        # Step cap big enough for a full suite (~57 tests run sequentially at
+        # ~2.3 min each, plus emulator boot - roughly 140 min). The teardown
+        # hang is handled by force-killing the emulator at the end of the
+        # script, so this is only a runaway guard - normal runs end well
+        # before it.
+        timeout-minutes: 180
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ env.API_LEVEL }}
@@ -149,6 +150,9 @@ jobs:
           name: appium-log-${{ github.run_number }}
           path: appium.log
           if-no-files-found: ignore
+          # Debug aid only - keep it short so old logs don't accumulate against
+          # the shared Actions storage quota (default retention is 90 days).
+          retention-days: 3
 
       - name: Generate Allure report
         if: always()
@@ -209,7 +213,15 @@ jobs:
         with:
           name: allure-report-emulator-${{ github.run_number }}
           path: allure-report
-          retention-days: 14
+          # Kept as a fallback: on non-default branches the github-pages
+          # environment usually won't deploy (branch policy), so the browsable
+          # Pages report isn't published - this downloadable zip is then the
+          # only way to open the report. Retention is 3 days (was 7): at ~25-50
+          # MB/run, a 7-day window across many runs was ~300 MB and filled the
+          # shared org-wide Actions storage quota, which then failed EVERY
+          # upload step (including the Pages publish). 3 days matches the Pages
+          # report window while capping standing usage at ~3 runs (~90 MB).
+          retention-days: 3
 
       - name: Assemble Pages site (per-run report + 3-day history)
         if: always()
@@ -226,6 +238,11 @@ jobs:
           name: pages-site
           path: _site
           retention-days: 4 # just longer than the 3-day report window
+          # upload-artifact excludes hidden files by default, which would strip
+          # the per-run .published-at age markers (and .nojekyll) on the
+          # round-trip - leaving the prune in assemble-allure-site.sh with
+          # nothing to compare against, so the site grows without bound.
+          include-hidden-files: true
 
       - name: Setup Pages
         if: always()

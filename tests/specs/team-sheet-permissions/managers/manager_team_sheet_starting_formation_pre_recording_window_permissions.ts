@@ -17,16 +17,12 @@ let matchId: number;
 let token: string;
 
 describe("Manager team sheet pre-recording window permissions", () => {
-  it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for respective team", async () => {
-    const loginPage = new LoginPage();
-    const homePage = new HomePage();
-    const scorerPage = new ScorerPage();
-    const basePage = new BasePage();
+  const loginPage = new LoginPage();
+  const homePage = new HomePage();
+  const scorerPage = new ScorerPage();
+  const basePage = new BasePage();
 
-    allureReporter.addFeature("Manager Flow");
-    allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
-    allureReporter.addSeverity("critical");
-
+  before(async () => {
     await step("Create match before launching app", async () => {
       token = await MatchApiHelper.getToken(
         LoginData.email,
@@ -43,17 +39,23 @@ describe("Manager team sheet pre-recording window permissions", () => {
         "text/plain",
       );
     });
+  });
 
-    after(async () => {
-      try {
-        if (token && matchId) {
-          await MatchApiHelper.deleteMatch(token, matchId);
-          console.log(`Deleted Match ID: ${matchId}`);
-        }
-      } catch (error) {
-        console.error("Failed to delete match:", error);
+  after(async () => {
+    try {
+      if (token && matchId) {
+        await MatchApiHelper.deleteMatch(token, matchId);
+        console.log(`Deleted Match ID: ${matchId}`);
       }
-    });
+    } catch (error) {
+      console.error("Failed to delete match:", error);
+    }
+  });
+
+  it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for respective team", async () => {
+    allureReporter.addFeature("Manager Flow");
+    allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
+    allureReporter.addSeverity("critical");
 
     await step("Verify welcome screen is visible", async () => {
       await loginPage.validateLoginBtnIsVisible();
@@ -175,6 +177,8 @@ describe("Manager team sheet pre-recording window permissions", () => {
     await step("Logout and Log In again with Team2 Manager", async () => {
       await scorerPage.logoutUser();
     });
+  });
+  it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for respective team", async () => {
     await step("Verify welcome screen is visible", async () => {
       await loginPage.gotoLoginTab();
       await loginPage.validateLoginBtnIsVisible();

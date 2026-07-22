@@ -4,6 +4,8 @@ import {
   generateInvalidEmail,
   generateValidEmailSample,
 } from "../utils/helpers";
+import { Timeout } from "../utils/timers";
+import Logger from "../utils/logger";
 
 export class LoginPage extends BasePage {
   public createAccountOrRegisterProfile = selector(
@@ -69,7 +71,7 @@ export class LoginPage extends BasePage {
     "tap on screen to make close button visible if hidden in DOM",
   );
   public tapOnScreenForNextButton = selector(
-    'android=new UiSelector().text("Football")',
+    '//android.view.View[@text="Select Language"]',
     "",
     "tap on screen to make Next visible if hidden in DOM",
   );
@@ -202,10 +204,10 @@ export class LoginPage extends BasePage {
     "English (U.S.A) language option in Choose Language screen",
   );
 
-  public applyButtonInChooseLanguageScreen = selector(
+  public applyButtonAtTheBottom = selector(
     "~Apply",
     "~Apply",
-    "Apply button in Choose Language screen",
+    "Apply button at the bottom",
   );
 
   public privacyPreferencesOptionInMoreTab = selector(
@@ -244,16 +246,130 @@ export class LoginPage extends BasePage {
     "My Events option in More tab",
   );
 
+  public createNewEventHeadingInMyEvents = selector(
+    "~Create New Event",
+    "~Create New Event",
+    "Create New Event heading in My Events",
+  );
+
+  public eventTypeInMyEvents = selector(
+    "~Event Type",
+    "~Event Type",
+    "Event Type field Heading in My Events",
+  );
+
   public appSettingsOptionInMoreTab = selector(
-    "~App Settings",
+    '//android.widget.ImageView[@content-desc="App Settings "]',
     "~App Settings",
     "App Settings option in More tab",
+  );
+
+  public homeScreenFilterOptionInAppSettings = selector(
+    "~Home Screen Filter",
+    "~Home Screen Filter",
+    "Home Screen Filter in App Settings",
+  );
+
+  public filterByCourtHeadingInHomeScreenFilter = selector(
+    "~Filter by Court",
+    "~Filter by Court",
+    "Filter by Court in Home Screen Filter",
+  );
+
+  public uncheckedSydney1CheckboxInHomeScreenFilter = selector(
+    "//android.widget.Button[contains(@content-desc, 'Sydney - 1')]",
+    "",
+    "unchecked [HR | vo: | gd:1234567 | | Sydney - 1] in Home Screen Filter",
+  );
+
+  public checkedSydney1CheckboxInHomeScreenFilter = selector(
+    "//android.widget.ImageView[contains(@content-desc, 'Sydney - 1')]",
+    "",
+    "checked [HR | vo: | gd:1234567 | | Sydney - 1] in Home Screen Filter",
+  );
+
+  public uncheckedSydney3CheckboxInHomeScreenFilter = selector(
+    "//android.widget.Button[contains(@content-desc, 'Sydney - 3')]",
+    "",
+    "unchecked [HR | vo: | gd:1234567 | | Sydney - 3] in Home Screen Filter",
+  );
+
+  public checkedSydney3CheckboxInHomeScreenFilter = selector(
+    "//android.widget.ImageView[contains(@content-desc, 'Sydney - 3')]",
+    "",
+    "checked [HR | vo: | gd:1234567 | | Sydney - 3] in Home Screen Filter",
+  );
+
+  public clearBtnInTopRight = selector(
+    "~Clear",
+    "~Clear",
+    "Clear button in top right Corner In Home Screen Filter",
+  );
+
+  public offlineSupportOptionInAppSettings = selector(
+    "~Offline Support",
+    "~Offline Support",
+    "Offline Support in App Settings",
+  );
+
+  public showDownloadIndicatorsHeading = selector(
+    "~Show Download indicators on Home",
+    "~Show Download indicators on Home",
+    "Show Download indicators on Home heading in Offline Support in App Settings",
+  );
+
+  public showDownloadIndicatorsSwitch = selector(
+    "//android.widget.Switch",
+    "",
+    "Show Download indicators on Home switch in Offline Support in App Settings",
   );
 
   public myProfileOptionInMoreTab = selector(
     "~My Profile",
     "~My Profile",
     "My Profile option in More tab",
+  );
+
+  public myFullProfileOptionInMyProfile = selector(
+    "~My Full Profile",
+    "~My Full Profile",
+    "My Full Profile option in My Profile",
+  );
+
+  public userHeadingInMyFullProfile = selector(
+    "~User",
+    "~User",
+    "User top heading in My Full Profile",
+  );
+
+  public userProfileHeadingInMyFullProfile = selector(
+    'android=new UiSelector().text("User Profile")',
+    "~User Profile",
+    "User Profile heading in My Full Profile",
+  );
+
+  public myPaymentMethodsOptionInMyProfile = selector(
+    "~My Payment Methods",
+    "~My Payment Methods",
+    "My Payment Methods option in My Profile",
+  );
+
+  public myPaymentMethodsHeading = selector(
+    "~My Payment Methods",
+    "~My Payment Methods",
+    "My Payment Methods heading in My Payment Methods option",
+  );
+
+  public refereeOfficialPaymentsHeading = selector(
+    'android=new UiSelector().text("Referee/Official Payments")',
+    "",
+    "Referee/Official Payments heading in My Payment Methods",
+  );
+
+  public uploadBankAccountBtn = selector(
+    'android=new UiSelector().text("Upload Bank Account")',
+    "",
+    "Upload Bank Account Btn in My Payment Methods",
   );
 
   public updatePasswordOptionInMyProfile = selector(
@@ -314,6 +430,54 @@ export class LoginPage extends BasePage {
     "~User Videos",
     "~User Videos",
     "User Videos option in More tab",
+  );
+
+  public videosHeadingInUserVideos = selector(
+    "~Videos",
+    "~Videos",
+    "Videos heading in User Videos",
+  );
+
+  public allowAllBtnInVideos = selector(
+    '//android.widget.Button[@resource-id="CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"]',
+    "",
+    "Allow All button for cookies in User Videos",
+  );
+
+  public addingAndEditingWatchlistHeading = selector(
+    '//android.view.View[@text="Adding and Editing Watchlist"]',
+    "",
+    "Adding and Editing Watchlist heading in User Videos",
+  );
+
+  public addingAndEditingWatchlistVideo = selector(
+    '(//android.view.View[@resource-id="player-control-overlay"])[1]',
+    "",
+    "Adding and Editing Watchlist YouTube Video in User Videos",
+  );
+
+  public drawsLaddersAndStatisticsHeading = selector(
+    '//android.view.View[@text="Draws, Ladders and Statistics"]',
+    "",
+    "Draws, Ladders and Statistics heading in User Videos",
+  );
+
+  public drawsLaddersAndStatisticsVideo = selector(
+    '(//android.view.View[@resource-id="player-control-overlay"])[2]',
+    "",
+    "Draws, Ladders and Statistics YouTube Video in User Videos",
+  );
+
+  public managingYourTeamHeading = selector(
+    '//android.view.View[@text="Managing Your Team"]',
+    "",
+    "Managing Your Team heading in User Videos",
+  );
+
+  public managingYourTeamVideo = selector(
+    '(//android.view.View[@resource-id="player-control-overlay"])[3]',
+    "",
+    "Managing Your Team YouTube Video in User Videos",
   );
 
   public shareAppOptionInMoreTab = selector(
@@ -425,7 +589,7 @@ export class LoginPage extends BasePage {
 
   async clickNextButton() {
     const isNextBtnVisible = await this.isElementVisible(
-      this.acceptAllButton,
+      this.nextButton,
       9000,
     );
     if (isNextBtnVisible) {
@@ -544,28 +708,306 @@ export class LoginPage extends BasePage {
     await this.assertElementNotDisplayed(this.logoutOptionInMoreTab);
   }
 
+  async openMyProfileFromMoreTab() {
+    await this.waitUntilVisibleWithRetry(this.myProfileOptionInMoreTab);
+    await this.click(this.myProfileOptionInMoreTab);
+    await this.waitUntilVisibleWithRetry(this.myFullProfileOptionInMyProfile);
+  }
+
+  async openMyFullProfileFromMyProfileAndAssertItsElements() {
+    await this.waitUntilVisibleWithRetry(this.myFullProfileOptionInMyProfile);
+    await this.click(this.myFullProfileOptionInMyProfile);
+    await this.waitUntilVisibleWithRetry(this.userHeadingInMyFullProfile);
+    await this.click(this.userHeadingInMyFullProfile);
+    await this.waitUntilVisibleWithRetry(
+      this.userProfileHeadingInMyFullProfile,
+    );
+    await this.assertElementDisplayed(this.userProfileHeadingInMyFullProfile);
+  }
+
+  async openMyPaymentMethodsFromMyProfileAndAssertItsElements() {
+    await this.waitUntilVisibleWithRetry(
+      this.myPaymentMethodsOptionInMyProfile,
+    );
+    await this.click(this.myPaymentMethodsOptionInMyProfile);
+    await this.waitUntilVisibleWithRetry(this.myPaymentMethodsHeading);
+    await this.click(this.myPaymentMethodsHeading);
+    await this.waitUntilVisibleWithRetry(this.refereeOfficialPaymentsHeading);
+    await this.assertElementDisplayed(this.refereeOfficialPaymentsHeading);
+    await this.assertElementDisplayed(this.uploadBankAccountBtn);
+  }
+
+  async openMyEventsFromMoreTabAndAssertItsElements() {
+    await this.waitUntilVisibleWithRetry(this.myEventsOptionInMoreTab);
+    await this.click(this.myEventsOptionInMoreTab);
+    await this.waitUntilVisibleWithRetry(this.createNewEventHeadingInMyEvents);
+    await this.waitUntilVisibleWithRetry(this.eventTypeInMyEvents);
+    await this.assertElementDisplayed(this.eventTypeInMyEvents);
+  }
+
+  async openAppSettingsAndValidateItsOptions() {
+    await this.waitUntilVisibleWithRetry(this.appSettingsOptionInMoreTab);
+    await this.click(this.appSettingsOptionInMoreTab);
+    await this.waitUntilVisibleWithRetry(
+      this.homeScreenFilterOptionInAppSettings,
+    );
+    await this.assertElementDisplayed(this.homeScreenFilterOptionInAppSettings);
+    await this.assertElementDisplayed(this.offlineSupportOptionInAppSettings);
+  }
+
+  async openHomeScreenFilterAndValidateItsOptions() {
+    await this.waitUntilVisibleWithRetry(
+      this.homeScreenFilterOptionInAppSettings,
+    );
+    await this.click(this.homeScreenFilterOptionInAppSettings);
+    await this.waitUntilVisibleWithRetry(
+      this.filterByCourtHeadingInHomeScreenFilter,
+    );
+    await this.assertElementDisplayed(
+      this.filterByCourtHeadingInHomeScreenFilter,
+    );
+    await this.assertElementDisplayed(this.applyButtonAtTheBottom);
+  }
+
+  async assertUncheckedHomeScreenFilterOptions() {
+    await this.waitUntilVisibleWithRetry(
+      this.uncheckedSydney1CheckboxInHomeScreenFilter,
+    );
+    await this.assertElementDisplayed(
+      this.uncheckedSydney1CheckboxInHomeScreenFilter,
+    );
+    console.log("asserting unchecked sydney 3");
+    await this.assertElementDisplayed(
+      this.uncheckedSydney3CheckboxInHomeScreenFilter,
+    );
+  }
+
+  async assertCheckedHomeScreenFilterOptions() {
+    await this.waitUntilVisibleWithRetry(
+      this.checkedSydney1CheckboxInHomeScreenFilter,
+    );
+    await this.assertElementDisplayed(
+      this.checkedSydney1CheckboxInHomeScreenFilter,
+    );
+    await this.assertElementDisplayed(
+      this.checkedSydney1CheckboxInHomeScreenFilter,
+    );
+  }
+
+  async checkUncheckHomeScreenFilters(check: boolean) {
+    if (check) {
+      const isSydney1Unchecked = await this.isElementVisible(
+        this.uncheckedSydney1CheckboxInHomeScreenFilter,
+      );
+      const isSydney3Unchecked = await this.isElementVisible(
+        this.uncheckedSydney3CheckboxInHomeScreenFilter,
+      );
+
+      if (isSydney1Unchecked) {
+        await this.click(this.uncheckedSydney1CheckboxInHomeScreenFilter);
+        await this.waitUntilVisibleWithRetry(
+          this.checkedSydney1CheckboxInHomeScreenFilter,
+        );
+      }
+
+      if (isSydney3Unchecked) {
+        await this.click(this.uncheckedSydney3CheckboxInHomeScreenFilter);
+        await this.waitUntilVisibleWithRetry(
+          this.checkedSydney3CheckboxInHomeScreenFilter,
+        );
+      }
+    } else {
+      const isSydney1Checked = await this.isElementVisible(
+        this.checkedSydney1CheckboxInHomeScreenFilter,
+      );
+      const isSydney3Checked = await this.isElementVisible(
+        this.checkedSydney3CheckboxInHomeScreenFilter,
+      );
+
+      if (isSydney1Checked) {
+        await this.click(this.checkedSydney1CheckboxInHomeScreenFilter);
+        await this.waitUntilVisibleWithRetry(
+          this.uncheckedSydney1CheckboxInHomeScreenFilter,
+        );
+      }
+
+      if (isSydney3Checked) {
+        await this.click(this.checkedSydney3CheckboxInHomeScreenFilter);
+        await this.waitUntilVisibleWithRetry(
+          this.uncheckedSydney3CheckboxInHomeScreenFilter,
+        );
+      }
+    }
+
+    await this.click(this.applyButtonAtTheBottom);
+  }
+
+  async clearHomeFilters() {
+    await this.waitUntilVisibleWithRetry(this.clearBtnInTopRight);
+    await this.click(this.clearBtnInTopRight);
+    await this.waitUntilElementEnabledState(this.applyButtonAtTheBottom, false);
+    let applyButtonAtTheBottom: ChainablePromiseElement;
+    applyButtonAtTheBottom = await this.getElement(this.applyButtonAtTheBottom);
+    await this.expectElementState(applyButtonAtTheBottom, "disabled");
+  }
+
+  async openOfflineSupportAndValidateElements() {
+    await this.waitUntilVisibleWithRetry(
+      this.offlineSupportOptionInAppSettings,
+    );
+    await this.click(this.offlineSupportOptionInAppSettings);
+    await this.waitUntilVisibleWithRetry(this.showDownloadIndicatorsHeading);
+    await this.assertElementDisplayed(this.showDownloadIndicatorsHeading);
+  }
+
+  async asserShowDownloadIndicatorsSwitchState(checked: boolean) {
+    if (checked) {
+      await this.assertSwitchState(this.showDownloadIndicatorsSwitch, true);
+    } else {
+      await this.assertSwitchState(this.showDownloadIndicatorsSwitch, false);
+    }
+  }
+
+  async checkUncheckShowDownloadIndicators(check: boolean) {
+    let showDownloadIndicatorOnHomeSwitchInOfflineSupport: ChainablePromiseElement;
+    showDownloadIndicatorOnHomeSwitchInOfflineSupport = await this.getElement(
+      this.showDownloadIndicatorsSwitch,
+    );
+    const isChecked =
+      (await showDownloadIndicatorOnHomeSwitchInOfflineSupport.getAttribute(
+        "checked",
+      )) === "true";
+
+    if (isChecked !== check) {
+      await showDownloadIndicatorOnHomeSwitchInOfflineSupport.click();
+
+      await browser.waitUntil(
+        async () => {
+          const checked =
+            await showDownloadIndicatorOnHomeSwitchInOfflineSupport.getAttribute(
+              "checked",
+            );
+          return checked === String(check);
+        },
+        {
+          timeout: Timeout.FIVE_SECONDS,
+          timeoutMsg: `Show Download Indicators switch did not become ${
+            check ? "checked" : "unchecked"
+          }`,
+        },
+      );
+    }
+  }
+
+  async openUserVideosOptionInMoreTabAndAssertElements() {
+    await this.scrollUntilElementVisible(this.userVideosOptionInMoreTab);
+    await this.click(this.userVideosOptionInMoreTab);
+    await this.waitUntilVisibleWithRetry(this.videosHeadingInUserVideos);
+    await this.click(this.videosHeadingInUserVideos);
+    await this.scrollUntilElementVisible(this.allowAllBtnInVideos);
+    await this.click(this.allowAllBtnInVideos);
+    await this.scrollUntilElementVisible(this.addingAndEditingWatchlistHeading, {maxScrolls: undefined, direction: "up"});
+    await this.assertElementDisplayed(this.addingAndEditingWatchlistHeading);
+    await this.assertElementDisplayed(this.addingAndEditingWatchlistVideo);
+    await this.scrollUntilElementVisible(this.drawsLaddersAndStatisticsHeading);
+    await this.assertElementDisplayed(this.drawsLaddersAndStatisticsHeading);
+    await this.assertElementDisplayed(this.drawsLaddersAndStatisticsVideo);
+    await this.scrollUntilElementVisible(this.managingYourTeamHeading);
+    await this.assertElementDisplayed(this.managingYourTeamHeading);
+    await this.assertElementDisplayed(this.managingYourTeamVideo);
+  }
+
   async clickChooseLanguageOptionInMoreTab() {
+    await this.scrollUntilElementVisible(this.chooseLanguageOptionInMoreTab);
     await this.waitUntilVisibleWithRetry(this.chooseLanguageOptionInMoreTab);
     await this.click(this.chooseLanguageOptionInMoreTab);
   }
 
-  async chooseEnglishLanguage() {
-    await this.waitUntilVisibleWithRetry(this.englishLanguage);
-    await this.click(this.englishLanguage);
-    await this.clickApplyButtonToApplyLanguageChange();
+  async selectEnglishLanguage() {
+    const element = await this.waitUntilVisibleWithRetry(this.englishLanguage);
+
+    const className = await element.getAttribute("class");
+
+    if (className === "android.widget.Button") {
+      await element.click();
+
+      await browser.waitUntil(
+        async () => {
+          const cls = await (
+            await this.resolve(this.englishLanguage)
+          ).getAttribute("class");
+          return cls === "android.widget.ImageView";
+        },
+        {
+          timeout: Timeout.FIVE_SECONDS,
+          timeoutMsg: "English language was not selected",
+        },
+      );
+    }
+
+    await this.click(this.applyButtonAtTheBottom);
   }
 
-  async chooseEnglishUSALanguage() {
-    await this.waitUntilVisibleWithRetry(this.englishUSALanguage);
-    await this.click(this.englishUSALanguage);
-    await this.clickApplyButtonToApplyLanguageChange();
+  async assertEnglishLanguageSelected() {
+    const englishClass = await (
+      await this.resolve(this.englishLanguage)
+    ).getAttribute("class");
+
+    const englishUsClass = await (
+      await this.resolve(this.englishUSALanguage)
+    ).getAttribute("class");
+
+    expect(englishClass).toBe("android.widget.ImageView");
+    expect(englishUsClass).toBe("android.widget.Button");
+
+    Logger.info("Verified English language is selected");
+  }
+
+  async selectEnglishUSALanguage() {
+    const element = await this.waitUntilVisibleWithRetry(
+      this.englishUSALanguage,
+    );
+
+    const className = await element.getAttribute("class");
+
+    if (className === "android.widget.Button") {
+      await element.click();
+
+      await browser.waitUntil(
+        async () => {
+          const cls = await (
+            await this.resolve(this.englishUSALanguage)
+          ).getAttribute("class");
+          return cls === "android.widget.ImageView";
+        },
+        {
+          timeout: Timeout.FIVE_SECONDS,
+          timeoutMsg: "English (U.S.A) language was not selected",
+        },
+      );
+    }
+
+    await this.click(this.applyButtonAtTheBottom);
+  }
+
+  async assertEnglishUSALanguageSelected() {
+    const englishClass = await (
+      await this.resolve(this.englishLanguage)
+    ).getAttribute("class");
+
+    const englishUsClass = await (
+      await this.resolve(this.englishUSALanguage)
+    ).getAttribute("class");
+
+    expect(englishUsClass).toBe("android.widget.ImageView");
+    expect(englishClass).toBe("android.widget.Button");
+
+    Logger.info("Verified English (U.S.A) language is selected");
   }
 
   async clickApplyButtonToApplyLanguageChange() {
-    await this.waitUntilVisibleWithRetry(
-      this.applyButtonInChooseLanguageScreen,
-    );
-    await this.click(this.applyButtonInChooseLanguageScreen);
+    await this.waitUntilVisibleWithRetry(this.applyButtonAtTheBottom);
+    await this.click(this.applyButtonAtTheBottom);
     await this.waitUntilVisibleWithRetry(this.chooseLanguageOptionInMoreTab);
   }
 

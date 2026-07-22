@@ -90,12 +90,12 @@ describe("Guest - Persona Checklist", () => {
     });
 
     await step("Select English (US)", async () => {
-      await loginPage.chooseEnglishUSALanguage();
+      await loginPage.selectEnglishUSALanguage();
     });
 
     await step("Restore default language", async () => {
       await loginPage.clickChooseLanguageOptionInMoreTab();
-      await loginPage.chooseEnglishLanguage();
+      await loginPage.selectEnglishLanguage();
     });
   });
 });
