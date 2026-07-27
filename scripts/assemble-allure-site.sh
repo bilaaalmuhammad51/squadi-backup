@@ -1,48 +1,44 @@
 #!/usr/bin/env bash
 #
-# Builds the full GitHub Pages site (_site/) for the native "GitHub Actions"
-# Pages deployment, while preserving per-run history.
+# Builds the full GitHub Pages site (_site/) that is published to the
+# "gh-pages" branch, while preserving per-run history.
 #
-# actions/deploy-pages replaces the whole site each run, so to keep multiple
-# per-run reports we carry the accumulated site forward as a workflow artifact
-# named "pages-site": each run restores the previous one, adds its own report
-# under emulator/<run_number>/, prunes anything older than RETENTION_DAYS, and
-# rebuilds an index. The workflow then deploys _site and re-uploads it as the
-# next run's "pages-site".
+# History lives in the gh-pages BRANCH itself (git storage), NOT in an Actions
+# artifact - so the report publishes even when the Actions artifact storage
+# quota is full. Each run restores the previous site from the checked-out
+# gh-pages branch (PREV_SITE_DIR), adds its own report under
+# emulator/<run_number>/, prunes anything older than RETENTION_DAYS, rebuilds
+# an index, and the workflow then pushes _site back to gh-pages.
 #
 # Required env:
-#   GH_TOKEN          - token with actions:read (the workflow GITHUB_TOKEN)
-#   GITHUB_REPOSITORY - owner/repo
-#   GITHUB_WORKSPACE  - checkout dir containing allure-report/
 #   RUN_NUMBER        - github.run_number (this run's unique id)
 # Optional:
+#   GITHUB_WORKSPACE  - checkout dir containing allure-report/ (default: pwd)
+#   PREV_SITE_DIR     - dir holding the previous gh-pages branch content
+#                       (default: gh-pages-prev). Missing/empty = start fresh.
 #   RETENTION_DAYS    - days of reports to keep (default 3)
 
 set -uo pipefail
 
-: "${GH_TOKEN:?GH_TOKEN is required}"
-: "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required}"
 : "${RUN_NUMBER:?RUN_NUMBER is required}"
 WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
 RETENTION_DAYS="${RETENTION_DAYS:-3}"
+PREV_SITE_DIR="${PREV_SITE_DIR:-gh-pages-prev}"
 
 cd "$WORKSPACE"
 rm -rf _site
 mkdir -p _site/emulator
 
-# 1. Restore the previously accumulated site from the latest "pages-site"
-#    artifact (if any). The artifact's contents are the _site tree.
-art_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts" --paginate \
-  -q '[.artifacts[] | select(.name=="pages-site" and .expired==false)] | sort_by(.created_at) | last | .id' \
-  2>/dev/null || true)"
-if [ -n "${art_id:-}" ] && [ "${art_id}" != "null" ]; then
-  echo "Restoring previous site from artifact ${art_id}"
-  if gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${art_id}/zip" > prev.zip 2>/dev/null; then
-    unzip -q -o prev.zip -d _site || echo "Could not unzip previous site (starting fresh)"
-    rm -f prev.zip
-  fi
+# 1. Restore the previously accumulated site from the checked-out gh-pages
+#    branch content (if any). This is git storage, not an Actions artifact.
+if [ -d "${PREV_SITE_DIR}" ] && [ -n "$(ls -A "${PREV_SITE_DIR}" 2>/dev/null | grep -v '^\.git$' || true)" ]; then
+  echo "Restoring previous site from ${PREV_SITE_DIR}"
+  # Copy everything except the branch's own .git metadata.
+  rsync -a --exclude '.git' "${PREV_SITE_DIR}/" _site/ 2>/dev/null \
+    || cp -r "${PREV_SITE_DIR}/." _site/
+  rm -rf _site/.git
 else
-  echo "No previous pages-site artifact - starting fresh"
+  echo "No previous gh-pages content - starting fresh"
 fi
 mkdir -p _site/emulator
 
