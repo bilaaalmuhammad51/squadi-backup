@@ -595,13 +595,6 @@ export class LoginPage extends BasePage {
     if (isNextBtnVisible) {
       await this.click(this.nextButton);
       await this.waitUntilInvisibleWithRetry(this.nextButton, undefined, 30000);
-    } else {
-      console.log("Next button not available to click");
-      if (driver.isAndroid) {
-        await this.click(this.tapOnScreenForNextButton);
-      } else if (driver.isIOS) {
-        await this.click(this.nextButton);
-      }
     }
   }
 
