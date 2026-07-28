@@ -3,13 +3,10 @@ import { step } from "../../utils/helpers";
 import { LoginPage } from "../../pages/login.page";
 import { HomePage } from "../../pages/home.page";
 import { invalidLoginErrorData, LoginData } from "../../data/login.data";
-import { LaddersPage } from "../../pages/ladders.page";
-import { MatchApiHelper } from "../../utils/matchApi.helper";
 
 describe("Guest - Persona Flow", () => {
   const loginPage = new LoginPage();
   const homePage = new HomePage();
-  const laddersPage = new LaddersPage();
 
   it("[TC-G7] Wrong password shows error, stays on sign-in nav", async () => {
     allureReporter.addFeature("Guest Persona Flow");

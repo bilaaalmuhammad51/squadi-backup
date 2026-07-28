@@ -73,14 +73,16 @@ describe("Member - Persona Flow", () => {
     });
   });
 
-  it("[TC-M9,M10] Member signs out then signs back in; Opens a match from the Home schedule", async () => {
+  it("[TC-M9] Member signs out then signs back in", async () => {
     await step("Member signs out then signs back in", async () => {
       await homePage.gotoMoreTab();
       await homePage.logoutUser();
       await homePage.gotoLoginTab();
       await homePage.loginFlow(LoginData.coachEmail, LoginData.password);
     });
+  });
 
+  it("[TC-M10] Opens a match from the Home schedule", async () => {
     await step("Opens a match from the Home schedule", async () => {
       const matchElement = homePage.matchById(matchId.toString());
       await scorerPage.scrollUntilElementVisible(matchElement);
@@ -91,7 +93,7 @@ describe("Member - Persona Flow", () => {
     });
   });
 
-  it("[TC-M13,M14] Opens profile & payment pages; Opens My Events", async () => {
+  it("[TC-M13] Opens profile & payment pages", async () => {
     await step(
       "Open My Profile, My Full Profile and validate the elements",
       async () => {
@@ -110,7 +112,9 @@ describe("Member - Persona Flow", () => {
         await homePage.clickBackBtn();
       },
     );
+  });
 
+  it("[TC-M14] Opens My Events", async () => {
     await step("Open My Events and validate its elements", async () => {
       await homePage.openMyEventsFromMoreTabAndAssertItsElements();
       await homePage.clickBackBtn();
@@ -164,7 +168,7 @@ describe("Member - Persona Flow", () => {
     );
   });
 
-  it("[TC-M16,M17] Signed-in member changes language & shares app; Opens User Videos", async () => {
+  it("[TC-M16] Signed-in member changes language & shares app", async () => {
     await step("Signed-in member changes language", async () => {
       await homePage.gotoMoreTab();
       await homePage.clickChooseLanguageOptionInMoreTab();
@@ -177,7 +181,9 @@ describe("Member - Persona Flow", () => {
       await homePage.assertEnglishLanguageSelected();
       await homePage.clickBackBtn();
     });
+  });
 
+  it("[TC-M17] Opens User Videos", async () => {
     await step(
       "Open User Videos from More Tab and validate its elements",
       async () => {

@@ -112,11 +112,11 @@ it("[TC-G14] Guest follows then unfollows a team", async () => {
       if (isPopupVisible) {
         if (driver.isAndroid) {
           await loginPage.clickClosePopup();
+          await loginPage.clickAcceptAllButton();
           await loginPage.clickNextButton();
           await loginPage.addUsernameOrEmailForForgotPasswordFlow(
             LoginData.email,
-          );
-          await loginPage.clickAcceptAllButton();
+          );          
           await loginPage.scrollDown();
           await loginPage.clickSubmitBtnForForgotPasswordFlow();
           await loginPage.verifyTextAfterSubmittingUsernameOrEmail();
@@ -157,6 +157,11 @@ it("[TC-G14] Guest follows then unfollows a team", async () => {
     let matchId: number;
     let token: string;
 
+    const isCloseCrossBtnVisible = await loginPage.isElementVisible(loginPage.crossCloseBtn);
+    if (isCloseCrossBtnVisible) {
+      await loginPage.clickCloseCrossBtn();
+      await loginPage.clickBackBtn();
+    }
     await step("Verify welcome screen is visible", async () => {
       await loginPage.waitUntilVisibleWithRetry(loginPage.loginButton);
     });
