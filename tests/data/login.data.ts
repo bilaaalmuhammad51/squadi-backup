@@ -6,7 +6,12 @@ export const LoginData = {
   manager2Email: "shahshahbaz64+manager2@gmail.com",
   coachEmail: "shahshahbaz64+coach1@gmail.com",
   refereeEmail: "shahshahbaz64+referee1only@gmail.com",
+  parentEmail: "testparentemail1@gmail.com",
 };
+
+export const namesOfUsers = {
+  childFullName: "Test child User",
+}
 
 export const emailLoginTestData = {
   emptyEmail: {
