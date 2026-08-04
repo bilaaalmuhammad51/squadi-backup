@@ -505,7 +505,9 @@ export default class BasePage {
       await this.iosSwipe(direction); // works on Android too via W3C actions
       attempts++;
     }
-    throw new Error(`Element not visible after ${maxScrolls} manual scrolls`);
+    throw new Error(
+      `Element ${selector.name} not visible after ${maxScrolls} manual scrolls`,
+    );
   }
 
   // Reliable swipe using W3C actions — works on both platforms, no overshoot

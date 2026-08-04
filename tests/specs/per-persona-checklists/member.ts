@@ -8,7 +8,7 @@ describe("Member - Persona Checklist", () => {
   const laddersPage = new LaddersPage();
   const homePage = new HomePage();
 
-  it("[TC-M1,M2,M3,M4] Member signs in and lands on Home; Home shows schedule, tasks, news; Home bell opens Updates; Ladders show the right columns per app", async () => {
+  it("[TC-M1,M2,M3] Member signs in and lands on Home; Home shows schedule, tasks, news; Home bell opens Updates", async () => {
     allureReporter.addFeature("Member Persona Checklist");
     allureReporter.addStory("Login, open different tabs, validate elements");
     allureReporter.addSeverity("critical");
@@ -26,7 +26,9 @@ describe("Member - Persona Checklist", () => {
       await homePage.openNotificationsAndAssertItsElements();
       await homePage.click(homePage.crossCloseBtn);
     });
+  });
 
+  it("[TC-M4] Ladders show the right columns per app", async () => {
     await step("Open Ladders Tab and add Team if neeeded", async () => {
       await laddersPage.openLaddersTab();
       const isTeamAdded = await laddersPage.isTeamAddedOrNot();
@@ -65,7 +67,7 @@ describe("Member - Persona Checklist", () => {
     });
   });
 
-  it("[TC-M6,M7] Opens Shop & Registration webviews without re-login, Change password", async () => {
+  it("[TC-M6] Opens Shop & Registration webviews without re-login", async () => {
     await step(
       "Open Register option from More tab and assert its elements",
       async () => {
@@ -105,6 +107,9 @@ describe("Member - Persona Checklist", () => {
         await homePage.click(homePage.crossCloseBtn);
       },
     );
+  });
+
+  it("[TC-M7] Change password", async () => {
 
     await step("Change password and stay signed in", async () => {
       await homePage.gotoHomeTab();

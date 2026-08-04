@@ -2,16 +2,6 @@ import { DualSelector, selector } from "../factories/page.factory";
 import { LoginPage } from "./login.page";
 
 export class HomePage extends LoginPage {
-  public homeTab = selector(
-    "~Home\nTab 1 of 5",
-    '//XCUIElementTypeButton[contains(@name, "Home")]',
-    "Home Tab",
-  );
-  public laddersTab = selector(
-    "~Ladders\nTab 3 of 5",
-    '//XCUIElementTypeButton[contains(@name, "Ladders")]',
-    "Ladders Tab",
-  );
   public liveScores = selector("~Live Scores", "~Live Scores", "live scores");
   public welcomeBackHeading = selector(
     "//android.view.View[contains(@content-desc, 'Welcome back')]",
@@ -66,11 +56,6 @@ export class HomePage extends LoginPage {
     "~Notifications",
     "Notifications icon in Home tab after login",
   );
-
-  async gotoHomeTab() {
-    await this.waitUntilVisibleWithRetry(this.homeTab);
-    await this.click(this.homeTab);
-  }
 
   async assertHomeTabElements() {
     await this.waitUntilVisibleWithRetry(this.welcomeBackHeading);

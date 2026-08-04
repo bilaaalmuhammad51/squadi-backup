@@ -138,6 +138,20 @@ export class LoginPage extends BasePage {
     "draws Tab",
   );
 
+  public homeTab = selector(
+    "~Home\nTab 1 of 5",
+    '//XCUIElementTypeButton[contains(@name, "Home")]',
+    "Home Tab",
+  );
+
+  public laddersTab = selector(
+    "~Ladders\nTab 3 of 5",
+    '//XCUIElementTypeButton[contains(@name, "Ladders")]',
+    "Ladders Tab",
+  );
+
+  public messagesTab = selector("~Messages\nTab 4 of 5", "", "Messages Tab");
+
   public addTeamOrLeague = selector(
     "~Add a Team or League",
     "~Add a Team or League",
@@ -208,6 +222,54 @@ export class LoginPage extends BasePage {
     "~Apply",
     "~Apply",
     "Apply button at the bottom",
+  );
+
+  public switchProfileOptionInMoreTab = selector(
+    '//android.widget.ImageView[contains(@content-desc,"Switch Profile")]',
+    "",
+    "Switch Profile option in More tab for parent-child",
+  );
+
+  public unselectedParentAccountInSwitchProfile = selector(
+    '//android.widget.Button[contains(@content-desc,"Test Parent User1")]',
+    "",
+    "unselected Child Account switch In Switch Profile",
+  );
+
+  public switchProfileHeading = selector(
+    "~Switch Profile",
+    "",
+    "Switch Profile heading in switch profile popup",
+  );
+
+  public selectedParentAccountInSwitchProfile = selector(
+    '//android.widget.ImageView[contains(@content-desc,"Test Parent User1")]',
+    "",
+    "unselected Child Account switch In Switch Profile",
+  );
+
+  public unselectedChildAccountInSwitchProfile = selector(
+    '//android.widget.Button[contains(@content-desc,"Test child User")]',
+    "",
+    "unselected Child Account switch In Switch Profile",
+  );
+
+  public selectedChildAccountInSwitchProfile = selector(
+    '//android.widget.ImageView[contains(@content-desc,"Test child User")]',
+    "",
+    "unselected Child Account switch In Switch Profile",
+  );
+
+  public childBanner = selector(
+    '//android.view.View[contains(@content-desc,"You are viewing as Test child User")]',
+    "",
+    "Child Banner while switched to child profile",
+  );
+
+  public registerAlertForChild = selector(
+    "~Please switch to your own account prior to registering.",
+    "",
+    "Registering alert for child after clicking Register row in More tab",
   );
 
   public privacyPreferencesOptionInMoreTab = selector(
@@ -394,6 +456,30 @@ export class LoginPage extends BasePage {
     "~ID Card",
     "~ID Card",
     "ID Card option in More tab",
+  );
+
+  public nameInID = (nameOfUser: string) => selector(
+    `~${nameOfUser}`,
+    `~${nameOfUser}`,
+    `Name of User ~${nameOfUser} in ID Card`,
+  );
+
+  public dateOfBirthHeadingInIDCard = selector(
+    "~Date of birth",
+    "~Date of birth",
+    "~Date of birth heading in ID Card",
+  );
+
+  public canteenOptionInMoreTab = selector(
+    "~Canteen",
+    "~Canteen",
+    "Canteen option in More tab",
+  );
+
+  public tapToPayOptionInMoreTab = selector(
+    "~Tap to pay",
+    "~Tap to pay",
+    "Tap to pay option in More tab",
   );
 
   public fieldClosureOptionInMoreTab = selector(
@@ -588,10 +674,7 @@ export class LoginPage extends BasePage {
   }
 
   async clickNextButton() {
-    const isNextBtnVisible = await this.isElementVisible(
-      this.nextButton,
-      9000,
-    );
+    const isNextBtnVisible = await this.isElementVisible(this.nextButton, 9000);
     if (isNextBtnVisible) {
       await this.click(this.nextButton);
       await this.waitUntilInvisibleWithRetry(this.nextButton, undefined, 30000);
@@ -668,6 +751,21 @@ export class LoginPage extends BasePage {
     await this.click(this.loginTab);
   }
 
+  async gotoHomeTab() {
+    await this.waitUntilVisibleWithRetry(this.homeTab);
+    await this.click(this.homeTab);
+  }
+
+  async gotoLaddersTab() {
+    await this.waitUntilVisibleWithRetry(this.laddersTab);
+    await this.click(this.laddersTab);
+  }
+
+  async gotoMessagesTab() {
+    await this.waitUntilVisibleWithRetry(this.messagesTab);
+    await this.click(this.messagesTab);
+  }
+
   async gotoMoreTab() {
     await this.waitUntilVisibleWithRetry(this.moreTab);
     await this.click(this.moreTab);
@@ -699,6 +797,99 @@ export class LoginPage extends BasePage {
     await this.assertElementNotDisplayed(this.userVideosOptionInMoreTab);
     await this.assertElementNotDisplayed(this.shareAppOptionInMoreTab);
     await this.assertElementNotDisplayed(this.logoutOptionInMoreTab);
+  }
+
+  async switchProfileToChild() {
+    await this.gotoMoreTab();
+    await this.waitUntilVisibleWithRetry(this.switchProfileOptionInMoreTab);
+    const parentProfileSelected = await this.isElementVisible(
+      this.selectedParentAccountInSwitchProfile,
+    );
+    if (parentProfileSelected) {
+      await this.click(this.switchProfileOptionInMoreTab);
+      await this.waitUntilVisibleWithRetry(this.switchProfileHeading);
+      await this.waitUntilVisibleWithRetry(
+        this.unselectedChildAccountInSwitchProfile,
+      );
+      await this.click(this.unselectedChildAccountInSwitchProfile);
+      await this.waitUntilVisibleWithRetry(this.switchProfileOptionInMoreTab);
+      await this.assertElementDisplayed(
+        this.selectedChildAccountInSwitchProfile,
+      );
+    }
+  }
+
+  async switchProfileToParent() {
+    await this.gotoMoreTab();
+    await this.waitUntilVisibleWithRetry(this.switchProfileOptionInMoreTab);
+    const childProfileSelected = await this.isElementVisible(
+      this.selectedChildAccountInSwitchProfile,
+    );
+    if (childProfileSelected) {
+      await this.click(this.switchProfileOptionInMoreTab);
+      await this.waitUntilVisibleWithRetry(this.switchProfileHeading);
+      await this.waitUntilVisibleWithRetry(
+        this.unselectedParentAccountInSwitchProfile,
+      );
+      await this.click(this.unselectedParentAccountInSwitchProfile);
+      await this.waitUntilVisibleWithRetry(this.switchProfileOptionInMoreTab);
+      await this.assertElementDisplayed(
+        this.selectedParentAccountInSwitchProfile,
+      );
+    }
+  }
+
+  async assertChildBannerDisplays() {
+    await this.waitUntilVisibleWithRetry(this.childBanner);
+    await this.assertElementDisplayed(this.childBanner);
+  }
+
+  async assertChildBannerDisplaysOnEachTab() {
+    await this.gotoHomeTab();
+    await this.assertChildBannerDisplays();
+    await this.gotoDrawsTab();
+    await this.assertChildBannerDisplays();
+    await this.gotoLaddersTab();
+    await this.assertChildBannerDisplays();
+    await this.gotoMessagesTab();
+    await this.assertChildBannerDisplays();
+    await this.gotoMoreTab();
+    await this.assertChildBannerDisplays();
+  }
+
+  async validateRegisterAlertForChild() {
+    await this.waitUntilVisibleWithRetry(this.registerOptionInMoreTab);
+    await this.click(this.registerOptionInMoreTab);
+    await this.waitUntilVisibleWithRetry(this.registerAlertForChild);
+    await this.assertElementDisplayed(this.registerAlertForChild);
+    await this.click(this.okButton);
+    await this.waitUntilVisibleWithRetry(this.registerOptionInMoreTab);
+  }
+
+  async validateHiddenOptionsForChild() {
+    if (driver.isAndroid) {
+      await this.scrollUntilElementVisible(this.myProfileOptionInMoreTab);
+      await this.click(this.myProfileOptionInMoreTab);
+      await this.assertElementNotDisplayed(
+        this.updatePasswordOptionInMyProfile,
+      );
+      await this.clickBackBtn();
+      await this.assertElementNotDisplayed(this.canteenOptionInMoreTab);
+      await this.assertElementNotDisplayed(this.tapToPayOptionInMoreTab);
+    }
+  }
+
+  async openIDCardFromMoreTab() {
+    await this.waitUntilVisibleWithRetry(this.IDCardOptionInMoreTab);
+    await this.click(this.IDCardOptionInMoreTab);
+    await this.waitUntilVisibleWithRetry(this.dateOfBirthHeadingInIDCard);
+  }
+
+  async validateIDCardElements(nameOfUser: string) {
+    await this.waitUntilVisibleWithRetry(this.dateOfBirthHeadingInIDCard);
+    await this.assertElementDisplayed(this.dateOfBirthHeadingInIDCard);
+    await this.waitUntilVisibleWithRetry(this.nameInID(nameOfUser));
+    await this.assertElementDisplayed(this.nameInID(nameOfUser));
   }
 
   async openMyProfileFromMoreTab() {
@@ -899,7 +1090,10 @@ export class LoginPage extends BasePage {
     await this.click(this.videosHeadingInUserVideos);
     await this.scrollUntilElementVisible(this.allowAllBtnInVideos);
     await this.click(this.allowAllBtnInVideos);
-    await this.scrollUntilElementVisible(this.addingAndEditingWatchlistHeading, {maxScrolls: undefined, direction: "up"});
+    await this.scrollUntilElementVisible(
+      this.addingAndEditingWatchlistHeading,
+      { maxScrolls: undefined, direction: "up" },
+    );
     await this.assertElementDisplayed(this.addingAndEditingWatchlistHeading);
     await this.assertElementDisplayed(this.addingAndEditingWatchlistVideo);
     await this.scrollUntilElementVisible(this.drawsLaddersAndStatisticsHeading);
