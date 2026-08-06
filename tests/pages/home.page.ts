@@ -100,10 +100,9 @@ export class HomePage extends LoginPage {
 
   async clickYesForMatch(matchId: string | number): Promise<void> {
     const sel = this.matchYesButton(matchId);
+    await this.scrollUntilElementVisible(sel);
     const locator = driver.isIOS ? sel.ios : sel.android;
-
     console.log(`Clicking Yes button for Match ID: ${matchId}`);
-
     const el = await driver.$(locator);
     await el.waitForDisplayed({ timeout: 10_000 });
     await el.click();

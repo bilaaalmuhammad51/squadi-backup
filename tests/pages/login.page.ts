@@ -8,6 +8,18 @@ import { Timeout } from "../utils/timers";
 import Logger from "../utils/logger";
 
 export class LoginPage extends BasePage {
+  public offlineBanner = selector(
+    '//android.view.View[contains(@content-desc,"You are offline")]',
+    "",
+    "Offline banner",
+  );
+
+  public clearCacheBtnInSplashScreen = selector(
+    "~Clear cache now",
+    "~Clear cache now",
+    "Clear cache now button in splash screen",
+  );
+
   public createAccountOrRegisterProfile = selector(
     "~Create Account or Register Profile",
     "~Create Account or Register Profile",
@@ -458,11 +470,12 @@ export class LoginPage extends BasePage {
     "ID Card option in More tab",
   );
 
-  public nameInID = (nameOfUser: string) => selector(
-    `~${nameOfUser}`,
-    `~${nameOfUser}`,
-    `Name of User ~${nameOfUser} in ID Card`,
-  );
+  public nameInID = (nameOfUser: string) =>
+    selector(
+      `~${nameOfUser}`,
+      `~${nameOfUser}`,
+      `Name of User ~${nameOfUser} in ID Card`,
+    );
 
   public dateOfBirthHeadingInIDCard = selector(
     "~Date of birth",

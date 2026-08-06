@@ -188,7 +188,9 @@ export default class BasePage {
       attempt++;
     }
 
-    throw new Error(`Element still visible after ${maxAttempts} attempts`);
+    throw new Error(
+      `Element ${selector.name} still visible after ${maxAttempts} attempts`,
+    );
   }
 
   async isElementVisible(

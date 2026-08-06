@@ -3,7 +3,7 @@ export const UserRoles = {
   Manager: "Managing",
   Referee: "Refereeing",
   Coach: "Coaching",
-}
+};
 
 export const TeamsInTeamSheet = {
   HomeTeam: "HR-ASN2Club1-D1-T2",
@@ -19,6 +19,8 @@ export const PlayerNamesInTeamSheet = {
   AwayPlayer1: "ImpPlyr3 Test3",
   AwayPlayer2: "ImpPlyr4 Test4",
   AwayPlayer3: "ImpPlyr18 Test18",
+  BorrowPlayerTeam1: "HR-ASN2Club1-D2-T5 Player",
+  BorrowPlayerTeam2: "HR-ASN2Club2-D2-T6 Player",
 };
 
 export const PlayerPositions = {

@@ -96,6 +96,20 @@ export class ScorerPage extends LoginPage {
     "Borrow Player Button",
   );
 
+  public searchPlayerField = selector(
+    'android=new UiSelector().className("android.widget.EditText")',
+    "",
+    "Search Field for player",
+  );
+
+  public selectPlayerFromSearchResult = (playerName: string) => {
+    return selector(
+      `//android.widget.Button[contains(@content-desc,"${playerName}")]`,
+      "",
+      "Select Player from Search Results",
+    );
+  };
+
   public validatorName = selector(
     'android=new UiSelector().textMatches("(?i).*syed.*")',
     '-ios predicate string: value CONTAINS[c] "syed"',
@@ -178,6 +192,12 @@ export class ScorerPage extends LoginPage {
     "",
     '//XCUIElementTypeOther[@name="Enter a shirt number"]',
     "Done Button",
+  );
+
+  public selectShirtNumber = selector(
+    '//android.widget.Button[@content-desc="Select shirt number"]/android.view.View[3]',
+    "",
+    "Select Shirt Number if not selected (Checkbox same as for selecting player)",
   );
 
   public enterShirtNubmerField = selector(
@@ -637,6 +657,34 @@ export class ScorerPage extends LoginPage {
       this.okBtnToSaveShirtNumberInTeamSheet(),
     );
     await this.click(this.okBtnToSaveShirtNumberInTeamSheet());
+  }
+
+  async selectShirtNumberOfNewPlayerInTeamSheet(shirtNumber: number) {
+    const shirtNumberNotSelected = await this.isElementDisplayed(
+      this.selectShirtNumber,
+    );
+    if (shirtNumberNotSelected) {
+      await this.click(this.selectShirtNumber);
+      if (shirtNumber !== undefined) {
+        await this.type(this.enterShirtNubmerField, shirtNumber.toString());
+      }
+      await this.waitUntilVisibleWithRetry(
+        this.okBtnToSaveShirtNumberInTeamSheet(),
+      );
+      await this.click(this.okBtnToSaveShirtNumberInTeamSheet());
+    }
+  }
+
+  async borrowPlayerInTeamSheet(player: string) {
+    await this.waitUntilVisibleWithRetry(this.borrowPlayerBtn);
+    await this.click(this.borrowPlayerBtn);
+    await this.waitUntilVisibleWithRetry(this.searchPlayerField);
+    await this.click(this.searchPlayerField);
+    await this.type(this.searchPlayerField, player);
+    await this.waitUntilVisibleWithRetry(
+      this.selectPlayerFromSearchResult(player),
+    );
+    await this.click(this.selectPlayerFromSearchResult(player));
   }
 
   async openStartingFormationOption() {
