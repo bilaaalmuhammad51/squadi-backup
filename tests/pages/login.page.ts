@@ -14,6 +14,18 @@ export class LoginPage extends BasePage {
     "Offline banner",
   );
 
+  public connectBtnInOfflineBanner = selector(
+    "~Connect",
+    "~Connect",
+    "Connect button in Offline banner",
+  );
+
+  public connectNowBtnInConnectPopup = selector(
+    "~Connect Now",
+    "~Connect Now",
+    "Connect Now button in Connect popup",
+  );
+
   public clearCacheBtnInSplashScreen = selector(
     "~Clear cache now",
     "~Clear cache now",
@@ -98,6 +110,13 @@ export class LoginPage extends BasePage {
     "~Accept all",
     "Accept all button in cookie consent popup",
   );
+
+  public squadiLogo = selector(
+    "~ca-dev1.squadi",
+    "~ca-dev1.squadi",
+    "squadi Logo in Field Closure page",
+  );
+
   public usernameOrEmailField = selector(
     '-android uiautomator:new UiSelector().className("android.widget.EditText").instance(1)',
     '-ios predicate string: value == "Username/Email" AND type == "XCUIElementTypeTextField"',
@@ -1103,10 +1122,16 @@ export class LoginPage extends BasePage {
     await this.click(this.videosHeadingInUserVideos);
     await this.scrollUntilElementVisible(this.allowAllBtnInVideos);
     await this.click(this.allowAllBtnInVideos);
-    await this.scrollUntilElementVisible(
+    const isAddingAndEditingWatchlistHeading = await this.isElementVisible(
       this.addingAndEditingWatchlistHeading,
-      { maxScrolls: undefined, direction: "up" },
+      5000,
     );
+    if (!isAddingAndEditingWatchlistHeading) {
+      await this.scrollUntilElementVisible(
+        this.addingAndEditingWatchlistHeading,
+        { maxScrolls: undefined, direction: "up" },
+      );
+    }
     await this.assertElementDisplayed(this.addingAndEditingWatchlistHeading);
     await this.assertElementDisplayed(this.addingAndEditingWatchlistVideo);
     await this.scrollUntilElementVisible(this.drawsLaddersAndStatisticsHeading);

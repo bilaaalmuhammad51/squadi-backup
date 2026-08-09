@@ -8,7 +8,7 @@ describe("Parent-as-child - Persona Checklist", () => {
   const loginPage = new LoginPage();
   const homePage = new HomePage();
 
-  it("TC-P5,P7 - Child View Displays Child's Team, Schedule & ID Card, Switch Back to Parent Profile", async () => {
+  it("TC-P5 - Child View Displays Child's Team, Schedule & ID Card", async () => {
     allureReporter.addFeature("Parent-as-childs Persona Checklist");
     allureReporter.addStory(
       "TC-P5,P7 - Child View Displays Child's Team, Schedule & ID Card, Switch Back to Parent Profile",
@@ -29,7 +29,9 @@ describe("Parent-as-child - Persona Checklist", () => {
       await homePage.validateIDCardElements(namesOfUsers.childFullName);
       await homePage.clickBackBtn();
     });
+    });
 
+  it("TC-P7 - Switch Back to Parent Profile", async () => {
     await step("Switch Back to Parent Profile", async () => {
       await loginPage.switchProfileToChild();
       await homePage.switchProfileToParent();

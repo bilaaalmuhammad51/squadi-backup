@@ -20,6 +20,10 @@ describe("App Foundation - Splash & Cold Start", () => {
     );
     allureReporter.addSeverity("critical");
 
+    await step("Verify welcome screen is visible", async () => {
+      await loginPage.validateLoginBtnIsVisible();
+    });
+
     await step("1. Ensure the app is fully closed", async () => {
       forceStopApp(APP_PACKAGE);
       await driver.pause(1000);

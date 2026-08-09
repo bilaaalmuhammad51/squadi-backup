@@ -571,6 +571,15 @@ export class ScorerPage extends LoginPage {
       // Open settings
       await this.clickSettingsIcon();
 
+      const offlineBannerVisible = await this.isElementVisible(this.connectBtnInOfflineBanner);
+        if (offlineBannerVisible) {
+          await this.click(this.connectBtnInOfflineBanner);
+          const connectPopupVisible = await this.isElementVisible(this.connectNowBtnInConnectPopup);
+          if (connectPopupVisible) {
+            await this.click(this.connectNowBtnInConnectPopup);
+            await this.waitUntilInvisibleWithRetry(this.connectNowBtnInConnectPopup);
+          }
+        }
       // Check if Substitution option is visible
       const substitutionVisible = await this.isElementDisplayed(
         this.substitutionOption,

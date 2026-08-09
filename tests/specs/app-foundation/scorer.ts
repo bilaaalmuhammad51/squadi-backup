@@ -1,0 +1,32 @@
+import allureReporter from "@wdio/allure-reporter";
+import { step } from "../../utils/helpers";
+import { LoginData } from "../../data/login.data";
+import { HomePage } from "../../pages/home.page";
+
+describe("Member - Persona Checklist", () => {
+  const homePage = new HomePage();
+
+  it("[TEAM-009] Field Closer Opens Field Closure", async () => {
+    allureReporter.addFeature("Member Persona Checklist");
+    allureReporter.addStory("Login, open Field Closure from More tab, validate elements");
+    allureReporter.addSeverity("critical");
+
+    await step("[TC-M1] Member signs in and lands on Home", async () => {
+      await homePage.loginFlow(LoginData.email, LoginData.password);
+      await homePage.gotoMoreTab();
+      await homePage.scrollUntilElementVisible(homePage.fieldClosureOptionInMoreTab);
+      await homePage.click(homePage.fieldClosureOptionInMoreTab);
+      await homePage.waitUntilVisibleWithRetry(homePage.fieldClosureOptionInMoreTab);
+      await homePage.click(homePage.fieldClosureOptionInMoreTab);
+      await homePage.waitUntilVisibleWithRetry(homePage.acceptAllButton);
+      await homePage.click(homePage.acceptAllButton);
+      const locatoinPopupVisible = await homePage.ifClosePopupVisible();
+      if (locatoinPopupVisible) {
+        await homePage.clickClosePopup();
+      } else {
+        await homePage.clickTapOnScreenToClosePopup();
+      }
+      await homePage.waitUntilVisibleWithRetry(homePage.squadiLogo);
+    });
+  });
+});
