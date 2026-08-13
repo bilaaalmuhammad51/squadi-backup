@@ -370,6 +370,10 @@ export class MatchApiHelper {
     form.append("linkedCompetitionIds", "[]");
     form.append("fieldClosureAdmins", "[]");
 
+    form.append("incidentsEnabled", "true");
+    form.append("isPublicStats", "true");
+    form.append("enableMatchOfficialRecording", "true");
+
     form.append(
       "umpireSequenceSettings",
       JSON.stringify({
@@ -547,5 +551,138 @@ export class MatchApiHelper {
     await this.publishMatchOfficials(token, matchId);
 
     return matchId;
+  }
+
+  // ============================================================
+  // CONSTANTS – adjust these to your environment
+  // ============================================================
+
+  // These are the user IDs that will be assigned when the boolean is true.
+  // Replace with actual IDs from your system.
+  private static readonly OFFICIALS = {
+    TEAM1_MANAGER: 161275, // Syed Manager1
+    TEAM1_COACH: 161628, // Syed Coach1
+    TEAM2_MANAGER: 161431, // Syed Manager2
+    TEAM2_COACH: 161628, // Syed Coach1 (if the same person coaches both)
+  };
+
+  private static readonly ROLE_IDS = {
+    MANAGER: 3,
+    COACH: 4,
+  };
+
+  private static readonly TEAM_OFFICIAL_ROLE_IDS = {
+    MANAGER: 435,
+    COACH: 436,
+  };
+
+  // ============================================================
+  // UPDATE OFFICIALS METHOD
+  // ============================================================
+
+  /**
+   * Update match officials (Managers and Coaches) for both teams.
+   * Preserves all existing match data (date, time, scores, venue, etc.).
+   *
+   * @param token - Bearer token for authentication
+   * @param matchId - The match ID (e.g., 84278)
+   * @param team1Manager - true to keep/assign Manager, false to remove
+   * @param team1Coach - true to keep/assign Coach, false to remove
+   * @param team2Manager - true to keep/assign Manager, false to remove
+   * @param team2Coach - true to keep/assign Coach, false to remove
+   * @returns The updated match data
+   */
+  static async updateMatchOfficials(
+    token: string,
+    matchId: number,
+    team1Manager: boolean,
+    team1Coach: boolean,
+    team2Manager: boolean,
+    team2Coach: boolean,
+  ): Promise<any> {
+    // 1. Fetch current match data (preserve all fields)
+    const currentMatch = await this.getMatch(token, matchId);
+
+    // 2. Build new matchTeamOfficials array based on booleans
+    const matchTeamOfficials: any[] = [];
+
+    if (team1Manager) {
+      matchTeamOfficials.push({
+        competitionId: currentMatch.competitionId,
+        matchId: matchId,
+        teamId: currentMatch.team1Id,
+        teamOfficialRoleId: this.TEAM_OFFICIAL_ROLE_IDS.MANAGER,
+        userId: this.OFFICIALS.TEAM1_MANAGER,
+        userName: "Syed Manager1",
+        roleId: this.ROLE_IDS.MANAGER,
+        roleDescription: "Manager",
+      });
+    }
+
+    if (team1Coach) {
+      matchTeamOfficials.push({
+        competitionId: currentMatch.competitionId,
+        matchId: matchId,
+        teamId: currentMatch.team1Id,
+        teamOfficialRoleId: this.TEAM_OFFICIAL_ROLE_IDS.COACH,
+        userId: this.OFFICIALS.TEAM1_COACH,
+        userName: "Syed Coach1",
+        roleId: this.ROLE_IDS.COACH,
+        roleDescription: "Coach",
+      });
+    }
+
+    if (team2Manager) {
+      matchTeamOfficials.push({
+        competitionId: currentMatch.competitionId,
+        matchId: matchId,
+        teamId: currentMatch.team2Id,
+        teamOfficialRoleId: this.TEAM_OFFICIAL_ROLE_IDS.MANAGER,
+        userId: this.OFFICIALS.TEAM2_MANAGER,
+        userName: "Syed Manager2",
+        roleId: this.ROLE_IDS.MANAGER,
+        roleDescription: "Manager",
+      });
+    }
+
+    if (team2Coach) {
+      matchTeamOfficials.push({
+        competitionId: currentMatch.competitionId,
+        matchId: matchId,
+        teamId: currentMatch.team2Id,
+        teamOfficialRoleId: this.TEAM_OFFICIAL_ROLE_IDS.COACH,
+        userId: this.OFFICIALS.TEAM2_COACH,
+        userName: "Syed Coach1",
+        roleId: this.ROLE_IDS.COACH,
+        roleDescription: "Coach",
+      });
+    }
+
+    // 3. Create payload: copy all existing match data, replace matchTeamOfficials
+    const payload: any = {
+      ...currentMatch,
+      matchTeamOfficials,
+    };
+
+    // Remove fields that are read‑only or cause validation errors
+    delete payload.competition;
+    delete payload.removedUnavailableOfficialUserIds;
+    delete payload.removedUnavailableOfficials;
+
+    // 4. Send the update
+    const response = await axios.post(
+      `${LIVESCORES_BASE_URL}/matches`,
+      payload,
+      {
+        headers: {
+          Authorization: token,
+          SourceSystem: "WebAdmin",
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    return response.data;
   }
 }
