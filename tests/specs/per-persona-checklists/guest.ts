@@ -14,9 +14,11 @@ describe("Guest - Persona Checklist", () => {
     });
   });
 
-  it("TC-G1 - Guest sees the sign-in bottom navigation", async () => {
+  it("TC-G1 - Guest sees the sign-in bottom navigation & TC-G2 - Account tab shows Register, Follow, Log in", async () => {
     allureReporter.addFeature("Guest Persona Checklist");
-    allureReporter.addStory("TC-G1 - Guest sees the sign-in bottom navigation");
+    allureReporter.addStory(
+      "TC-G1 - Guest sees the sign-in bottom navigation & TC-G2 - Account tab shows Register, Follow, Log in",
+    );
     allureReporter.addSeverity("critical");
 
     await step("Verify bottom navigation", async () => {
@@ -26,14 +28,6 @@ describe("Guest - Persona Checklist", () => {
       await loginPage.assertElementDisplayed(loginPage.moreTab);
       await loginPage.assertElementDisplayed(loginPage.loginTab);
     });
-  });
-
-  it("TC-G2 - Account tab shows Register, Follow, Log in", async () => {
-    allureReporter.addFeature("Guest Persona Checklist");
-    allureReporter.addStory(
-      "TC-G2 - Account tab shows Register, Follow, Log in",
-    );
-    allureReporter.addSeverity("critical");
 
     await step("Verify Account tab content", async () => {
       await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
@@ -45,9 +39,11 @@ describe("Guest - Persona Checklist", () => {
     });
   });
 
-  it("TC-G3 - More menu hides member-only items", async () => {
+  it("TC-G3 - More menu hides member-only items & TC-G4 - Updates tab shows News and Notifications only & TC-G5 - Choose Language matches app version", async () => {
     allureReporter.addFeature("Guest Persona Checklist");
-    allureReporter.addStory("TC-G3 - More menu hides member-only items");
+    allureReporter.addStory(
+      "TC-G3 - More menu hides member-only items & TC-G4 - Updates tab shows News and Notifications only & TC-G5 - Choose Language matches app version",
+    );
     allureReporter.addSeverity("critical");
 
     await step("Open More tab", async () => {
@@ -61,14 +57,6 @@ describe("Guest - Persona Checklist", () => {
     await step("Verify member-only options are hidden", async () => {
       await loginPage.assertMoreTabUnavailableOptionsWhenLoggedOut();
     });
-  });
-
-  it("TC-G4 - Updates tab shows News and Notifications only", async () => {
-    allureReporter.addFeature("Guest Persona Checklist");
-    allureReporter.addStory(
-      "TC-G4 - Updates tab shows News and Notifications only",
-    );
-    allureReporter.addSeverity("critical");
 
     await step("Open Updates tab", async () => {
       await loginPage.gotoUpdatesTab();
@@ -77,12 +65,6 @@ describe("Guest - Persona Checklist", () => {
     await step("Verify News and Notifications tabs", async () => {
       await loginPage.assertUpdatesTabElements();
     });
-  });
-
-  it("TC-G5 - Choose Language matches app version", async () => {
-    allureReporter.addFeature("Guest Persona Checklist");
-    allureReporter.addStory("TC-G5 - Choose Language matches app version");
-    allureReporter.addSeverity("critical");
 
     await step("Open Choose Language", async () => {
       await loginPage.gotoMoreTab();

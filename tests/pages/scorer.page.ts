@@ -571,15 +571,21 @@ export class ScorerPage extends LoginPage {
       // Open settings
       await this.clickSettingsIcon();
 
-      const offlineBannerVisible = await this.isElementVisible(this.connectBtnInOfflineBanner);
-        if (offlineBannerVisible) {
-          await this.click(this.connectBtnInOfflineBanner);
-          const connectPopupVisible = await this.isElementVisible(this.connectNowBtnInConnectPopup);
-          if (connectPopupVisible) {
-            await this.click(this.connectNowBtnInConnectPopup);
-            await this.waitUntilInvisibleWithRetry(this.connectNowBtnInConnectPopup);
-          }
+      const offlineBannerVisible = await this.isElementVisible(
+        this.connectBtnInOfflineBanner,
+      );
+      if (offlineBannerVisible) {
+        await this.click(this.connectBtnInOfflineBanner);
+        const connectPopupVisible = await this.isElementVisible(
+          this.connectNowBtnInConnectPopup,
+        );
+        if (connectPopupVisible) {
+          await this.click(this.connectNowBtnInConnectPopup);
+          await this.waitUntilInvisibleWithRetry(
+            this.connectNowBtnInConnectPopup,
+          );
         }
+      }
       // Check if Substitution option is visible
       const substitutionVisible = await this.isElementDisplayed(
         this.substitutionOption,
@@ -713,16 +719,9 @@ export class ScorerPage extends LoginPage {
   }
 
   async isPlayerAvailableInFormation(player: string): Promise<boolean> {
-    try {
-      const selectorObj = this.playerIconToDragInStartingFormation(player);
-      const selector = await this.resolveSelectorObjToString(selectorObj);
-
-      const element = await $(selector);
-
-      return await element.isDisplayed();
-    } catch (error) {
-      return false;
-    }
+    return this.isElementVisible(
+      this.playerIconToDragInStartingFormation(player),
+    );
   }
 
   async dragPlayer(

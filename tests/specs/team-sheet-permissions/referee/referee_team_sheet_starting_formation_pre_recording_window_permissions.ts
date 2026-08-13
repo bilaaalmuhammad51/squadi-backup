@@ -117,6 +117,15 @@ describe("Referee team sheet pre-recording window permissions", () => {
     );
 
     await step(
+      "Validate Substitution row is never shown to Referee",
+      async () => {
+        await scorerPage.assertElementNotDisplayed(
+          scorerPage.substitutionOption,
+        );
+      },
+    );
+
+    await step(
       "Open team sheet option and validate team sheet elements",
       async () => {
         await scorerPage.openTeamSheetOption();

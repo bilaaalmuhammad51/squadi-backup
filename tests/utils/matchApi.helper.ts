@@ -339,9 +339,16 @@ export class MatchApiHelper {
 
   static async updateCompetitionScoring(
     token: string,
-    mode: "MANAGERS" | "COURT",
-    courtScorerUserId?: number,
+    mode: "MANAGERS" | "COURT" = "COURT",
+    courtScorerUserId: number = 160547,
+    options?: {
+      gameTimeTrackingEnabled?: boolean;
+      lockAttendanceMinutes?: number; // <-- new optional parameter
+    },
   ): Promise<any> {
+    // Defaults to true (existing hardcoded behaviour) so callers that don't
+    // pass options are unaffected.
+    const gameTimeTrackingEnabled = options?.gameTimeTrackingEnabled ?? true;
     const form = new FormData();
 
     form.append("id", "239");
@@ -513,9 +520,19 @@ export class MatchApiHelper {
       }),
     );
 
-    form.append("gameTimeTracking", "1");
+    form.append("gameTimeTracking", gameTimeTrackingEnabled ? "1" : "0");
     form.append("attendanceSelectionTime", "14400");
-    form.append("attendanceSelectionTimeEnd", "0");
+
+    // Lock Attendance: only append when explicitly provided.
+    // - If options.lockAttendanceMinutes is a number, set it as the value.
+    // - If omitted, the field is not sent (matching the disabled state).
+    if (options?.lockAttendanceMinutes !== undefined) {
+      form.append(
+        "attendanceSelectionTimeEnd",
+        String(options.lockAttendanceMinutes),
+      );
+    }
+
     form.append("allowAffiliatesEnterScore", "0");
     form.append("isInvitorsChanged", "false");
 
