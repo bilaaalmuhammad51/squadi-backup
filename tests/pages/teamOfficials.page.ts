@@ -63,9 +63,16 @@ export class TeamOfficialsPage extends BasePage {
     "Confirm Team Officials Button",
   );
 
-  private selectedRoleUser = (name: string) =>
+  private selectedRoleUserEditable = (name: string) =>
     selector(
       `//android.widget.EditText[@text="${name}"]`,
+      `-ios predicate string:value == "${name}"`,
+      `Selected ${name}`,
+    );
+
+  private selectedRoleUserDisabled = (name: string) =>
+    selector(
+      `(//android.view.View[@text="${name}"])[1]`,
       `-ios predicate string:value == "${name}"`,
       `Selected ${name}`,
     );
@@ -144,8 +151,20 @@ export class TeamOfficialsPage extends BasePage {
 
   async validateSelectedRolesUsers(manager: string, coach: string) {
     await this.waitUntilVisibleWithRetry(this.managerHeading);
-    await this.assertElementDisplayed(this.selectedRoleUser(manager));
-    await this.assertElementDisplayed(this.selectedRoleUser(coach));
+    await this.assertElementDisplayed(this.selectedRoleUserEditable(manager));
+    await this.assertElementDisplayed(this.selectedRoleUserEditable(coach));
+  }
+
+  async assertReadOnlySelectedRolesUsers(manager: string, coach: string) {
+    await this.waitUntilVisibleWithRetry(this.managerHeading);
+    await this.assertElementDisplayed(this.selectedRoleUserDisabled(manager));
+    await this.assertElementDisplayed(this.selectedRoleUserDisabled(coach));
+    await this.assertElementNotDisplayed(this.searchManagerOptionEnabled);
+    await this.assertElementNotDisplayed(this.searchCoachOptionEnabled);
+    const confirmTeamOfficialsBtn = await this.getElement(
+      this.confirmTeamOfficialsBtn,
+    );
+    await this.expectElementState(confirmTeamOfficialsBtn, "disabled");
   }
 
   async teamSheetNotAvailableForTeam() {

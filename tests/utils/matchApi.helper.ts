@@ -337,11 +337,18 @@ export class MatchApiHelper {
     );
   }
 
-  static async updateCompetitionScoring(
+  static async updateCompetitionSettings(
     token: string,
-    mode: "MANAGERS" | "COURT",
-    courtScorerUserId?: number,
+    scoringMode: "MANAGERS" | "COURT" = "COURT",
+    courtScorerUserId: number = 160547,
+    options?: {
+      gameTimeTrackingEnabled?: boolean;
+      lockAttendanceMinutes?: number;
+      liveScoring?: boolean;
+    },
   ): Promise<any> {
+    const gameTimeTrackingEnabled = options?.gameTimeTrackingEnabled ?? true;
+    const liveScoring = options?.liveScoring ?? true;
     const form = new FormData();
 
     form.append("id", "239");
@@ -350,13 +357,13 @@ export class MatchApiHelper {
     form.append("organisationId", "58");
     form.append("yearRefId", "6");
 
-    form.append("scoringType", "SINGLE");
-    form.append("whoScoring", mode);
+    form.append("scoringType", liveScoring ? "SINGLE" : "NO_SCORING_CARD");
+    form.append("whoScoring", scoringMode);
     form.append("acceptScoring", "SCORER");
 
     form.append(
       "courtScorerUserId",
-      mode === "COURT" ? String(courtScorerUserId) : "null",
+      scoringMode === "COURT" ? String(courtScorerUserId) : "null",
     );
 
     form.append("timerType", "PER_MATCH_PER_PERIOD");
@@ -513,9 +520,17 @@ export class MatchApiHelper {
       }),
     );
 
-    form.append("gameTimeTracking", "1");
+    form.append("gameTimeTracking", gameTimeTrackingEnabled ? "1" : "0");
     form.append("attendanceSelectionTime", "14400");
-    form.append("attendanceSelectionTimeEnd", "0");
+
+    // Lock Attendance: only append when explicitly provided.
+    if (options?.lockAttendanceMinutes !== undefined) {
+      form.append(
+        "attendanceSelectionTimeEnd",
+        String(options.lockAttendanceMinutes),
+      );
+    }
+
     form.append("allowAffiliatesEnterScore", "0");
     form.append("isInvitorsChanged", "false");
 
