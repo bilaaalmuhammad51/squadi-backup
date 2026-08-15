@@ -4,6 +4,7 @@ import { LoginPage } from "../../pages/login.page";
 import { forceStopApp } from "../../utils/connectivity";
 import { HomePage } from "../../pages/home.page";
 import { $ } from "../../factories/page.factory";
+import { Timeout } from "../../utils/timers";
 
 const APP_PACKAGE = "com.wsa.netball.dev";
 const MEMBER_EMAIL = "shahshahbaz64+coach1@gmail.com";
@@ -34,7 +35,7 @@ describe("App Foundation - Splash & Cold Start", () => {
     });
 
     await step("3. Observe the splash screen", async () => {
-      await loginPage.waitUntilVisible(loginPage.clearCacheBtnInSplashScreen);
+      await loginPage.waitUntilVisible(loginPage.clearCacheBtnInSplashScreen, Timeout.TEN_SECONDS);
       await loginPage.assertElementDisplayed(
         loginPage.clearCacheBtnInSplashScreen,
       );

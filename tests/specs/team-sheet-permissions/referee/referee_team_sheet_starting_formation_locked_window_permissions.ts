@@ -117,6 +117,15 @@ describe("Referee team sheet locked window permissions", () => {
     );
 
     await step(
+      "Validate Substitution row is never shown to Referee, even locked",
+      async () => {
+        await scorerPage.assertElementNotDisplayed(
+          scorerPage.substitutionOption,
+        );
+      },
+    );
+
+    await step(
       "Open team sheet option and validate team sheet elements",
       async () => {
         await scorerPage.openTeamSheetOption();
@@ -146,7 +155,7 @@ describe("Referee team sheet locked window permissions", () => {
 
     await step("click Done button after managing team sheets", async () => {
       await scorerPage.clickDoneBtn();
-      await scorerPage.clickBackBtn();
+      await scorerPage.clickDoneBtn();
     });
 
     await step(
