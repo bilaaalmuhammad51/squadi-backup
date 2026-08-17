@@ -21,44 +21,43 @@ let awayPlayer1InitialPosition: { x: number; y: number };
 let homePlayer1FinalPosition: { x: number; y: number };
 let awayPlayer1FinalPosition: { x: number; y: number };
 
+const loginPage = new LoginPage();
+const homePage = new HomePage();
+const scorerPage = new ScorerPage();
+const basePage = new BasePage();
+
+before(async () => {
+  await step("Create match before launching app", async () => {
+    token = await MatchApiHelper.getToken(LoginData.email, LoginData.password);
+
+    matchId = await MatchApiHelper.createMatch(token, 9);
+
+    console.log("Created Match ID:", matchId);
+
+    allureReporter.addAttachment(
+      "Created Match ID",
+      String(matchId),
+      "text/plain",
+    );
+  });
+});
+
+after(async () => {
+  try {
+    if (token && matchId) {
+      await MatchApiHelper.deleteMatch(token, matchId);
+      console.log(`Deleted Match ID: ${matchId}`);
+    }
+  } catch (error) {
+    console.error("Failed to delete match:", error);
+  }
+});
+
 describe("Manager team sheet post-match window permissions", () => {
   it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for respective team", async () => {
-    const loginPage = new LoginPage();
-    const homePage = new HomePage();
-    const scorerPage = new ScorerPage();
-    const basePage = new BasePage();
-
     allureReporter.addFeature("Manager Flow");
     allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
     allureReporter.addSeverity("critical");
-
-    await step("Create match before launching app", async () => {
-      token = await MatchApiHelper.getToken(
-        LoginData.email,
-        LoginData.password,
-      );
-
-      matchId = await MatchApiHelper.createMatch(token, 9);
-
-      console.log("Created Match ID:", matchId);
-
-      allureReporter.addAttachment(
-        "Created Match ID",
-        String(matchId),
-        "text/plain",
-      );
-    });
-
-    after(async () => {
-      try {
-        if (token && matchId) {
-          await MatchApiHelper.deleteMatch(token, matchId);
-          console.log(`Deleted Match ID: ${matchId}`);
-        }
-      } catch (error) {
-        console.error("Failed to delete match:", error);
-      }
-    });
 
     await step("Verify welcome screen is visible", async () => {
       await loginPage.validateLoginBtnIsVisible();
@@ -158,7 +157,7 @@ describe("Manager team sheet post-match window permissions", () => {
     await step("wait for recording time to start", async () => {
       await scorerPage.clickBackBtn();
       await scorerPage.clickBackBtn();
-      await scorerPage.clickCloseBtnInSettings();
+      await scorerPage.clickCloseCrossBtn();
     });
 
     await step("Validate navigation to scorer screen", async () => {
@@ -320,6 +319,9 @@ describe("Manager team sheet post-match window permissions", () => {
     await step("Logout and Log In again with Team2 Manager", async () => {
       await scorerPage.logoutUser();
     });
+  });
+
+  it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for respective team", async () => {
     await step("Verify welcome screen is visible", async () => {
       await loginPage.gotoLoginTab();
       await loginPage.validateLoginBtnIsVisible();

@@ -18,6 +18,15 @@ SPEC_PATH="${SPEC_PATH:-tests/specs/**/*.ts}"
 echo "Waiting for the device to settle after boot..."
 adb wait-for-device
 adb shell 'while [ "$(getprop sys.boot_completed)" != "1" ]; do sleep 1; done' || true
+
+# Suppress Android's system "isn't responding" (ANR) / crash dialogs so they
+# can't overlay the app and block the test. This is the key fix for smaller CI
+# runners (e.g. private-repo 2-core runners) where System UI / the launcher
+# briefly stalls during the app's heavy onboarding screen and Android would
+# otherwise pop a blocking "System UI isn't responding" dialog.
+adb shell settings put global hide_error_dialogs 1 || true
+adb shell settings put secure anr_show_background 0 || true
+
 sleep 20
 
 # Dismiss any system ANR / "isn't responding" dialog so it can't cover the app.

@@ -14,7 +14,7 @@ import { MatchApiHelper } from "../../../utils/matchApi.helper";
 
 let matchId: number;
 
-describe("Referee team sheet recording window permissions", () => {
+describe("Referee team sheet post-match window permissions", () => {
   it("log in with valid credentials, open a match, update team sheets by adding players", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
@@ -150,7 +150,7 @@ describe("Referee team sheet recording window permissions", () => {
     await step("wait for recording time to start", async () => {
       await scorerPage.clickBackBtn();
       await scorerPage.clickBackBtn();
-      await scorerPage.clickCloseBtnInSettings();
+      await scorerPage.clickCloseCrossBtn();
     });
 
     await step("Validate navigation to scorer screen", async () => {
@@ -227,6 +227,15 @@ describe("Referee team sheet recording window permissions", () => {
     );
 
     await step(
+      "Validate Substitution row is never shown to Referee, even post-match",
+      async () => {
+        await scorerPage.assertElementNotDisplayed(
+          scorerPage.substitutionOption,
+        );
+      },
+    );
+
+    await step(
       "Open team sheet option and validate team sheet elements",
       async () => {
         await scorerPage.openTeamSheetOption();
@@ -237,6 +246,9 @@ describe("Referee team sheet recording window permissions", () => {
     );
 
     await step("Select players and their positions for home team", async () => {
+      await scorerPage.selectOrUnselectPlayerInSubstitution(
+        PlayerNamesInTeamSheet.ClubPlayer1,
+      );
       await scorerPage.selectPlayerAndPositionOfTeam(
         PlayerNamesInTeamSheet.ClubPlayer1,
         PlayerPositions.Forward,
@@ -245,8 +257,12 @@ describe("Referee team sheet recording window permissions", () => {
     });
 
     await step("Select players and their positions for away team", async () => {
+      await scorerPage.openTeamSheetOption();
       await scorerPage.click(
         scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+      );
+      await scorerPage.selectOrUnselectPlayerInSubstitution(
+        PlayerNamesInTeamSheet.ClubPlayer2,
       );
       await scorerPage.selectPlayerAndPositionOfTeam(
         PlayerNamesInTeamSheet.ClubPlayer2,
@@ -256,7 +272,6 @@ describe("Referee team sheet recording window permissions", () => {
 
     await step("click Done button after managing team sheets", async () => {
       await scorerPage.clickDoneBtn();
-      await scorerPage.clickBackBtn();
     });
 
     await step(

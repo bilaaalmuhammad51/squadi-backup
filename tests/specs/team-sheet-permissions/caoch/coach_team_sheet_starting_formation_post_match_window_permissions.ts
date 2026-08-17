@@ -39,7 +39,7 @@ describe("Coach team sheet post-match window permissions", () => {
         LoginData.password,
       );
 
-      matchId = await MatchApiHelper.createMatch(token, 2);
+      matchId = await MatchApiHelper.createMatch(token, 10);
 
       console.log("Created Match ID:", matchId);
 
@@ -159,7 +159,7 @@ describe("Coach team sheet post-match window permissions", () => {
     await step("wait for recording time to start", async () => {
       await scorerPage.clickBackBtn();
       await scorerPage.clickBackBtn();
-      await scorerPage.clickCloseBtnInSettings();
+      await scorerPage.clickCloseCrossBtn();
     });
 
     await step("Validate navigation to scorer screen", async () => {

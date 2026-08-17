@@ -27,6 +27,10 @@ export default class BasePage {
     "No thanks button in third startup page",
   );
 
+  public doneBtn = selector("~Done", "~Done", "Done Button");
+
+  public backBtn = selector("~Back", "~Back", "Back Button");
+
   async resolve(selector: DualSelector) {
     const platform = await getPlatform();
     return $(platform === "android" ? selector.android : selector.ios);
@@ -184,7 +188,9 @@ export default class BasePage {
       attempt++;
     }
 
-    throw new Error(`Element still visible after ${maxAttempts} attempts`);
+    throw new Error(
+      `Element ${selector.name} still visible after ${maxAttempts} attempts`,
+    );
   }
 
   async isElementVisible(
@@ -224,6 +230,19 @@ export default class BasePage {
     Logger.info(`Element text/content-desc: "${text}"`);
     expect(text).toContain(expected);
   }
+
+  async assertSwitchState(selector: DualSelector, checked: boolean) {
+    Logger.info(
+      `Asserting ${selector.log} is ${checked ? "checked" : "unchecked"}`,
+    );
+
+    const element = await this.resolve(selector);
+
+    const actual = (await element.getAttribute("checked")) === "true";
+
+    expect(actual).toBe(checked);
+  }
+
   async expectElementState(element: any, state: any) {
     await browser.waitUntil(
       async () => {
@@ -251,6 +270,38 @@ export default class BasePage {
       },
     );
   }
+
+  async waitUntilElementEnabledState(
+    selector: DualSelector,
+    enabled: boolean,
+    timeout: number = Timeout.FIVE_SECONDS,
+  ) {
+    Logger.info(
+      `Waiting for element ${selector.log} to become ${enabled ? "enabled" : "disabled"}`,
+    );
+
+    const element = await this.resolve(selector);
+
+    await browser.waitUntil(
+      async () => {
+        const isEnabled = await element.isEnabled();
+        return isEnabled === enabled;
+      },
+      {
+        timeout,
+        timeoutMsg: `Element ${selector.log} did not become ${
+          enabled ? "enabled" : "disabled"
+        } within ${timeout}ms`,
+      },
+    );
+
+    Logger.info(
+      `Element ${selector.log} is now ${enabled ? "enabled" : "disabled"}`,
+    );
+
+    return element;
+  }
+
   async getText(selector: DualSelector): Promise<string> {
     const element = await this.resolve(selector);
     const text = await element.getText();
@@ -362,7 +413,22 @@ export default class BasePage {
     }
 
     if (platform === "android") {
-      const uiSelector = selector.android.replace(/^android=/, "");
+      let uiSelector: string;
+
+      if (selector.android.startsWith("android=")) {
+        uiSelector = selector.android.replace(/^android=/, "");
+      } else if (selector.android.startsWith("~")) {
+        const desc = selector.android.substring(1);
+        uiSelector = `new UiSelector().description("${desc}")`;
+      } else {
+        // Can't build a UiSelector from this locator
+        return await this.manualScroll(
+          selector,
+          maxScrolls,
+          direction,
+          isElementVisible,
+        );
+      }
 
       // Try each scrollable container until one works
       const scrollableContainers = [
@@ -441,7 +507,9 @@ export default class BasePage {
       await this.iosSwipe(direction); // works on Android too via W3C actions
       attempts++;
     }
-    throw new Error(`Element not visible after ${maxScrolls} manual scrolls`);
+    throw new Error(
+      `Element ${selector.name} not visible after ${maxScrolls} manual scrolls`,
+    );
   }
 
   // Reliable swipe using W3C actions — works on both platforms, no overshoot
@@ -491,15 +559,27 @@ export default class BasePage {
   }
 
   async handleStartupScreens() {
-    const element = await this.resolve(this.skipBtnInFirstStartupPage);
-
-    const isVisible = await element
-      .waitForDisplayed({ timeout: 10000 })
+    // The onboarding screen can be slow to render on CI runners. Try the
+    // accessibility-id Skip first; if it isn't found, fall back to a text
+    // locator. Click the element we actually found (instead of re-resolving via
+    // click(), which would re-run the long waitUntilVisibleWithRetry loop and
+    // waste up to ~60s when the screen is briefly slow).
+    let skip = await this.resolve(this.skipBtnInFirstStartupPage);
+    let isVisible = await skip
+      .waitForDisplayed({ timeout: 15000 })
       .then(() => true)
       .catch(() => false);
 
+    if (!isVisible && driver.isAndroid) {
+      const byText = await $('//*[@text="Skip"]');
+      if (await byText.isDisplayed().catch(() => false)) {
+        skip = byText;
+        isVisible = true;
+      }
+    }
+
     if (isVisible) {
-      await this.click(this.skipBtnInFirstStartupPage);
+      await skip.click();
       await this.waitUntilVisible(this.GotitBtnInSecondStartupPage);
       await this.click(this.GotitBtnInSecondStartupPage);
       await this.waitUntilVisible(this.noThanksBtnInThirdStartupPage);
@@ -608,5 +688,15 @@ export default class BasePage {
 
       await driver.releaseActions();
     }
+  }
+
+  async clickDoneBtn() {
+    await this.waitUntilVisibleWithRetry(this.doneBtn);
+    await this.click(this.doneBtn);
+  }
+
+  async clickBackBtn() {
+    await this.waitUntilVisibleWithRetry(this.backBtn);
+    await this.click(this.backBtn);
   }
 }

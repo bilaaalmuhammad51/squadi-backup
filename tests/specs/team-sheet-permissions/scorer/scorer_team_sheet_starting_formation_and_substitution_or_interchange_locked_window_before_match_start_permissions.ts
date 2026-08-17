@@ -38,7 +38,7 @@ describe("Scorer team sheet locked window (before match start) permissions", () 
         LoginData.password,
       );
 
-      matchId = await MatchApiHelper.createMatch(token, 2);
+      matchId = await MatchApiHelper.createMatch(token, 20);
 
       console.log("Created Match ID:", matchId);
 
@@ -157,9 +157,13 @@ describe("Scorer team sheet locked window (before match start) permissions", () 
     await step("wait for recording time to start", async () => {
       await scorerPage.clickBackBtn();
       await scorerPage.clickBackBtn();
-      await scorerPage.clickCloseBtnInSettings();
+      await scorerPage.clickCloseCrossBtn();
+      await MatchApiHelper.updateMatchStartTime(token, matchId, 0);
+      if (driver.isAndroid) {
+        await scorerPage.handleMatchTimeUpdatePopup(matchId.toString());
+      }
       await scorerPage.waitUntilTeamSheetBecomesSubstitutionForScorer();
-      await scorerPage.clickCloseBtnInSettings();
+      await scorerPage.clickCloseCrossBtn();
     });
 
     await step("Open settings menu and validate options", async () => {

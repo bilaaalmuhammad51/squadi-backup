@@ -9,7 +9,7 @@ export const RegisterData = {
         'Cancel'
     ],
     organisation : 'Anas Test State',
-    phoneNumber : 4200000000,
+    phoneNumber : '0420000000',
     yesOption: 'Yes',
     noOption: 'No'
 }

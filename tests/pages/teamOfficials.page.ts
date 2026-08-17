@@ -1,4 +1,4 @@
-import { DualSelector, selector } from "../factories/page.factory";
+import { selector } from "../factories/page.factory";
 import BasePage from "./base.page";
 
 export class TeamOfficialsPage extends BasePage {
@@ -14,10 +14,16 @@ export class TeamOfficialsPage extends BasePage {
     "Manager heading in Team Officials",
   );
 
-  private searchManagerOption = selector(
+  private searchManagerOptionEnabled = selector(
     'android=new UiSelector().className("android.widget.EditText").instance(0)',
     '-ios class chain:**/XCUIElementTypeTextField[`name == "Search for someone..."`][1]',
-    "Search Manager option under Manager heading in Team Officials",
+    "Search Manager enabled option under Manager heading in Team Officials",
+  );
+
+  private searchManagerOptionDisabled = selector(
+    'android=new UiSelector().className("android.view.View").instance(17)',
+    '-ios class chain:**/XCUIElementTypeOther[`name == "Search for someone..."`][1]',
+    "Search Manager disabled option under Manager heading in Team Officials",
   );
 
   private coachHeading = selector(
@@ -26,10 +32,16 @@ export class TeamOfficialsPage extends BasePage {
     "Coach heading in Team Officials",
   );
 
-  private searchCoachOption = selector(
+  private searchCoachOptionEnabled = selector(
     'android=new UiSelector().className("android.widget.EditText").instance(1)',
     '-ios class chain:**/XCUIElementTypeTextField[`name == "Search for someone..."`]',
     "Search Coach option under Coach heading in Team Officials",
+  );
+
+  private searchCoachOptionDisabled = selector(
+    'android=new UiSelector().className("android.view.View").instance(19)',
+    '-ios class chain:**/XCUIElementTypeOther[`name == "Search for someone..."`][2]',
+    "Search Coach disabled option under Coach heading in Team Officials",
   );
 
   private searchField = selector(
@@ -48,15 +60,28 @@ export class TeamOfficialsPage extends BasePage {
   private confirmTeamOfficialsBtn = selector(
     "~Confirm Team Officials",
     "~Confirm Team Officials",
-    "Confirm Team Officials Button"
-  )
+    "Confirm Team Officials Button",
+  );
 
-  private selectedRoleUser = (name: string) =>
+  private selectedRoleUserEditable = (name: string) =>
     selector(
-    `//android.widget.EditText[@text="${name}"]`,
-    `-ios predicate string:value == "${name}"`,
-    `Selected ${name}`
-  )
+      `//android.widget.EditText[@text="${name}"]`,
+      `-ios predicate string:value == "${name}"`,
+      `Selected ${name}`,
+    );
+
+  private selectedRoleUserDisabled = (name: string) =>
+    selector(
+      `(//android.view.View[@text="${name}"])[1]`,
+      `-ios predicate string:value == "${name}"`,
+      `Selected ${name}`,
+    );
+
+  private teamOfficialsNotAvailableForTeam = selector(
+    "~Team officials data is not available yet",
+    "~Team officials data is not available yet",
+    "Team officials data is not available yet for the team",
+  );
 
   async validateIfTeamOfficialsMenuAvailable(): Promise<boolean> {
     const isVisible = await this.isElementVisible(this.teamOfficialsMenuOption);
@@ -68,17 +93,40 @@ export class TeamOfficialsPage extends BasePage {
     await this.click(this.teamOfficialsMenuOption);
   }
 
-  async assertTeamOfficialsScreenElements() {
+  async assertTeamOfficialsEnabledElements() {
     await this.waitUntilVisibleWithRetry(this.managerHeading);
     await this.assertElementDisplayed(this.managerHeading);
-    await this.assertElementDisplayed(this.searchManagerOption);
+    await this.assertElementDisplayed(this.searchManagerOptionEnabled);
     await this.assertElementDisplayed(this.coachHeading);
-    await this.assertElementDisplayed(this.searchCoachOption);
+    await this.assertElementDisplayed(this.searchCoachOptionEnabled);
+  }
+
+  async assertDisabledTeamOfficialsElements() {
+    let searchManagerOptionDisabled: ChainablePromiseElement;
+    let searchCoachOptionDisabled: ChainablePromiseElement;
+    let confirmTeamOfficialsBtn: ChainablePromiseElement;
+    searchManagerOptionDisabled = await this.getElement(
+      this.searchManagerOptionDisabled,
+    );
+    searchCoachOptionDisabled = await this.getElement(
+      this.searchCoachOptionDisabled,
+    );
+    confirmTeamOfficialsBtn = await this.getElement(
+      this.confirmTeamOfficialsBtn,
+    );
+    await this.waitUntilVisibleWithRetry(this.managerHeading);
+    await this.assertElementDisplayed(this.managerHeading);
+    await this.assertElementNotDisplayed(this.searchManagerOptionEnabled);
+    await this.expectElementState(searchManagerOptionDisabled, "disabled");
+    await this.assertElementDisplayed(this.coachHeading);
+    await this.assertElementNotDisplayed(this.searchCoachOptionEnabled);
+    await this.expectElementState(searchCoachOptionDisabled, "disabled");
+    await this.expectElementState(confirmTeamOfficialsBtn, "disabled");
   }
 
   async searchAndSelectManager(managerName: string) {
-    await this.waitUntilVisibleWithRetry(this.searchManagerOption);
-    await this.click(this.searchManagerOption);
+    await this.waitUntilVisibleWithRetry(this.searchManagerOptionEnabled);
+    await this.click(this.searchManagerOptionEnabled);
     await this.waitUntilVisibleWithRetry(this.searchField);
     await this.click(this.searchField);
     await this.type(this.searchField, managerName);
@@ -87,8 +135,8 @@ export class TeamOfficialsPage extends BasePage {
   }
 
   async searchAndSelectCoach(coachName: string) {
-    await this.waitUntilVisibleWithRetry(this.searchCoachOption);
-    await this.click(this.searchCoachOption);
+    await this.waitUntilVisibleWithRetry(this.searchCoachOptionEnabled);
+    await this.click(this.searchCoachOptionEnabled);
     await this.waitUntilVisibleWithRetry(this.searchField);
     await this.click(this.searchField);
     await this.type(this.searchField, coachName);
@@ -103,7 +151,24 @@ export class TeamOfficialsPage extends BasePage {
 
   async validateSelectedRolesUsers(manager: string, coach: string) {
     await this.waitUntilVisibleWithRetry(this.managerHeading);
-    await this.assertElementDisplayed(this.selectedRoleUser(manager));
-    await this.assertElementDisplayed(this.selectedRoleUser(coach));
+    await this.assertElementDisplayed(this.selectedRoleUserEditable(manager));
+    await this.assertElementDisplayed(this.selectedRoleUserEditable(coach));
+  }
+
+  async assertReadOnlySelectedRolesUsers(manager: string, coach: string) {
+    await this.waitUntilVisibleWithRetry(this.managerHeading);
+    await this.assertElementDisplayed(this.selectedRoleUserDisabled(manager));
+    await this.assertElementDisplayed(this.selectedRoleUserDisabled(coach));
+    await this.assertElementNotDisplayed(this.searchManagerOptionEnabled);
+    await this.assertElementNotDisplayed(this.searchCoachOptionEnabled);
+    const confirmTeamOfficialsBtn = await this.getElement(
+      this.confirmTeamOfficialsBtn,
+    );
+    await this.expectElementState(confirmTeamOfficialsBtn, "disabled");
+  }
+
+  async teamSheetNotAvailableForTeam() {
+    await this.waitUntilVisibleWithRetry(this.teamOfficialsNotAvailableForTeam);
+    await this.assertElementDisplayed(this.teamOfficialsNotAvailableForTeam);
   }
 }
