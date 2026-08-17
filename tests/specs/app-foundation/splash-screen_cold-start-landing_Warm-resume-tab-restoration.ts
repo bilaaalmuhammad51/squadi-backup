@@ -42,7 +42,7 @@ describe("App Foundation - Splash & Cold Start", () => {
     });
 
     await step("App transitions to the login screen", async () => {
-      await loginPage.waitUntilVisible(loginPage.loginButton);
+      await loginPage.waitUntilVisibleWithRetry(loginPage.loginButton);
     });
 
     // APP-002 - signed out
