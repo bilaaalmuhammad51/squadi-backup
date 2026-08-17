@@ -6,9 +6,9 @@ name: Daily Android Emulator Tests
 # minutes are consumed here - runner minutes only.
 
 on:
-  schedule:
+  # schedule:
     # 02:00 PKT daily (21:00 UTC)
-    - cron: "0 21 * * *"
+    # - cron: "0 21 * * *"
   workflow_dispatch:
     inputs:
       branch:
@@ -81,11 +81,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-        continue-on-error: false
-        # Retry configuration for handling GitHub CDN rate limiting
-        retry:
-          max-attempts: 5
-          wait: 60
 
       - name: Enable KVM for hardware acceleration
         run: |
@@ -286,7 +281,7 @@ jobs:
                 {
                   "type": "actions",
                   "elements": [
-                    { "type": "button", "text": { "type": "plain_text", "text": "📊 Allure Report" }, "style": "primary", "url": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/run-${{ github.run_number }}/index.html" },
+                    { "type": "button", "text": { "type": "plain_text", "text": "📊 Allure Report" }, "style": "primary", "url": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/emulator/${{ github.run_number }}/" },
                     { "type": "button", "text": { "type": "plain_text", "text": "🧾 GitHub Run" }, "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
                   ]
                 }
