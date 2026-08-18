@@ -5,10 +5,9 @@ import { forceStopApp } from "../../utils/connectivity";
 import { HomePage } from "../../pages/home.page";
 import { $ } from "../../factories/page.factory";
 import { Timeout } from "../../utils/timers";
+import { LoginData } from "../../data/login.data";
 
 const APP_PACKAGE = "com.wsa.netball.dev";
-const MEMBER_EMAIL = "shahshahbaz64+coach1@gmail.com";
-const MEMBER_PASSWORD = "Connect123";
 
 describe("App Foundation - Splash & Cold Start", () => {
   const loginPage = new LoginPage();
@@ -42,7 +41,7 @@ describe("App Foundation - Splash & Cold Start", () => {
     });
 
     await step("App transitions to the login screen", async () => {
-      await loginPage.waitUntilVisible(loginPage.loginButton);
+      await loginPage.waitUntilVisibleWithRetry(loginPage.loginButton);
     });
 
     // APP-002 - signed out
@@ -68,8 +67,8 @@ describe("App Foundation - Splash & Cold Start", () => {
     allureReporter.addSeverity("critical");
 
     await step("1. Sign in as a member", async () => {
-      await homePage.loginFlow(MEMBER_EMAIL, MEMBER_PASSWORD);
-      await loginPage.waitUntilVisible(loginPage.homeTab);
+      await homePage.loginFlow(LoginData.coachEmail, LoginData.password);
+      await loginPage.waitUntilVisibleWithRetry(loginPage.homeTab);
     });
 
     await step("2. Fully close the app (cold start preparation)", async () => {
@@ -102,14 +101,14 @@ describe("App Foundation - Lifecycle", () => {
     await step("1. Sign in as a member", async () => {
       const loggedOut = await loginPage.isElementVisible(loginPage.loginTab);
       if (loggedOut) {
-        await homePage.loginFlow(MEMBER_EMAIL, MEMBER_PASSWORD);
+        await homePage.loginFlow(LoginData.coachEmail, LoginData.password);
       }
-      await loginPage.waitUntilVisible(loginPage.homeTab);
+      await loginPage.waitUntilVisibleWithRetry(loginPage.homeTab);
     });
 
     await step("2. Select the <More> tab", async () => {
       await loginPage.click(loginPage.moreTab);
-      await loginPage.waitUntilVisible(loginPage.myScheduleOptionInMoreTab);
+      await loginPage.waitUntilVisibleWithRetry(loginPage.myScheduleOptionInMoreTab);
     });
 
     await step("3. Background the app", async () => {
@@ -123,7 +122,7 @@ describe("App Foundation - Lifecycle", () => {
     await step(
       "5. The same tab is still selected, no content duplication",
       async () => {
-        await loginPage.waitUntilVisible(loginPage.moreTab);
+        await loginPage.waitUntilVisibleWithRetry(loginPage.moreTab);
         await loginPage.waitUntilVisible(loginPage.myScheduleOptionInMoreTab);
         await loginPage.assertElementDisplayed(
           loginPage.myScheduleOptionInMoreTab,

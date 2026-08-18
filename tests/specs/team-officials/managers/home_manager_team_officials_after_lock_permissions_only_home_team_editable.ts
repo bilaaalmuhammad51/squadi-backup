@@ -128,7 +128,13 @@ describe("Home team Manager team officials after lock permissions - home team no
       await teamOfficialsPage.click(
         scorerPage.awayTeamSheetTab(TeamsInTeamSheet.HomeTeam),
       );
-      await teamOfficialsPage.assertDisabledTeamOfficialsElements();
+      await teamOfficialsPage.assertTeamOfficialsEnabledElements();
+    });
+
+    await step("Select Manger and Coach for Away Team", async () => {
+      await teamOfficialsPage.searchAndSelectManager("Syed");
+      await teamOfficialsPage.searchAndSelectCoach("Syed");
+      await teamOfficialsPage.clickConfirmTeamOfficials();
     });
 
     await step("Validate disabled Away Team elements", async () => {
