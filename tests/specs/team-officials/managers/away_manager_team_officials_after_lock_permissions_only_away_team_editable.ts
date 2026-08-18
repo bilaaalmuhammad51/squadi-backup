@@ -128,14 +128,20 @@ describe("Away team Manager team officials after lock permissions - only away te
       },
     );
 
-    await step("Validate disabled Home Team elements", async () => {
+    await step("Validate enabled Away Team elements", async () => {
       await teamOfficialsPage.click(
         scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
       );
-      await teamOfficialsPage.assertDisabledTeamOfficialsElements();
+      await teamOfficialsPage.assertTeamOfficialsEnabledElements();
     });
 
-    await step("Validate disabled Away Team elements", async () => {
+    await step("Select Manger and Coach for Away Team", async () => {
+      await teamOfficialsPage.searchAndSelectManager("Syed");
+      await teamOfficialsPage.searchAndSelectCoach("Syed");
+      await teamOfficialsPage.clickConfirmTeamOfficials();
+    });
+
+    await step("Validate disabled Home Team elements", async () => {
       await teamOfficialsPage.click(
         scorerPage.awayTeamSheetTab(TeamsInTeamSheet.HomeTeam),
       );

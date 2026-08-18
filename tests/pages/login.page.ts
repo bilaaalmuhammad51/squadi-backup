@@ -1122,16 +1122,8 @@ export class LoginPage extends BasePage {
     await this.click(this.videosHeadingInUserVideos);
     await this.scrollUntilElementVisible(this.allowAllBtnInVideos);
     await this.click(this.allowAllBtnInVideos);
-    const isAddingAndEditingWatchlistHeading = await this.isElementVisible(
-      this.addingAndEditingWatchlistHeading,
-      5000,
-    );
-    if (!isAddingAndEditingWatchlistHeading) {
-      await this.scrollUntilElementVisible(
-        this.addingAndEditingWatchlistHeading,
-        { maxScrolls: undefined, direction: "up" },
-      );
-    }
+    await this.scrollToTop();
+    await this.scrollUntilElementVisible(this.addingAndEditingWatchlistHeading);
     await this.assertElementDisplayed(this.addingAndEditingWatchlistHeading);
     await this.assertElementDisplayed(this.addingAndEditingWatchlistVideo);
     await this.scrollUntilElementVisible(this.drawsLaddersAndStatisticsHeading);

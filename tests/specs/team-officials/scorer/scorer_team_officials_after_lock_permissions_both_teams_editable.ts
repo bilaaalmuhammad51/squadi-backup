@@ -127,17 +127,37 @@ describe("Scorer team officials after lock permissions - both teams uneditable a
         await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable(),
       ).toBeTruthy();
       await teamOfficialsPage.openTeamOfficials();
+      await teamOfficialsPage.assertTeamOfficialsEnabledElements();
     });
 
-    await step("Validate disabled Home Team elements", async () => {
-      await teamOfficialsPage.assertDisabledTeamOfficialsElements();
+    await step("Select Manger and Coach for Team1", async () => {
+      await teamOfficialsPage.searchAndSelectManager("Syed");
+      await teamOfficialsPage.searchAndSelectCoach("Syed");
+      await teamOfficialsPage.clickConfirmTeamOfficials();
     });
 
-    await step("Validate disabled Away Team elements", async () => {
-      await teamOfficialsPage.click(
-        scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
-      );
-      await teamOfficialsPage.assertDisabledTeamOfficialsElements();
+    await step("Select Manger and Coach for Team2", async () => {
+      await teamOfficialsPage.searchAndSelectManager("Syed");
+      await teamOfficialsPage.searchAndSelectCoach("Syed");
+      await teamOfficialsPage.clickConfirmTeamOfficials();
     });
+
+    await step(
+      "Open Team Officials and verify selected Coaches and Managers changes persist",
+      async () => {
+        await teamOfficialsPage.openTeamOfficials();
+        await teamOfficialsPage.validateSelectedRolesUsers(
+          "Syed Manager1",
+          "Syed Coach1",
+        );
+        await teamOfficialsPage.click(
+          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+        );
+        await teamOfficialsPage.validateSelectedRolesUsers(
+          "Syed Manager2",
+          "Syed Coach1",
+        );
+      },
+    );
   });
 });

@@ -2,7 +2,7 @@ import allureReporter from "@wdio/allure-reporter";
 import { generateUniqueEmail, step } from "../../utils/helpers";
 import { LoginPage } from "../../pages/login.page";
 import { HomePage } from "../../pages/home.page";
-import { invalidLoginErrorData, LoginData } from "../../data/login.data";
+import { LoginData } from "../../data/login.data";
 import { RegisterData } from "../../data/register.data";
 import { RegisterProfilePage } from "../../pages/register.profile.page";
 
@@ -143,7 +143,7 @@ describe("Guest - Persona Flow", () => {
     uniqueEmail = generateUniqueEmail();
 
     await step("Verify welcome screen is visible", async () => {
-      await loginPage.validateLoginBtnIsVisible();
+      await loginPage.waitUntilVisibleWithRetry(loginPage.loginButton, 5);
     });
 
     await step("Open registration screen", async () => {
