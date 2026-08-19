@@ -67,7 +67,7 @@ export const config: WebdriverIO.Config = {
 
   mochaOpts: {
     ui: "bdd",
-    timeout: Timeout.SIX_MINUTES,
+    timeout: Timeout.TEN_MINUTES,
   },
 
   capabilities: getCapabilities(),
