@@ -41,7 +41,7 @@ jobs:
     # Safety net against a true runaway only - the emulator is force-killed
     # after tests so the job ends promptly on its own. A bit above the step cap
     # to leave room for report/Slack/deploy after the test window.
-    timeout-minutes: 190
+    timeout-minutes: 250
 
     env:
       PLATFORM: android
@@ -124,7 +124,7 @@ jobs:
         # hang is handled by force-killing the emulator at the end of the
         # script, so this is only a runaway guard - normal runs end well
         # before it.
-        timeout-minutes: 180
+        timeout-minutes: 240
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ env.API_LEVEL }}

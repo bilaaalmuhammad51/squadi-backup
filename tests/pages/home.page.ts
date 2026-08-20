@@ -14,6 +14,24 @@ export class HomePage extends LoginPage {
     "Draws Button",
   );
 
+  public watchlistBtn = selector(
+    '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View/android.view.View[2]/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]/android.widget.ImageView[2]',
+    "",
+    "Watchlist Button in Draws tab",
+  );
+
+  public editWatchlistHeading = selector(
+    "~Edit watchlist",
+    "",
+    "Edit watchlist heading in Draws tab",
+  );
+
+  selectedTeamInWatchList = selector(
+    '//android.view.View[contains(@content-desc,"HR-ASN2-MD-Only")]',
+    "",
+    "Selected Team in Watchlist",
+  );
+
   public loginButtonOnHomeTab = selector(
     "~Login",
     "~Login",
@@ -40,9 +58,27 @@ export class HomePage extends LoginPage {
   );
 
   public tasksHeading = selector(
-    "~Tasks",
+    '//android.view.View[@content-desc="Tasks "]',
     "~Tasks",
     "Tasks heading in Home tab after login",
+  );
+
+  public scheduleOrApproveMatchesInTasks = selector(
+    "~Schedule/Approve Matches",
+    "~Schedule/Approve Matches",
+    "Schedule/Approve Matches in Tasks section in Home tab",
+  );
+
+  public scheduleOrApproveMatchesPageHeading = selector(
+    '//android.view.View[@content-desc="Schedule/Approve Matches"]',
+    "~Schedule/Approve Matches",
+    "Schedule/Approve Matches page heading",
+  );
+
+  public scheduleOrApproveMatchesHeadingInWebPage = selector(
+    '//android.widget.TextView[@text="Schedule / Approve Matches"]',
+    "~Schedule/Approve Matches",
+    "Schedule/Approve Matches page heading",
   );
 
   public newsAndUpdatesHeading = selector(

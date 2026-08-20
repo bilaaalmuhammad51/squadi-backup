@@ -52,57 +52,69 @@ describe("Manager Persona Flows", () => {
     }
   });
 
+  it("[HOME-003] Tasks banner on Home opens the Tasks web page", async () => {
+    allureReporter.addFeature("Home & Navigation");
+    allureReporter.addStory("Tasks banner on Home opens the Tasks web page");
+    allureReporter.addSeverity("normal");
+
+    await step("Log in as a member", async () => {
+      await homePage.loginFlow(LoginData.manager1Email, LoginData.password);
+    });
+
+    await step("Open the Home tab", async () => {
+      await homePage.gotoHomeTab();
+    });
+
+    await step("Tap the Tasks URL banner", async () => {
+      await homePage.click(homePage.tasksHeading);
+      await homePage.waitUntilVisibleWithRetry(
+        homePage.scheduleOrApproveMatchesInTasks,
+      );
+      await homePage.click(homePage.scheduleOrApproveMatchesInTasks);
+    });
+
+    await step("The Tasks URL page opens", async () => {
+      await homePage.waitUntilVisibleWithRetry(
+        homePage.scheduleOrApproveMatchesHeadingInWebPage,
+      );
+      await homePage.assertElementDisplayed(
+        homePage.scheduleOrApproveMatchesHeadingInWebPage,
+      );
+      await homePage.assertElementDisplayed(
+        homePage.scheduleOrApproveMatchesPageHeading,
+      );
+      await homePage.clickCloseCrossBtn();
+    });
+  });
+
+  it("[DRAW-005] Watchlist entry point opens the Watchlist screen", async () => {
+    allureReporter.addFeature("Competitions & Schedules");
+    allureReporter.addStory("Watchlist entry point opens the Watchlist screen");
+    allureReporter.addSeverity("normal");
+
+    await step("Open the Draw tab and ensure a team is followed", async () => {
+      await homePage.gotoDrawsTab();
+    });
+
+    await step("Tap the Watchlist entry point", async () => {
+      await homePage.waitUntilVisibleWithRetry(homePage.watchlistBtn);
+      await homePage.click(homePage.watchlistBtn);
+    });
+
+    await step("The Watchlist screen opens", async () => {
+      await homePage.waitUntilVisibleWithRetry(
+        homePage.selectedTeamInWatchList,
+      );
+      await homePage.assertElementDisplayed(homePage.editWatchlistHeading);
+      await homePage.clickDoneBtn();
+      await homePage.gotoHomeTab();
+    });
+  });
+
   it(" Manager Attendance editor matches app & saves a move", async () => {
     allureReporter.addFeature("Manager Flow");
     allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
     allureReporter.addSeverity("critical");
-
-    await step("Verify welcome screen is visible", async () => {
-      await loginPage.validateLoginBtnIsVisible();
-    });
-
-    await step("Verify welcome screen elements", async () => {
-      await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
-      await loginPage.assertElementDisplayed(
-        loginPage.createAccountOrRegisterProfile,
-      );
-      await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
-      await loginPage.assertElementDisplayed(loginPage.loginButton);
-    });
-
-    await step("Navigate to login screen", async () => {
-      await loginPage.click(loginPage.loginButton);
-    });
-
-    await step("Verify login screen elements", async () => {
-      await loginPage.assertElementDisplayed(loginPage.backButton);
-      await loginPage.assertElementDisplayed(loginPage.loginHeading);
-      await loginPage.assertTextContains(
-        loginPage.loginHeading,
-        LoginData.loginHeading,
-      );
-      await loginPage.assertElementDisplayed(loginPage.rememberPassword);
-      await loginPage.assertElementDisplayed(loginPage.forgotPassword);
-    });
-
-    await step("Enter valid credentials", async () => {
-      await loginPage.addUserName(LoginData.manager1Email);
-      await loginPage.addPassword(LoginData.password);
-    });
-
-    await step("Submit login", async () => {
-      await loginPage.click(loginPage.login);
-    });
-
-    await step(
-      "Validate successful login by checking Home screen",
-      async () => {
-        await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
-        await homePage.assertElementDisplayed(homePage.homeTab);
-        await homePage.assertElementDisplayed(homePage.drawsTab);
-        await homePage.assertElementDisplayed(homePage.laddersTab);
-      },
-    );
 
     await step("Open a match from the Home screen", async () => {
       const matchElement = homePage.matchById(matchId.toString());

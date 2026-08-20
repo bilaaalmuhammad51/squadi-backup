@@ -322,6 +322,71 @@ export default class BasePage {
     return text;
   }
 
+  async scrollUp(
+    startXPercent: number = 0.5,
+    startYPercent: number = 0.2,
+    endYPercent: number = 0.9,
+    duration: number = 500,
+  ): Promise<void> {
+    const { height, width } = await driver.getWindowRect();
+
+    const startX = Math.floor(width * startXPercent);
+    const endY = Math.floor(height * endYPercent);
+    let startY = Math.floor(height * startYPercent);
+
+    if (driver.isIOS) {
+      // If keyboard is open, make sure the gesture starts above it
+      const keyboardTopY = await this.getKeyboardTopY();
+      if (keyboardTopY !== null) {
+        startY = Math.min(startY, keyboardTopY - 50);
+      }
+
+      await driver.performActions([
+        {
+          type: "pointer",
+          id: "finger1",
+          parameters: { pointerType: "touch" },
+          actions: [
+            { type: "pointerMove", duration: 0, x: startX, y: startY },
+            { type: "pointerDown", button: 0 },
+            { type: "pause", duration: 200 },
+            { type: "pointerMove", duration, x: startX, y: endY },
+            { type: "pointerUp", button: 0 },
+          ],
+        },
+      ]);
+
+      // Do NOT call driver.releaseActions() for BrowserStack iOS
+    } else {
+      await driver.execute("mobile: swipeGesture", {
+        left: startX - 5,
+        top: startY,
+        width: 10,
+        height: endY - startY,
+        direction: "down",
+        percent: 1.0,
+        speed: duration * 5,
+      });
+    }
+  }
+
+  async scrollToTop(maxScrolls: number = 15): Promise<void> {
+    let lastPageSource = "";
+
+    for (let attempt = 0; attempt < maxScrolls; attempt++) {
+      const currentPageSource = await driver.getPageSource();
+
+      // No change means we're already at the top
+      if (currentPageSource === lastPageSource && attempt > 0) {
+        break;
+      }
+
+      lastPageSource = currentPageSource;
+
+      await this.scrollUp();
+    }
+  }
+
   async scrollDown(
     startXPercent: number = 0.5,
     startYPercent: number = 0.5,
