@@ -93,6 +93,24 @@ export class HomePage extends LoginPage {
     "Notifications icon in Home tab after login",
   );
 
+  public newsArticle = selector(
+    '//android.view.View[contains(@content-desc,"Automation testing communication 1")]',
+    "",
+    "News Article in Home tab",
+  );
+
+  public newsHeadingInArticle = selector(
+    "~News",
+    "~News",
+    "News heading in Article",
+  );
+
+  public articleBody = selector(
+    '//android.view.View[@content-desc="automation testing communication 1"]',
+    "",
+    "Article body",
+  );
+
   async assertHomeTabElements() {
     await this.waitUntilVisibleWithRetry(this.welcomeBackHeading);
     await this.assertElementDisplayed(this.welcomeBackHeading);
@@ -162,5 +180,13 @@ export class HomePage extends LoginPage {
     await this.waitUntilVisibleWithRetry(this.newsColumn);
     await this.assertElementDisplayed(this.newsColumn);
     await this.assertElementDisplayed(this.notificationsColumn);
+  }
+
+  async openAndAssertNewsArticle() {
+    await this.waitUntilVisibleWithRetry(this.newsArticle);
+    await this.click(this.newsArticle);
+    await this.waitUntilVisibleWithRetry(this.newsHeadingInArticle);
+    await this.assertElementDisplayed(this.articleBody);
+    await this.clickCloseCrossBtn();
   }
 }

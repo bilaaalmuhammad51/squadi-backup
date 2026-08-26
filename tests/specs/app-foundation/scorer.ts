@@ -11,7 +11,7 @@ describe("Member - Persona Checklist", () => {
     allureReporter.addStory("Login, open Field Closure from More tab, validate elements");
     allureReporter.addSeverity("critical");
 
-    await step("[TC-M1] Member signs in and lands on Home", async () => {
+    await step("Field Closer Opens Field Closure", async () => {
       await homePage.loginFlow(LoginData.email, LoginData.password);
       await homePage.gotoMoreTab();
       await homePage.scrollUntilElementVisible(homePage.fieldClosureOptionInMoreTab);

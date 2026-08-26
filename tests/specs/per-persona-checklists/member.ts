@@ -60,11 +60,6 @@ describe("Member - Persona Checklist", () => {
       await laddersPage.openFormLaddersTab();
       await laddersPage.validateFormLaddersTabElements();
     });
-
-    await step("Open Form Ladders Tab And Validate The Elements", async () => {
-      await laddersPage.openFormLaddersTab();
-      await laddersPage.validateFormLaddersTabElements();
-    });
   });
 
   it("[TC-M6] Opens Shop & Registration webviews without re-login", async () => {
@@ -110,7 +105,6 @@ describe("Member - Persona Checklist", () => {
   });
 
   it("[TC-M7] Change password", async () => {
-
     await step("Change password and stay signed in", async () => {
       await homePage.gotoHomeTab();
       await homePage.gotoMoreTab();
@@ -134,5 +128,19 @@ describe("Member - Persona Checklist", () => {
       await homePage.clickBackBtn();
       await homePage.clickBackBtn();
     });
+  });
+
+  it("[F15] Member opens a news article", async () => {
+    allureReporter.addFeature("Member Persona Flows");
+    allureReporter.addStory("Open News Article");
+    allureReporter.addSeverity("normal");
+
+    await step(
+      "[F15] Open a news item and validate the article body",
+      async () => {
+        await homePage.gotoHomeTab();
+        await homePage.openAndAssertNewsArticle();
+      },
+    );
   });
 });

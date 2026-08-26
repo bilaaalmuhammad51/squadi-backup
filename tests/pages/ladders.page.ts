@@ -123,10 +123,16 @@ export class LaddersPage extends SchedulePage {
     await this.waitUntilVisibleWithRetry(this.rankColumn);
     await this.assertElementDisplayed(this.rankColumn);
     await this.assertElementDisplayed(this.lastFiveMatchesResultsColumn);
-    await this.scrollToElementHorizontal(
+    const isHorizontalScrollContainer = await this.isElementVisible(
       this.horizontalScrollContainer,
-      "right",
+      2000,
     );
+    if (isHorizontalScrollContainer) {
+      await this.scrollToElementHorizontal(
+        this.horizontalScrollContainer,
+        "right",
+      );
+    }
     await this.assertElementDisplayed(this.nextMatchColumn);
   }
 }

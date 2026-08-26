@@ -159,7 +159,9 @@ export default class BasePage {
 
     while (attempt <= maxAttempts) {
       try {
-        Logger.info(`[Attempt ${attempt}] waiting for element to be invisible`);
+        Logger.info(
+          `[Attempt ${attempt}] waiting for element "${selector.name}" to be invisible`,
+        );
 
         const element = await this.resolve(selector);
 
@@ -173,15 +175,17 @@ export default class BasePage {
         if (totalElapsed < minTotalWait) {
           const remaining = minTotalWait - totalElapsed;
           Logger.info(
-            `Element disappeared early. Waiting extra ${remaining}ms`,
+            `Element "${selector.name}" disappeared early. Waiting extra ${remaining}ms`,
           );
           await browser.pause(remaining);
         }
 
-        Logger.info("Element confirmed invisible");
+        Logger.info(`Element "${selector.name}" confirmed invisible`);
         return true;
       } catch (error) {
-        Logger.info(`Attempt ${attempt} failed. Element still visible`);
+        Logger.info(
+          `Attempt ${attempt} failed. Element "${selector.name}" still visible`,
+        );
       }
 
       await browser.pause(restTime);

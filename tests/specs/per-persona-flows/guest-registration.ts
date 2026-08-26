@@ -221,9 +221,5 @@ describe("Guest - Persona Flow", () => {
     await step("Verify user lands on Home screen", async () => {
       await homePage.verifyHomeScreenElements();
     });
-    // await step("Logout user", async () => {
-    //   await loginPage.logoutUser();
-    //   await loginPage.gotoLoginTab();
-    // });
   });
 });

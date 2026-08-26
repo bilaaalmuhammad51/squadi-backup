@@ -30,7 +30,7 @@ export class RegisterProfilePage extends LoginPage {
   };
 
   public mobileInputField = selector(
-    '//android.widget.EditText[@hint="e.g. 0400123456"]',
+    '//android.widget.EditText[contains(@hint,"e.g. ")]',
     "~e.g. 0400123456",
     "Mobile input field in registration page",
   );

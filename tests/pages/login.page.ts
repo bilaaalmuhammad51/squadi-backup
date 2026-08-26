@@ -327,10 +327,52 @@ export class LoginPage extends BasePage {
     "Sign up to Competition heading in Register option from More tab",
   );
 
+  public myTeamOptionInMoreTab = selector(
+    "~My Team",
+    "~My Team",
+    "My Team option in More tab",
+  );
+
+  public gameTimeInMyTeam = selector(
+    "~Game Time",
+    "~Game Time",
+    "Game Time option in My Team",
+  );
+
+  public borrowedPlayersInMyTeam = selector(
+    "~Borrowed Players",
+    "~Borrowed Players",
+    "Borrowed Players option in My Team",
+  );
+
+  public borrowsHeadingInBorrowedPlayers = selector(
+    "~Borrows",
+    "~Borrows",
+    "Borrows heading in Borrowed Payers",
+  );
+
   public myScheduleOptionInMoreTab = selector(
     "~My Schedule",
     "~My Schedule",
     "My Schedule option in More tab",
+  );
+
+  public calendarBtn = selector(
+    '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]/android.widget.Button[2]',
+    "",
+    "Calendar button in My Schedule page",
+  );
+
+  public calendarSync = selector(
+    "~Calendar Sync",
+    "~Calendar Sync",
+    "Calendar Sync heading",
+  );
+
+  public backBtnInCalendar = selector(
+    '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]/android.widget.Button',
+    "",
+    "Back Btn in Calendar"
   );
 
   public myEventsOptionInMoreTab = selector(
@@ -829,6 +871,31 @@ export class LoginPage extends BasePage {
     await this.assertElementNotDisplayed(this.userVideosOptionInMoreTab);
     await this.assertElementNotDisplayed(this.shareAppOptionInMoreTab);
     await this.assertElementNotDisplayed(this.logoutOptionInMoreTab);
+  }
+
+  async openMyTeamAndBorrowedPlayersList() {
+    await this.gotoMoreTab();
+    await this.waitUntilVisibleWithRetry(this.myTeamOptionInMoreTab);
+    await this.click(this.myTeamOptionInMoreTab);
+    await this.waitUntilVisibleWithRetry(this.gameTimeInMyTeam);
+    await this.assertElementDisplayed(this.borrowedPlayersInMyTeam);
+    await this.click(this.borrowedPlayersInMyTeam);
+    await this.waitUntilVisibleWithRetry(this.borrowsHeadingInBorrowedPlayers);
+    await this.assertElementDisplayed(this.borrowsHeadingInBorrowedPlayers);
+    await this.clickBackBtn();
+    await this.clickBackBtn();
+  }
+
+  async openMyScheduleAndCalendarSync() {
+    await this.gotoMoreTab();
+    await this.waitUntilVisibleWithRetry(this.myScheduleOptionInMoreTab);
+    await this.click(this.myScheduleOptionInMoreTab);
+    await this.waitUntilVisibleWithRetry(this.calendarBtn);
+    await this.click(this.calendarBtn);
+    await this.waitUntilVisibleWithRetry(this.calendarSync);
+    await this.assertElementDisplayed(this.calendarSync);
+    await this.click(this.backBtnInCalendar);
+    await this.clickBackBtn();
   }
 
   async switchProfileToChild() {

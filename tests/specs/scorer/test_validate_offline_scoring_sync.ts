@@ -5,7 +5,6 @@ import { LoginData } from "../../data/login.data";
 import { LoginPage } from "../../pages/login.page";
 import { HomePage } from "../../pages/home.page";
 import { ScorerPage } from "../../pages/scorer.page";
-import BasePage from "../../pages/base.page";
 import { Timeout } from "../../utils/timers";
 import { MatchApiHelper } from "../../utils/matchApi.helper";
 import {
@@ -13,6 +12,7 @@ import {
   PlayerPositions,
   TeamsInTeamSheet,
 } from "../../data/teamSheet.data";
+import { TeamOfficialsPage } from "../../pages/teamOfficials.page";
 
 let matchId: number;
 let token: string;
@@ -22,7 +22,7 @@ describe("Scorer - Offline Match Scoring", () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
     const scorerPage = new ScorerPage();
-    const basePage = new BasePage();
+    const teamOfficialsPage = new TeamOfficialsPage();
 
     allureReporter.addFeature("Scoring Flow");
     allureReporter.addStory("Offline Scoring and Reconnection Sync");
@@ -89,7 +89,7 @@ describe("Scorer - Offline Match Scoring", () => {
 
     await step("Open a match from the Home screen", async () => {
       const matchElement = homePage.matchById(matchId.toString());
-      await basePage.scrollUntilElementVisible(matchElement);
+      await scorerPage.scrollUntilElementVisible(matchElement);
       await homePage.assertElementDisplayed(matchElement);
       await homePage.click(matchElement);
       await scorerPage.handleErrorPopup();
@@ -150,6 +150,33 @@ describe("Scorer - Offline Match Scoring", () => {
           await scorerPage.saveStartingFormation();
         });
       }
+    });
+
+    await step("Open settings menu and validate options", async () => {
+      await scorerPage.clickSettingsIcon();
+      await scorerPage.validateTeamSheetOption();
+      await scorerPage.validateStartingFormationOption();
+    });
+
+    await step("Open Team Officials and validate it's elements", async () => {
+      expect(
+        await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable(),
+      ).toBeTruthy();
+      await teamOfficialsPage.openTeamOfficials();
+      await teamOfficialsPage.assertTeamOfficialsEnabledElements();
+    });
+
+    await step("Select Manger and Coach for Team1", async () => {
+      await teamOfficialsPage.searchAndSelectManager("Syed");
+      await teamOfficialsPage.searchAndSelectCoach("Syed");
+      await teamOfficialsPage.clickConfirmTeamOfficials();
+    });
+
+    await step("Select Manger and Coach for Team2", async () => {
+      await teamOfficialsPage.searchAndSelectManager("Syed");
+      await teamOfficialsPage.searchAndSelectCoach("Syed");
+      await teamOfficialsPage.clickConfirmTeamOfficials();
+      await scorerPage.clickCloseCrossBtn();
     });
 
     await step("Start or resume the match", async () => {
