@@ -37,4 +37,13 @@ describe("Parent-as-child - Persona Checklist", () => {
       await homePage.switchProfileToParent();
     });
   });
+
+  it("Parent signs out while viewing as child", async () => {
+    await step("Parent signs out while viewing as child", async () => {
+      await loginPage.switchProfileToChild();
+      await homePage.assertChildBannerDisplaysOnEachTab();
+      await homePage.logoutUser();
+      await homePage.assertElementNotDisplayed(loginPage.childBanner);
+    });
+  });
 });
