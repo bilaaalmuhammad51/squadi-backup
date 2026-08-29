@@ -3,6 +3,7 @@ import { Timeout } from "../utils/timers";
 import { LoginPage } from "./login.page";
 import { HomePage } from "../pages/home.page";
 import { UserRoles } from "../data/teamSheet.data";
+import { namesOfUsers } from "../data/login.data";
 
 export class ScorerPage extends LoginPage {
   public teamSheetAlert = selector(
@@ -61,6 +62,68 @@ export class ScorerPage extends LoginPage {
       `-ios predicate string: name CONTAINS "${keyword}" AND name CONTAINS "Match ID: ${matchId}"`,
       "Game Card",
     );
+
+  public scorerNotSetAlert = selector(
+    "~Scorer not set",
+    "~Scorer not set",
+    "Scorer not set alert in match in Home tab",
+  );
+
+  public assignAScorerOption = selector(
+    "~Assign a Scorer",
+    "~Assign a Scorer",
+    "Assign a Scorer option in Game Details page",
+  );
+
+  public changeScorerOption = selector(
+    "~Change scorer",
+    "~Change scorer",
+    "Change scorer option in Game Details page",
+  );
+
+  public assignScorerHeading = selector(
+    "~Assign Scorer",
+    "~Assign Scorer",
+    "Assign Scorer page heading",
+  );
+
+  public searchForScorer = selector(
+    "~Or search for someone...",
+    "~Or search for someone...",
+    "Or search for someone...",
+  );
+
+  public searchField = selector(
+    "//android.widget.EditText",
+    "//android.widget.EditText",
+    "Search Field for searching",
+  );
+
+  public scorerToSelect = (scorer: string = namesOfUsers.scorerName) =>
+    selector(
+      `//android.widget.Button[contains(@content-desc,"${scorer}")]`,
+      "",
+      "Scorer to select after search",
+    );
+
+  public selectedScorer = (scorer: string = namesOfUsers.scorerName) =>
+    selector(
+      `//android.widget.ImageView[contains(@content-desc,"${scorer}")]`,
+      "",
+      "selected Scorer persisting",
+    );
+
+  public confirmScorerBtn = selector(
+    "~Confirm Scorer",
+    "~Confirm Scorer",
+    "Confirm Scorer button in Assign Scorer page",
+  );
+
+  public scorerHasNotAcceptedAlert = selector(
+    '//android.view.View[contains(@content-desc,"Scorer has not accepted")]',
+    "",
+    "Scorer has not accepted alert in match card",
+  );
 
   public selectHomeTeamPlayer = (playerName: string) =>
     selector(
@@ -250,10 +313,22 @@ export class ScorerPage extends LoginPage {
     "Starting Formation Option in Match",
   );
 
+  public verifyMatchOfficialsAlert = selector(
+    "~Verify Match Officials",
+    "~Verify Match Officials",
+    "Verify Match Officials alert in match in Home tab",
+  );
+
   public gameRefereesOption = selector(
     "~Game Referees",
     "~Game Referees",
     "Game Referees Option in Match",
+  );
+
+  public assignRefereePageHeading = selector(
+    "~Assign Referees",
+    "~Assign Referees",
+    "Assign Referees page heading in Game Referees",
   );
 
   public matchRefereeHeading = selector(
@@ -262,17 +337,67 @@ export class ScorerPage extends LoginPage {
     "Match Referee heading in Game Referees",
   );
 
+  public searchForMatchReferee = selector(
+    "//android.widget.EditText[1]",
+    "",
+    "Match referee selection in Assign Referees page in Game Referees",
+  );
+
   public assistantReferee1Heading = selector(
     "~Assistant Referee 1",
     "~Assistant Referee 1",
     "Assistant Referee 1 heading in Game Referees",
   );
 
+  // public assistantReferee1Select = selector(
+  //   "//android.widget.EditText[2]",
+  //   "",
+  //   "Assistant Referee 1 selection in Assign Referees page in Game Referees",
+  // );
+
   public assistantReferee2Heading = selector(
     "~Assistant Referee 2",
     "~Assistant Referee 2",
     "Assistant Referee 2 heading in Game Referees",
   );
+
+  // public assistantReferee2Select = selector(
+  //   "//android.widget.EditText[3]",
+  //   "",
+  //   "Assistant Referee 2 selection in Assign Referees page in Game Referees",
+  // );
+
+  public refereeToSelect = (referee: string = namesOfUsers.refereeName) =>
+    selector(
+      `//android.widget.Button[contains(@content-desc,"${referee}")][2]`,
+      "",
+      "Referee to select after search",
+    );
+
+  public confirmRefereesBtn = selector(
+    "~Confirm Referees",
+    "~Confirm Referees",
+    "Confirm Referees button in Assign Referees",
+  );
+
+  public allRefereesNotSelectedPopup = selector(
+    "~You have not selected referees for all roles. Are you sure you want to proceed?",
+    "~You have not selected referees for all roles. Are you sure you want to proceed?",
+    "All Referees not selected popup",
+  );
+
+  public continueBtnInPopup = selector(
+    "~Continue",
+    "~Continue",
+    "Continue button in popup",
+  );
+
+  public selectedReferee = (referee: string = namesOfUsers.refereeName) =>
+    selector(
+      `//android.widget.EditText[@text="${referee}"]`,
+      "",
+      "selected Referee persisting",
+    );
 
   public fieldOption = selector(
     'android=new UiSelector().descriptionContains("Field")',
@@ -640,6 +765,48 @@ export class ScorerPage extends LoginPage {
     await this.click(this.substitutionOption);
   }
 
+  async openAssignAScorerOption() {
+    await this.waitUntilVisibleWithRetry(this.assignAScorerOption);
+    await this.assertElementDisplayed(this.assignAScorerOption);
+    await this.click(this.assignAScorerOption);
+  }
+
+  async openChangeScorerOption() {
+    await this.waitUntilVisibleWithRetry(this.changeScorerOption);
+    await this.assertElementDisplayed(this.changeScorerOption);
+    await this.click(this.changeScorerOption);
+  }
+
+  async validateAssignScorerHeading() {
+    await this.waitUntilVisibleWithRetry(this.assignScorerHeading);
+    await this.assertElementDisplayed(this.assignScorerHeading);
+  }
+
+  async searchAndSelectScorer(scorer: string = namesOfUsers.scorerName) {
+    await this.click(this.searchForScorer);
+    await this.click(this.searchField);
+    await this.type(this.searchField, scorer);
+    await this.waitUntilVisibleWithRetry(this.scorerToSelect(scorer));
+    await this.click(this.scorerToSelect(scorer));
+  }
+
+  async confirmScorer() {
+    await this.waitUntilVisibleWithRetry(this.confirmScorerBtn);
+    await this.click(this.confirmScorerBtn);
+  }
+
+  async validateSelectedScorer(scorer: string = namesOfUsers.scorerName) {
+    await this.waitUntilVisibleWithRetry(this.selectedScorer(scorer));
+    await this.assertElementDisplayed(this.selectedScorer(scorer));
+  }
+
+  async assignScorer(scorer: string = namesOfUsers.scorerName) {
+    await this.openAssignAScorerOption();
+    await this.validateAssignScorerHeading();
+    await this.searchAndSelectScorer(scorer);
+    await this.confirmScorer();
+  }
+
   async selectPlayerAndPositionOfTeam(player: string, position: string) {
     await this.waitUntilVisibleWithRetry(this.selectPlayerInTeamSheet(player));
     await this.click(this.selectPlayerInTeamSheet(player));
@@ -764,6 +931,7 @@ export class ScorerPage extends LoginPage {
 
   async openGameRefereesOption() {
     await this.waitUntilVisibleWithRetry(this.gameRefereesOption);
+    await this.assertElementDisplayed(this.gameRefereesOption);
     await this.click(this.gameRefereesOption);
   }
 
@@ -772,6 +940,42 @@ export class ScorerPage extends LoginPage {
     await this.assertElementDisplayed(this.matchRefereeHeading);
     await this.assertElementDisplayed(this.assistantReferee1Heading);
     await this.assertElementDisplayed(this.assistantReferee2Heading);
+  }
+
+  async validateAssignRefereesHeading() {
+    await this.waitUntilVisibleWithRetry(this.assignRefereePageHeading);
+    await this.assertElementDisplayed(this.assignRefereePageHeading);
+    await this.assertElementDisplayed(this.matchRefereeHeading);
+  }
+
+  async searchAndSelectReferee(referee: string = namesOfUsers.refereeName) {
+    await this.waitUntilVisibleWithRetry(this.searchForMatchReferee);
+    await this.click(this.searchForMatchReferee);
+    await this.click(this.searchField);
+    await this.type(this.searchField, referee);
+    await this.waitUntilVisibleWithRetry(this.refereeToSelect(referee));
+    await this.click(this.refereeToSelect(referee));
+  }
+
+  async confirmRefereesAndDismissPopup() {
+    await this.waitUntilVisibleWithRetry(this.confirmRefereesBtn);
+    await this.click(this.confirmRefereesBtn);
+    await this.waitUntilVisibleWithRetry(this.allRefereesNotSelectedPopup);
+    await this.assertElementDisplayed(this.allRefereesNotSelectedPopup);
+    await this.assertElementDisplayed(this.continueBtnInPopup);
+    await this.click(this.continueBtnInPopup);
+  }
+
+  async validateSelectedReferee(referee: string = namesOfUsers.refereeName) {
+    await this.waitUntilVisibleWithRetry(this.selectedReferee(referee));
+    await this.assertElementDisplayed(this.selectedReferee(referee));
+  }
+
+  async assignReferee(referee: string = namesOfUsers.refereeName) {
+    await this.openGameRefereesOption();
+    await this.validateAssignRefereesHeading();
+    await this.searchAndSelectReferee(referee);
+    await this.confirmRefereesAndDismissPopup();
   }
 
   async startMatch() {

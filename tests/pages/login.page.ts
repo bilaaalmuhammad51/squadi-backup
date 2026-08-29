@@ -719,12 +719,24 @@ export class LoginPage extends BasePage {
     );
   }
 
+  // "Select Language" is only a place to tap so a close button that is present
+  // but hidden in the DOM becomes clickable - it is not part of the flow under
+  // test and is legitimately absent on some builds/screens. Treat it as
+  // best-effort: if it is not there, there is nothing to reveal, so carry on
+  // instead of failing the test over scaffolding.
   async clickTapOnScreenToClosePopup() {
-    await this.waitUntilVisibleWithRetry(
+    const isTapTargetVisible = await this.isElementVisible(
       this.tapOnScreenToClosePopup,
-      undefined,
-      30000,
+      Timeout.FIVE_SECONDS,
     );
+
+    if (!isTapTargetVisible) {
+      Logger.info(
+        "Tap-to-reveal target not present; skipping popup reveal tap",
+      );
+      return;
+    }
+
     await this.click(this.tapOnScreenToClosePopup);
     await this.waitUntilInvisibleWithRetry(
       this.locationOptionPopupCloseBtn,
