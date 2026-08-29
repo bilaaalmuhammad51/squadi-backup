@@ -27,7 +27,7 @@ describe("Scorer team officials - Lock Attendance ON, after lock - editing block
     await step("Enable Lock Attendance and create match after lock time", async () => {
       token = await MatchApiHelper.getToken(LoginData.email, LoginData.password);
 
-      await MatchApiHelper.updateCompetitionSettings(token, "COURT", 160547, {
+      await MatchApiHelper.updateCompetitionSettings(token, {
         lockAttendanceMinutes: 10,
       });
 

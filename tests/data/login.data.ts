@@ -10,6 +10,11 @@ export const LoginData = {
 };
 
 export const namesOfUsers = {
+  scorerName: "syed shah",
+  caochName: "Syed Coach1",
+  refereeName: "Syed Referee1 Only",
+  homeTeamManagerName: "Syed Manager1",
+  awayTeamManagerName: "Syed Manager2",
   childFullName: "Test child User",
 }
 

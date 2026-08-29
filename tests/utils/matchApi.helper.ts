@@ -339,33 +339,43 @@ export class MatchApiHelper {
 
   static async updateCompetitionSettings(
     token: string,
-    scoringMode: "MANAGERS" | "COURT" = "COURT",
-    courtScorerUserId: number = 160547,
     options?: {
+      scoringMode?: "MANAGERS" | "COURT";
+      courtScorerUserId?: number | null;
       gameTimeTrackingEnabled?: boolean;
       lockAttendanceMinutes?: number;
       liveScoring?: boolean;
+      allowHomeTeamManagerToVerifyOfficials?: boolean;
     },
   ): Promise<any> {
+    // ===== Defaults =====
+    const scoringMode = options?.scoringMode ?? "COURT";
+    const courtScorerUserId = options?.courtScorerUserId ?? 160547;
     const gameTimeTrackingEnabled = options?.gameTimeTrackingEnabled ?? true;
     const liveScoring = options?.liveScoring ?? true;
+    const allowHomeTeamManagerToVerifyOfficials =
+      options?.allowHomeTeamManagerToVerifyOfficials ?? false;
+
     const form = new FormData();
 
+    // ===== Basic Info =====
     form.append("id", "239");
     form.append("name", "HR-ASN2-MD-Only");
     form.append("longName", "HR-ASN2-MD-Only");
     form.append("organisationId", "58");
     form.append("yearRefId", "6");
 
+    // ===== Scoring Settings =====
     form.append("scoringType", liveScoring ? "SINGLE" : "NO_SCORING_CARD");
     form.append("whoScoring", scoringMode);
     form.append("acceptScoring", "SCORER");
 
     form.append(
       "courtScorerUserId",
-      scoringMode === "COURT" ? String(courtScorerUserId) : "null",
+      scoringMode === "COURT" ? String(courtScorerUserId ?? 0) : "null",
     );
 
+    // ===== Other Settings =====
     form.append("timerType", "PER_MATCH_PER_PERIOD");
     form.append("attendanceRecordingType", "BOTH");
     form.append("attendanceRecordingPeriod", "MATCH");
@@ -401,7 +411,8 @@ export class MatchApiHelper {
         },
         AnyoneCanBeUmpire: false,
         NumberOfOfficials: 0,
-        AllowHomeTeamManagerToVerifyOfficials: false,
+        AllowHomeTeamManagerToVerifyOfficials:
+          allowHomeTeamManagerToVerifyOfficials,
       }),
     );
 
@@ -523,7 +534,6 @@ export class MatchApiHelper {
     form.append("gameTimeTracking", gameTimeTrackingEnabled ? "1" : "0");
     form.append("attendanceSelectionTime", "14400");
 
-    // Lock Attendance: only append when explicitly provided.
     if (options?.lockAttendanceMinutes !== undefined) {
       form.append(
         "attendanceSelectionTimeEnd",
