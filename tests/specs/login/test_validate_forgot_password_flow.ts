@@ -43,7 +43,6 @@ describe("Authentication - Forgot Password Flow", () => {
       await loginPage.clickForgotPassword();
       const isPopupVisible = await loginPage.ifClosePopupVisible();
       const isAcceptAllVisible = await loginPage.isAcceptAllButtonVisible();
-
       if (isPopupVisible) {
         if (driver.isAndroid) {
           await loginPage.clickClosePopup();

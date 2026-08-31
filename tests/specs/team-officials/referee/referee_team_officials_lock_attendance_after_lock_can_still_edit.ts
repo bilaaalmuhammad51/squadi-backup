@@ -26,7 +26,7 @@ describe("Referee team officials - Lock Attendance ON, after lock - both teams s
     await step("Enable Lock Attendance and create+publish match after lock time", async () => {
       const token = await MatchApiHelper.getToken(LoginData.email, LoginData.password);
 
-      await MatchApiHelper.updateCompetitionSettings(token, "COURT", 160547, {
+      await MatchApiHelper.updateCompetitionSettings(token, {
         lockAttendanceMinutes: 10,
       });
 

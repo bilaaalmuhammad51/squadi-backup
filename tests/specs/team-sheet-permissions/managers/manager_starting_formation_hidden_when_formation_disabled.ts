@@ -17,7 +17,7 @@ describe("Starting Formation row is hidden for Manager when the formation flag i
       matchId = await MatchApiHelper.createMatch(token, 15);
       console.log("Created Match ID:", matchId);
 
-      await MatchApiHelper.updateCompetitionSettings(token, "COURT", undefined, {
+      await MatchApiHelper.updateCompetitionSettings(token, {
         gameTimeTrackingEnabled: false,
       });
     });
@@ -25,7 +25,7 @@ describe("Starting Formation row is hidden for Manager when the formation flag i
 
   after(async () => {
     await step("Restore gameTimeTracking so other specs are unaffected", async () => {
-      await MatchApiHelper.updateCompetitionSettings(token, "COURT", undefined, {
+      await MatchApiHelper.updateCompetitionSettings(token, {
         gameTimeTrackingEnabled: true,
       });
     });

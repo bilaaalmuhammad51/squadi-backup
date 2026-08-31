@@ -28,7 +28,7 @@ describe("Manager team officials - Lock Attendance ON, before lock - own team ed
     await step("Enable Lock Attendance and create match before lock time", async () => {
       token = await MatchApiHelper.getToken(LoginData.email, LoginData.password);
 
-      await MatchApiHelper.updateCompetitionSettings(token, "COURT", 160547, {
+      await MatchApiHelper.updateCompetitionSettings(token, {
         lockAttendanceMinutes: 10,
       });
 

@@ -27,19 +27,33 @@ describe("Home Manager team officials - after lock, can VIEW (not edit) opposite
     await step(
       "Enable Lock Attendance, create match after lock time, and pre-assign officials for both teams via API",
       async () => {
-        token = await MatchApiHelper.getToken(LoginData.email, LoginData.password);
+        token = await MatchApiHelper.getToken(
+          LoginData.email,
+          LoginData.password,
+        );
 
-        await MatchApiHelper.updateCompetitionSettings(token, "COURT", 160547, {
+        await MatchApiHelper.updateCompetitionSettings(token, {
           lockAttendanceMinutes: 10,
         });
 
         matchId = await MatchApiHelper.createMatch(token, 0);
 
-        await MatchApiHelper.updateMatchOfficials(token, matchId, true, true, true, true);
+        await MatchApiHelper.updateMatchOfficials(
+          token,
+          matchId,
+          true,
+          true,
+          true,
+          true,
+        );
 
         console.log("Created Match ID:", matchId);
 
-        allureReporter.addAttachment("Created Match ID", String(matchId), "text/plain");
+        allureReporter.addAttachment(
+          "Created Match ID",
+          String(matchId),
+          "text/plain",
+        );
       },
     );
 
@@ -66,7 +80,9 @@ describe("Home Manager team officials - after lock, can VIEW (not edit) opposite
 
     await step("Verify welcome screen elements", async () => {
       await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
-      await loginPage.assertElementDisplayed(loginPage.createAccountOrRegisterProfile);
+      await loginPage.assertElementDisplayed(
+        loginPage.createAccountOrRegisterProfile,
+      );
       await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
       await loginPage.assertElementDisplayed(loginPage.loginButton);
     });
@@ -78,7 +94,10 @@ describe("Home Manager team officials - after lock, can VIEW (not edit) opposite
     await step("Verify login screen elements", async () => {
       await loginPage.assertElementDisplayed(loginPage.backButton);
       await loginPage.assertElementDisplayed(loginPage.loginHeading);
-      await loginPage.assertTextContains(loginPage.loginHeading, LoginData.loginHeading);
+      await loginPage.assertTextContains(
+        loginPage.loginHeading,
+        LoginData.loginHeading,
+      );
       await loginPage.assertElementDisplayed(loginPage.rememberPassword);
       await loginPage.assertElementDisplayed(loginPage.forgotPassword);
     });
@@ -92,12 +111,15 @@ describe("Home Manager team officials - after lock, can VIEW (not edit) opposite
       await loginPage.click(loginPage.login);
     });
 
-    await step("Validate successful login by checking Home screen", async () => {
-      await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
-      await homePage.assertElementDisplayed(homePage.homeTab);
-      await homePage.assertElementDisplayed(homePage.drawsTab);
-      await homePage.assertElementDisplayed(homePage.laddersTab);
-    });
+    await step(
+      "Validate successful login by checking Home screen",
+      async () => {
+        await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
+        await homePage.assertElementDisplayed(homePage.homeTab);
+        await homePage.assertElementDisplayed(homePage.drawsTab);
+        await homePage.assertElementDisplayed(homePage.laddersTab);
+      },
+    );
 
     await step("Open a match from the Home screen", async () => {
       const matchElement = homePage.matchById(matchId.toString());
@@ -112,19 +134,32 @@ describe("Home Manager team officials - after lock, can VIEW (not edit) opposite
     });
 
     await step("Open Team Officials", async () => {
-      expect(await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable()).toBeTruthy();
+      expect(
+        await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable(),
+      ).toBeTruthy();
       await teamOfficialsPage.openTeamOfficials();
     });
 
-    await step("Verify own (Home) team officials are visible and read-only after lock", async () => {
-      await teamOfficialsPage.assertReadOnlySelectedRolesUsers("Syed Manager1", "Syed Coach1");
-    });
+    await step(
+      "Verify own (Home) team officials are visible and read-only after lock",
+      async () => {
+        await teamOfficialsPage.assertReadOnlySelectedRolesUsers(
+          "Syed Manager1",
+          "Syed Coach1",
+        );
+      },
+    );
 
     await step(
       "Switch to Away team and verify opposite team officials are visible (not hidden) and read-only",
       async () => {
-        await teamOfficialsPage.click(scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam));
-        await teamOfficialsPage.assertReadOnlySelectedRolesUsers("Syed Manager2", "Syed Coach1");
+        await teamOfficialsPage.click(
+          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+        );
+        await teamOfficialsPage.assertReadOnlySelectedRolesUsers(
+          "Syed Manager2",
+          "Syed Coach1",
+        );
       },
     );
   });

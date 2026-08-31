@@ -110,14 +110,29 @@ export default class BasePage {
     }
   }
 
+  // maxAttempts x restTime is a budget, not a guarantee: waitForDisplayed
+  // already polls for the whole restTime, so a missing element used to cost
+  // maxAttempts x restTime and could outlive mocha's own timeout (20 attempts
+  // at 30s = 20 minutes inside a 6-minute test). When that happened mocha
+  // killed the test first, so the AssertionError below never ran and the
+  // failure was reported as a bare "Timeout of 360000ms exceeded" with no clue
+  // which element was missing. maxTotalWait caps the whole loop by wall clock
+  // so we always lose the race to mocha and report the real reason.
   async waitUntilVisibleWithRetry(
     selector: DualSelector,
     maxAttempts: number = 20,
     restTime: number = Timeout.THREE_SECONDS,
+    maxTotalWait: number = Timeout.ONE_MINUTE,
   ) {
     let attempt = 1;
+    const deadline = Date.now() + maxTotalWait;
 
     while (attempt <= maxAttempts) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        break;
+      }
+
       try {
         Logger.info(
           `[Attempt ${attempt}] waiting for element ${selector.log} to be visible`,
@@ -126,7 +141,7 @@ export default class BasePage {
         const element = await this.resolve(selector);
 
         await element.waitForDisplayed({
-          timeout: restTime,
+          timeout: Math.min(restTime, remaining),
         });
 
         Logger.info("Element visible");
@@ -134,7 +149,6 @@ export default class BasePage {
       } catch (error) {
         Logger.info(`Attempt ${attempt} failed. Element not visible yet`);
 
-        await browser.pause(restTime);
         attempt++;
       }
     }
@@ -144,7 +158,7 @@ export default class BasePage {
     // message starts with "assertionerror" or includes "expect"; the error
     // type alone is not enough.
     throw new AssertionError({
-      message: `Expected element ${selector.log} to be visible, but it was not after ${maxAttempts} attempts`,
+      message: `Expected element ${selector.log} to be visible, but it was not after ${attempt - 1} attempt(s) within ${maxTotalWait}ms`,
     });
   }
 
@@ -153,11 +167,17 @@ export default class BasePage {
     maxAttempts: number = 10,
     restTime: number = Timeout.ONE_SECOND,
     minTotalWait: number = Timeout.SIX_SECONDS,
+    maxTotalWait: number = Timeout.ONE_MINUTE,
   ) {
     let attempt = 1;
     const startTime = Date.now();
+    const deadline = startTime + maxTotalWait;
 
     while (attempt <= maxAttempts) {
+      if (Date.now() >= deadline) {
+        break;
+      }
+
       try {
         Logger.info(
           `[Attempt ${attempt}] waiting for element "${selector.name}" to be invisible`,
@@ -188,13 +208,14 @@ export default class BasePage {
         );
       }
 
-      await browser.pause(restTime);
       attempt++;
     }
 
-    throw new Error(
-      `Element ${selector.name} still visible after ${maxAttempts} attempts`,
-    );
+    // AssertionError (not Error) so Allure reports this as "failed" rather than
+    // "broken" - it is a statement about the app, not a harness fault.
+    throw new AssertionError({
+      message: `Expected element ${selector.name} to be invisible, but it was still visible after ${attempt - 1} attempt(s) within ${maxTotalWait}ms`,
+    });
   }
 
   async isElementVisible(
