@@ -88,9 +88,12 @@ export const config: WebdriverIO.Config = {
       );
     } else {
       // ---------- Start recording for local ----------
+      // timeLimit must cover the mocha timeout, otherwise recording stops
+      // partway and the tests that most need a video (the slow ones that time
+      // out) are exactly the ones that end up with a truncated or empty clip.
       await browser.startRecordingScreen({
         forceRestart: true,
-        timeLimit: "180",
+        timeLimit: String(Timeout.SIX_MINUTES / 1000 + 60),
       });
     }
 
@@ -99,13 +102,23 @@ export const config: WebdriverIO.Config = {
   },
 
   afterTest: async function (test, _context, result) {
-    const screenshotBase64 = await browser.takeScreenshot();
+    // Each capture is isolated. These run after a test has already failed, so
+    // the session can be in a bad state (especially after a mocha timeout,
+    // where the test's last command may still be in flight). Previously an
+    // unguarded takeScreenshot() threw straight out of afterTest and cost us
+    // BOTH the screenshot and the video on precisely the failures worth
+    // looking at.
+    try {
+      const screenshotBase64 = await browser.takeScreenshot();
 
-    allureReporter.addAttachment(
-      `Screenshot - ${test.title}`,
-      Buffer.from(screenshotBase64, "base64"),
-      "image/png",
-    );
+      allureReporter.addAttachment(
+        `Screenshot - ${test.title}`,
+        Buffer.from(screenshotBase64, "base64"),
+        "image/png",
+      );
+    } catch (error) {
+      Logger.info(`Could not capture screenshot for "${test.title}": ${error}`);
+    }
 
     if (ENV === "browserstack") {
       await browser.execute(
@@ -123,14 +136,18 @@ export const config: WebdriverIO.Config = {
       return;
     }
 
-    const videoBase64 = await browser.stopRecordingScreen();
+    try {
+      const videoBase64 = await browser.stopRecordingScreen();
 
-    if (!result.passed && videoBase64) {
-      allureReporter.addAttachment(
-        `Video - ${test.title}`,
-        Buffer.from(videoBase64, "base64"),
-        "video/mp4",
-      );
+      if (!result.passed && videoBase64) {
+        allureReporter.addAttachment(
+          `Video - ${test.title}`,
+          Buffer.from(videoBase64, "base64"),
+          "video/mp4",
+        );
+      }
+    } catch (error) {
+      Logger.info(`Could not capture video for "${test.title}": ${error}`);
     }
   },
 };

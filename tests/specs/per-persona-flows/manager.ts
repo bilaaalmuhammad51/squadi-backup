@@ -190,6 +190,7 @@ describe("Manager Persona Flows", () => {
       await scorerPage.logoutUser();
     });
   });
+
   it("Borrows then returns a player (Borrowed Players)", async () => {
     await step("Verify welcome screen is visible", async () => {
       await loginPage.gotoLoginTab();

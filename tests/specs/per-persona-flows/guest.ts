@@ -160,4 +160,48 @@ describe("Guest - Persona Flow", () => {
       await loginPage.gotoLoginTab();
     });
   });
+
+  it("Guest cancels sign-in popup", async () => {
+    allureReporter.addFeature("Guest Persona Flow");
+    allureReporter.addStory("Guest cancels sign-in popup");
+    allureReporter.addSeverity("critical");
+
+    await step("Verify welcome screen is visible", async () => {
+      await loginPage.validateLoginBtnIsVisible();
+    });
+
+    await step("Verify welcome screen elements", async () => {
+      await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
+      await loginPage.assertElementDisplayed(
+        loginPage.createAccountOrRegisterProfile,
+      );
+      await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
+      await loginPage.assertElementDisplayed(loginPage.loginButton);
+    });
+
+    await step("Navigate to login screen", async () => {
+      await loginPage.click(loginPage.loginButton);
+    });
+
+    await step("Verify login screen elements", async () => {
+      await loginPage.assertElementDisplayed(loginPage.backButton);
+      await loginPage.assertElementDisplayed(loginPage.loginHeading);
+      await loginPage.assertTextContains(
+        loginPage.loginHeading,
+        LoginData.loginHeading,
+      );
+      await loginPage.assertElementDisplayed(loginPage.rememberPassword);
+      await loginPage.assertElementDisplayed(loginPage.forgotPassword);
+    });
+
+    await step("cancel sign-in", async () => {
+      await loginPage.clickBackBtn();
+      await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
+      await loginPage.assertElementDisplayed(
+        loginPage.createAccountOrRegisterProfile,
+      );
+      await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
+      await loginPage.assertElementDisplayed(loginPage.loginButton);
+    });
+  });
 });
