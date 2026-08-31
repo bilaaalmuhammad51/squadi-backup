@@ -556,6 +556,12 @@ export class LoginPage extends BasePage {
     "Tap to pay option in More tab",
   );
 
+  public canteenHeading = selector(
+    '(//android.view.View[@content-desc="Canteen"])[2]',
+    "",
+    "Canteen Categories heading after opening Canteen",
+  );
+
   public fieldClosureOptionInMoreTab = selector(
     "~Field Closure",
     "~Field Closure",
@@ -763,6 +769,10 @@ export class LoginPage extends BasePage {
     const isNextBtnVisible = await this.isElementVisible(this.nextButton, 9000);
     if (isNextBtnVisible) {
       await this.click(this.nextButton);
+      const nextStillVisible = await this.isElementVisible(this.nextButton, 9000);
+      if(nextStillVisible) {
+        await this.click(this.nextButton);
+      }
       await this.waitUntilInvisibleWithRetry(this.nextButton, undefined, 30000);
     }
   }
@@ -990,6 +1000,29 @@ export class LoginPage extends BasePage {
     }
   }
 
+  async validateTapToPayVisibilityInMoreTab() {
+    await this.gotoMoreTab();
+    if (driver.isAndroid) {
+      await this.scrollUntilElementVisible(this.tapToPayOptionInMoreTab);
+      await this.assertElementDisplayed(this.tapToPayOptionInMoreTab);
+    } else {
+      await this.assertElementNotDisplayed(this.tapToPayOptionInMoreTab);
+    }
+  }
+
+  async validateCanteenVisibilityAndOpensCanteenCategories() {
+    await this.gotoMoreTab();
+    if (driver.isAndroid) {
+      await this.scrollUntilElementVisible(this.canteenOptionInMoreTab);
+      await this.assertElementDisplayed(this.canteenOptionInMoreTab);
+      await this.click(this.canteenOptionInMoreTab);
+      await this.waitUntilVisibleWithRetry(this.canteenHeading);
+      await this.assertElementDisplayed(this.canteenHeading);
+    } else {
+      await this.assertElementNotDisplayed(this.canteenOptionInMoreTab);
+    }
+  }
+
   async openIDCardFromMoreTab() {
     await this.waitUntilVisibleWithRetry(this.IDCardOptionInMoreTab);
     await this.click(this.IDCardOptionInMoreTab);
@@ -1201,6 +1234,7 @@ export class LoginPage extends BasePage {
     await this.click(this.videosHeadingInUserVideos);
     await this.scrollUntilElementVisible(this.allowAllBtnInVideos);
     await this.click(this.allowAllBtnInVideos);
+    await this.waitUntilInvisibleWithRetry(this.allowAllBtnInVideos);
     await this.scrollToTop();
     await this.scrollUntilElementVisible(this.addingAndEditingWatchlistHeading);
     await this.assertElementDisplayed(this.addingAndEditingWatchlistHeading);
