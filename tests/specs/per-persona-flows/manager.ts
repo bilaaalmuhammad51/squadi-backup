@@ -87,6 +87,21 @@ describe("Manager Persona Flows", () => {
     });
   });
 
+  it("[PEND-001] Goal Statistics is not available under My Team on Squadi", async () => {
+    allureReporter.addFeature("Open Items");
+    allureReporter.addStory(
+      "Goal Statistics is not available under My Team on Squadi",
+    );
+    allureReporter.addSeverity("minor");
+
+    await step(
+      "Open My Team and confirm Goal Statistics is not offered on Squadi (Netball/Basketball only)",
+      async () => {
+        await loginPage.assertGoalStatisticsNotAvailableInMyTeam();
+      },
+    );
+  });
+
   it("[DRAW-005] Watchlist entry point opens the Watchlist screen", async () => {
     allureReporter.addFeature("Competitions & Schedules");
     allureReporter.addStory("Watchlist entry point opens the Watchlist screen");

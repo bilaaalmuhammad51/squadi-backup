@@ -25,19 +25,29 @@ describe("Manager team officials - Lock Attendance ON, before lock - own team ed
   allureReporter.addSeverity("critical");
 
   before(async () => {
-    await step("Enable Lock Attendance and create match before lock time", async () => {
-      token = await MatchApiHelper.getToken(LoginData.email, LoginData.password);
+    await step(
+      "Enable Lock Attendance and create match before lock time",
+      async () => {
+        token = await MatchApiHelper.getToken(
+          LoginData.email,
+          LoginData.password,
+        );
 
-      await MatchApiHelper.updateCompetitionSettings(token, "COURT", 160547, {
-        lockAttendanceMinutes: 10,
-      });
+        await MatchApiHelper.updateCompetitionSettings(token, {
+          lockAttendanceMinutes: 10,
+        });
 
-      matchId = await MatchApiHelper.createMatch(token, 20);
+        matchId = await MatchApiHelper.createMatch(token, 20);
 
-      console.log("Created Match ID:", matchId);
+        console.log("Created Match ID:", matchId);
 
-      allureReporter.addAttachment("Created Match ID", String(matchId), "text/plain");
-    });
+        allureReporter.addAttachment(
+          "Created Match ID",
+          String(matchId),
+          "text/plain",
+        );
+      },
+    );
   });
 
   after(async () => {
@@ -64,7 +74,9 @@ describe("Manager team officials - Lock Attendance ON, before lock - own team ed
 
     await step("Verify welcome screen elements", async () => {
       await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
-      await loginPage.assertElementDisplayed(loginPage.createAccountOrRegisterProfile);
+      await loginPage.assertElementDisplayed(
+        loginPage.createAccountOrRegisterProfile,
+      );
       await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
       await loginPage.assertElementDisplayed(loginPage.loginButton);
     });
@@ -76,7 +88,10 @@ describe("Manager team officials - Lock Attendance ON, before lock - own team ed
     await step("Verify login screen elements", async () => {
       await loginPage.assertElementDisplayed(loginPage.backButton);
       await loginPage.assertElementDisplayed(loginPage.loginHeading);
-      await loginPage.assertTextContains(loginPage.loginHeading, LoginData.loginHeading);
+      await loginPage.assertTextContains(
+        loginPage.loginHeading,
+        LoginData.loginHeading,
+      );
       await loginPage.assertElementDisplayed(loginPage.rememberPassword);
       await loginPage.assertElementDisplayed(loginPage.forgotPassword);
     });
@@ -90,12 +105,15 @@ describe("Manager team officials - Lock Attendance ON, before lock - own team ed
       await loginPage.click(loginPage.login);
     });
 
-    await step("Validate successful login by checking Home screen", async () => {
-      await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
-      await homePage.assertElementDisplayed(homePage.homeTab);
-      await homePage.assertElementDisplayed(homePage.drawsTab);
-      await homePage.assertElementDisplayed(homePage.laddersTab);
-    });
+    await step(
+      "Validate successful login by checking Home screen",
+      async () => {
+        await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
+        await homePage.assertElementDisplayed(homePage.homeTab);
+        await homePage.assertElementDisplayed(homePage.drawsTab);
+        await homePage.assertElementDisplayed(homePage.laddersTab);
+      },
+    );
 
     await step("Open a match from the Home screen", async () => {
       matchElement = homePage.matchById(matchId.toString());
@@ -115,7 +133,9 @@ describe("Manager team officials - Lock Attendance ON, before lock - own team ed
     });
 
     await step("Open Team Officials and validate it's elements", async () => {
-      expect(await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable()).toBeTruthy();
+      expect(
+        await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable(),
+      ).toBeTruthy();
       await teamOfficialsPage.openTeamOfficials();
       await teamOfficialsPage.assertTeamOfficialsEnabledElements();
     });
@@ -126,15 +146,24 @@ describe("Manager team officials - Lock Attendance ON, before lock - own team ed
       await teamOfficialsPage.clickConfirmTeamOfficials();
     });
 
-    await step("Validate team officials not available for away team", async () => {
-      await teamOfficialsPage.teamSheetNotAvailableForTeam();
-      await teamOfficialsPage.clickBackBtn();
-    });
+    await step(
+      "Validate team officials not available for away team",
+      async () => {
+        await teamOfficialsPage.teamSheetNotAvailableForTeam();
+        await teamOfficialsPage.clickBackBtn();
+      },
+    );
 
-    await step("Open Team Officials and verify Home team roles saved and persisted", async () => {
-      await teamOfficialsPage.openTeamOfficials();
-      await teamOfficialsPage.validateSelectedRolesUsers("Syed Manager1", "Syed Coach1");
-    });
+    await step(
+      "Open Team Officials and verify Home team roles saved and persisted",
+      async () => {
+        await teamOfficialsPage.openTeamOfficials();
+        await teamOfficialsPage.validateSelectedRolesUsers(
+          "Syed Manager1",
+          "Syed Coach1",
+        );
+      },
+    );
 
     await step("Logout Home Manager", async () => {
       await scorerPage.clickBackBtn();
@@ -162,12 +191,15 @@ describe("Manager team officials - Lock Attendance ON, before lock - own team ed
       await loginPage.click(loginPage.login);
     });
 
-    await step("Validate successful login by checking Home screen", async () => {
-      await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
-      await homePage.assertElementDisplayed(homePage.homeTab);
-      await homePage.assertElementDisplayed(homePage.drawsTab);
-      await homePage.assertElementDisplayed(homePage.laddersTab);
-    });
+    await step(
+      "Validate successful login by checking Home screen",
+      async () => {
+        await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
+        await homePage.assertElementDisplayed(homePage.homeTab);
+        await homePage.assertElementDisplayed(homePage.drawsTab);
+        await homePage.assertElementDisplayed(homePage.laddersTab);
+      },
+    );
 
     await step("Open the same match from the Home screen", async () => {
       await basePage.scrollUntilElementVisible(matchElement);
@@ -180,11 +212,16 @@ describe("Manager team officials - Lock Attendance ON, before lock - own team ed
       await scorerPage.validateManagerScreenElements(matchId.toString());
     });
 
-    await step("Open Team Officials and validate it's elements for Away team", async () => {
-      expect(await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable()).toBeTruthy();
-      await teamOfficialsPage.openTeamOfficials();
-      await teamOfficialsPage.assertTeamOfficialsEnabledElements();
-    });
+    await step(
+      "Open Team Officials and validate it's elements for Away team",
+      async () => {
+        expect(
+          await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable(),
+        ).toBeTruthy();
+        await teamOfficialsPage.openTeamOfficials();
+        await teamOfficialsPage.assertTeamOfficialsEnabledElements();
+      },
+    );
 
     await step("Select Manager and Coach for Away team", async () => {
       await teamOfficialsPage.searchAndSelectManager("Syed");
@@ -192,20 +229,34 @@ describe("Manager team officials - Lock Attendance ON, before lock - own team ed
       await teamOfficialsPage.clickConfirmTeamOfficials();
     });
 
-    await step("Validate team officials not available for home team", async () => {
-      const isVisible = await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable();
-      if (isVisible) {
-        await teamOfficialsPage.openTeamOfficials();
-      }
-      await teamOfficialsPage.click(scorerPage.awayTeamSheetTab(TeamsInTeamSheet.HomeTeam));
-      await teamOfficialsPage.teamSheetNotAvailableForTeam();
-      await teamOfficialsPage.clickBackBtn();
-    });
+    await step(
+      "Validate team officials not available for home team",
+      async () => {
+        const isVisible =
+          await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable();
+        if (isVisible) {
+          await teamOfficialsPage.openTeamOfficials();
+        }
+        await teamOfficialsPage.click(
+          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.HomeTeam),
+        );
+        await teamOfficialsPage.teamSheetNotAvailableForTeam();
+        await teamOfficialsPage.clickBackBtn();
+      },
+    );
 
-    await step("Open Team Officials and verify Away team roles saved and persisted", async () => {
-      await teamOfficialsPage.openTeamOfficials();
-      await teamOfficialsPage.click(scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam));
-      await teamOfficialsPage.validateSelectedRolesUsers("Syed Manager2", "Syed Coach1");
-    });
+    await step(
+      "Open Team Officials and verify Away team roles saved and persisted",
+      async () => {
+        await teamOfficialsPage.openTeamOfficials();
+        await teamOfficialsPage.click(
+          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+        );
+        await teamOfficialsPage.validateSelectedRolesUsers(
+          "Syed Manager2",
+          "Syed Coach1",
+        );
+      },
+    );
   });
 });

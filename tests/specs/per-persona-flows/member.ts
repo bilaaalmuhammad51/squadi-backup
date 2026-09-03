@@ -114,6 +114,21 @@ describe("Member - Persona Flow", () => {
     );
   });
 
+  it("[HOME-007] My Memberships is not available under My Profile on Squadi", async () => {
+    allureReporter.addFeature("Home & Navigation");
+    allureReporter.addStory(
+      "My Memberships is not available under My Profile on Squadi",
+    );
+    allureReporter.addSeverity("normal");
+
+    await step(
+      "Open More > My Profile and confirm My Memberships is not offered on Squadi",
+      async () => {
+        await homePage.assertMyMembershipsNotAvailableInMyProfile();
+      },
+    );
+  });
+
   it("[TC-M14] Opens My Events", async () => {
     await step("Open My Events and validate its elements", async () => {
       await homePage.openMyEventsFromMoreTabAndAssertItsElements();

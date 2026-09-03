@@ -12,23 +12,32 @@ let token: string;
 
 describe("Starting Formation row is hidden for Manager when the formation flag is disabled (S6)", () => {
   before(async () => {
-    await step("Create match, then disable gameTimeTracking on the competition", async () => {
-      token = await MatchApiHelper.getToken(LoginData.email, LoginData.password);
-      matchId = await MatchApiHelper.createMatch(token, 15);
-      console.log("Created Match ID:", matchId);
+    await step(
+      "Create match, then disable gameTimeTracking on the competition",
+      async () => {
+        token = await MatchApiHelper.getToken(
+          LoginData.email,
+          LoginData.password,
+        );
+        matchId = await MatchApiHelper.createMatch(token, 15);
+        console.log("Created Match ID:", matchId);
 
-      await MatchApiHelper.updateCompetitionSettings(token, "COURT", undefined, {
-        gameTimeTrackingEnabled: false,
-      });
-    });
+        await MatchApiHelper.updateCompetitionSettings(token, {
+          gameTimeTrackingEnabled: false,
+        });
+      },
+    );
   });
 
   after(async () => {
-    await step("Restore gameTimeTracking so other specs are unaffected", async () => {
-      await MatchApiHelper.updateCompetitionSettings(token, "COURT", undefined, {
-        gameTimeTrackingEnabled: true,
-      });
-    });
+    await step(
+      "Restore gameTimeTracking so other specs are unaffected",
+      async () => {
+        await MatchApiHelper.updateCompetitionSettings(token, {
+          gameTimeTrackingEnabled: true,
+        });
+      },
+    );
 
     try {
       if (token && matchId) {
@@ -47,7 +56,9 @@ describe("Starting Formation row is hidden for Manager when the formation flag i
     const basePage = new BasePage();
 
     allureReporter.addFeature("Manager Flow");
-    allureReporter.addStory("Starting Formation hidden when formation flag disabled");
+    allureReporter.addStory(
+      "Starting Formation hidden when formation flag disabled",
+    );
     allureReporter.addSeverity("normal");
 
     await step("Verify welcome screen is visible", async () => {
@@ -67,10 +78,13 @@ describe("Starting Formation row is hidden for Manager when the formation flag i
       await loginPage.click(loginPage.login);
     });
 
-    await step("Validate successful login by checking Home screen", async () => {
-      await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
-      await homePage.assertElementDisplayed(homePage.homeTab);
-    });
+    await step(
+      "Validate successful login by checking Home screen",
+      async () => {
+        await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
+        await homePage.assertElementDisplayed(homePage.homeTab);
+      },
+    );
 
     await step("Open a match from the Home screen", async () => {
       const matchElement = homePage.matchById(matchId.toString());

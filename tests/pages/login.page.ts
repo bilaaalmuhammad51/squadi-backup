@@ -6,6 +6,7 @@ import {
 } from "../utils/helpers";
 import { Timeout } from "../utils/timers";
 import Logger from "../utils/logger";
+import { TeamsInTeamSheet } from "../data/teamSheet.data";
 
 export class LoginPage extends BasePage {
   public offlineBanner = selector(
@@ -345,10 +346,35 @@ export class LoginPage extends BasePage {
     "Borrowed Players option in My Team",
   );
 
+  public goalStatisticsOptionInMyTeam = selector(
+    "~Goal Statistics",
+    "~Goal Statistics",
+    "Goal Statistics option in My Team (Netball/Basketball only, not on Squadi)",
+  );
+
   public borrowsHeadingInBorrowedPlayers = selector(
     "~Borrows",
     "~Borrows",
     "Borrows heading in Borrowed Payers",
+  );
+
+  public selectTeamHeadingInMyTeam = selector(
+    "~Select Team",
+    "~Select Team",
+    "Select Team heading in My Team (Coach with multiple coached teams)",
+  );
+
+  public teamOptionInSelectTeam = (teamName: string) =>
+    selector(
+      `~${teamName}`,
+      `~${teamName}`,
+      `${teamName} option in Select Team (My Team)`,
+    );
+
+  public cancelBtnInSelectTeam = selector(
+    "~Cancel",
+    "~Cancel",
+    "Cancel button in Select Team (My Team)",
   );
 
   public myScheduleOptionInMoreTab = selector(
@@ -511,6 +537,12 @@ export class LoginPage extends BasePage {
     "~Update Password",
     "~Update Password",
     "Update Password option in My Profile from More tab",
+  );
+
+  public myMembershipsOptionInMyProfile = selector(
+    "~My Memberships",
+    "~My Memberships",
+    "My Memberships option in My Profile (not available on Squadi)",
   );
 
   public newPasswordHeadingInUpdatePassword = selector(
@@ -908,6 +940,32 @@ export class LoginPage extends BasePage {
     await this.clickBackBtn();
   }
 
+  async assertCoachedTeamsListedInMyTeam() {
+    await this.gotoMoreTab();
+    await this.waitUntilVisibleWithRetry(this.myTeamOptionInMoreTab);
+    await this.click(this.myTeamOptionInMoreTab);
+    await this.waitUntilVisibleWithRetry(this.selectTeamHeadingInMyTeam);
+    await this.assertElementDisplayed(this.selectTeamHeadingInMyTeam);
+    await this.assertElementDisplayed(
+      this.teamOptionInSelectTeam(TeamsInTeamSheet.HomeTeam),
+    );
+    await this.assertElementDisplayed(
+      this.teamOptionInSelectTeam(TeamsInTeamSheet.Awayteam),
+    );
+    await this.click(this.cancelBtnInSelectTeam);
+  }
+
+  async assertGoalStatisticsNotAvailableInMyTeam() {
+    await this.gotoMoreTab();
+    await this.waitUntilVisibleWithRetry(this.myTeamOptionInMoreTab);
+    await this.click(this.myTeamOptionInMoreTab);
+    await this.waitUntilVisibleWithRetry(this.gameTimeInMyTeam);
+    await this.assertElementDisplayed(this.gameTimeInMyTeam);
+    await this.assertElementDisplayed(this.borrowedPlayersInMyTeam);
+    await this.assertElementNotDisplayed(this.goalStatisticsOptionInMyTeam);
+    await this.clickBackBtn();
+  }
+
   async openMyScheduleAndCalendarSync() {
     await this.gotoMoreTab();
     await this.waitUntilVisibleWithRetry(this.myScheduleOptionInMoreTab);
@@ -1040,6 +1098,13 @@ export class LoginPage extends BasePage {
     await this.waitUntilVisibleWithRetry(this.myProfileOptionInMoreTab);
     await this.click(this.myProfileOptionInMoreTab);
     await this.waitUntilVisibleWithRetry(this.myFullProfileOptionInMyProfile);
+  }
+
+  async assertMyMembershipsNotAvailableInMyProfile() {
+    await this.gotoMoreTab();
+    await this.openMyProfileFromMoreTab();
+    await this.assertElementNotDisplayed(this.myMembershipsOptionInMyProfile);
+    await this.clickBackBtn();
   }
 
   async openMyFullProfileFromMyProfileAndAssertItsElements() {
