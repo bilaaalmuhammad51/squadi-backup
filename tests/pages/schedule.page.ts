@@ -1,3 +1,4 @@
+import { expect } from "@wdio/globals";
 import { LoginPage } from "./login.page";
 import { selector } from "../factories/page.factory";
 import { ScorerPage } from "./scorer.page";
@@ -192,6 +193,19 @@ export class SchedulePage extends LoginPage {
       `Match card with ID ${matchId}`,
     );
 
+  public drawFilterControl = selector(
+    'android=new UiSelector().descriptionContains("Team:")',
+    '-ios predicate string: name CONTAINS "Team:"',
+    "Draw tab filter control (selected team/competition)",
+  );
+
+  public roundHeader = (roundNumber: number | string) =>
+    selector(
+      `android=new UiSelector().description("Round ${roundNumber}")`,
+      `-ios predicate string: name == "Round ${roundNumber}"`,
+      `Round ${roundNumber} header`,
+    );
+
   async cancelSelectedTeamIfNeeded() {
     const button = await this.getElement(this.addTeamBtn, { wait: false });
     const isAddTeamBtn = await button.isExisting();
@@ -251,6 +265,22 @@ export class SchedulePage extends LoginPage {
       await this.assertElementDisplayed(this.handleUnexpectedPopup);
       await this.click(this.handleUnexpectedPopup);
     } catch {}
+  }
+
+  async assertMatchAppearsUnderRound(
+    matchId: string | number,
+    roundNumber: number | string,
+  ) {
+    const roundSelector = this.roundHeader(roundNumber);
+    const matchSelector = this.matchCardById(String(matchId));
+
+    await this.assertElementDisplayed(roundSelector);
+    await this.assertElementDisplayed(matchSelector);
+
+    const roundY = (await this.getElementLocation(roundSelector)).y;
+    const matchY = (await this.getElementLocation(matchSelector)).y;
+
+    expect(matchY).toBeGreaterThan(roundY);
   }
 
   async openAndValidatePlayerStatusTab() {

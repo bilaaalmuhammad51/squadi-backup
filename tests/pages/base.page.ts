@@ -1,5 +1,5 @@
 import { AssertionError } from "node:assert";
-import { $, browser, expect } from "@wdio/globals";
+import { $, $$, browser, expect } from "@wdio/globals";
 import { getPlatform } from "../factories/selector.factory";
 import { selector, type DualSelector } from "../factories/page.factory";
 import Logger from "../utils/logger";
@@ -332,6 +332,21 @@ export default class BasePage {
     const text = await element.getText();
     Logger.info(`Element text/content-desc: "${text}"`);
     return text;
+  }
+
+  async getElementLocation(
+    selector: DualSelector,
+  ): Promise<{ x: number; y: number }> {
+    const element = await this.resolve(selector);
+    return element.getLocation();
+  }
+
+  async getElementsCount(selector: DualSelector): Promise<number> {
+    const platform = await getPlatform();
+    const locatorString =
+      platform === "android" ? selector.android : selector.ios;
+    const elements = await $$(locatorString);
+    return elements.length;
   }
 
   async pause(ms: number) {

@@ -66,6 +66,7 @@ export class MatchApiHelper {
   static async createMatch(
     token: string,
     minutesAhead: number = 3,
+    roundId?: number,
   ): Promise<number> {
     const startTime = this.getPakistanFutureTimeUtc(minutesAhead);
 
@@ -81,7 +82,7 @@ export class MatchApiHelper {
       team2Id: 2270,
 
       venueCourtId: 42,
-      roundId: 13215,
+      roundId: roundId || 13215,
 
       matchDuration: 4,
       mainBreakDuration: 2,

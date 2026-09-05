@@ -1427,6 +1427,13 @@ export class LoginPage extends BasePage {
     await this.assertElementDisplayed(this.notificationsColumn);
   }
 
+  async gotoNotificationsTab() {
+    await this.waitUntilVisibleWithRetry(this.notificationsColumn);
+    await this.click(this.notificationsColumn);
+    await this.waitUntilVisibleWithRetry(this.notificationsColumn);
+    await this.click(this.notificationsColumn);
+  }
+
   async validateLoginBtnIsVisible() {
     await this.handleStartupScreens();
     await this.scrollDown();
