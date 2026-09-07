@@ -4,6 +4,16 @@ name: Daily Android Emulator Tests
 # Fast, frequent regression on an Android emulator running entirely on the
 # GitHub Actions runner (local Appium server + UiAutomator2). No BrowserStack
 # minutes are consumed here - runner minutes only.
+#
+# The suite runs SHARDED: `prepare` splits the spec files into N groups,
+# `emulator-test` runs one group per matrix job, and `report` merges every
+# shard's allure-results into a single report and one Slack message.
+#
+# Isolation: each shard is a separate GitHub runner with its own emulator, its
+# own Appium server and its own app install, so shards cannot touch each
+# other's device state. On the server side each spec that mutates match data
+# creates its own match through the API first (MatchApiHelper.createMatch), so
+# concurrent shards never edit the same match either.
 
 on:
   schedule:
@@ -23,25 +33,81 @@ on:
         description: "Spec glob to run (default: all specs)"
         required: false
         default: "tests/specs/**/*.ts"
+      shard_total:
+        description: "How many emulators to run in parallel (1 = old sequential behaviour)"
+        required: false
+        default: "6"
 
 permissions:
   contents: write # push the report to the gh-pages branch
   actions: read
 
 # Shared with the BrowserStack workflow so only one publish runs at a time
-# (prevents concurrent pushes racing on the gh-pages branch).
+# (prevents concurrent pushes racing on the gh-pages branch). Only the `report`
+# job publishes, so the shards themselves are never serialised by this.
 concurrency:
   group: pages-site-publish
   cancel-in-progress: false
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Work out how many shards to start and hand the matrix the list of indexes.
+  # ---------------------------------------------------------------------------
+  prepare:
+    name: Plan shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      shard_total: ${{ steps.plan.outputs.shard_total }}
+      spec_count: ${{ steps.plan.outputs.spec_count }}
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
+
+      - name: Plan the shard matrix
+        id: plan
+        env:
+          SPEC_PATH: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
+          REQUESTED_SHARDS: ${{ github.event.inputs.shard_total || '6' }}
+        run: |
+          spec_count="$(node scripts/shard-specs.js --count)"
+          requested="$REQUESTED_SHARDS"
+
+          # Clamp to [1, spec_count]. More shards than specs would boot
+          # emulators with nothing to run - pure wasted runner minutes.
+          if ! [ "$requested" -ge 1 ] 2>/dev/null; then requested=1; fi
+          if [ "$requested" -gt "$spec_count" ]; then requested="$spec_count"; fi
+
+          shards="$(seq 1 "$requested" | jq -R . | jq -sc .)"
+          echo "Splitting $spec_count spec(s) across $requested shard(s): $shards"
+
+          {
+            echo "spec_count=$spec_count"
+            echo "shard_total=$requested"
+            echo "shards=$shards"
+          } >> "$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
+  # One emulator per shard, all running at the same time.
+  # ---------------------------------------------------------------------------
   emulator-test:
-    name: Android Emulator (local)
+    name: Android Emulator (shard ${{ matrix.shard }}/${{ needs.prepare.outputs.shard_total }})
+    needs: prepare
     runs-on: ubuntu-latest
     # Safety net against a true runaway only - the emulator is force-killed
-    # after tests so the job ends promptly on its own. A bit above the step cap
-    # to leave room for report/Slack/deploy after the test window.
-    timeout-minutes: 250
+    # after tests so the job ends promptly on its own. A shard runs roughly
+    # 1/N of the suite, so this is far more slack than a shard ever needs.
+    timeout-minutes: 120
+
+    strategy:
+      # Never cancel the other shards because one of them failed - we want the
+      # full picture in the merged report, not a partial one.
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJson(needs.prepare.outputs.shards) }}
 
     env:
       PLATFORM: android
@@ -50,17 +116,14 @@ jobs:
       TEST_ENV: Dev
       API_LEVEL: ${{ github.event.inputs.api_level || '34' }}
       SPEC_PATH: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      SHARD_INDEX: ${{ matrix.shard }}
+      SHARD_TOTAL: ${{ needs.prepare.outputs.shard_total }}
 
     steps:
       - name: Checkout selected branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch || github.ref_name }}
-
-      - name: Get commit short SHA
-        id: commit
-        run: echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -132,12 +195,10 @@ jobs:
       - name: Run tests on Android emulator
         id: run_tests
         continue-on-error: true
-        # Step cap big enough for a full suite (~57 tests run sequentially at
-        # ~2.3 min each, plus emulator boot - roughly 140 min). The teardown
-        # hang is handled by force-killing the emulator at the end of the
-        # script, so this is only a runaway guard - normal runs end well
-        # before it.
-        timeout-minutes: 240
+        # Step cap for ONE shard. The teardown hang is handled by force-killing
+        # the emulator at the end of the script, so this is only a runaway
+        # guard - normal shards end well before it.
+        timeout-minutes: 110
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ env.API_LEVEL }}
@@ -158,6 +219,22 @@ jobs:
           # shell, so the full sequence lives in one file instead.
           script: bash scripts/run-emulator-tests.sh
 
+      # allure-results is how this shard's results reach the `report` job -
+      # unlike the Appium log this upload is NOT optional, so it is left to
+      # fail the shard if it fails. Retention is 1 day because these are
+      # consumed by the very next job; the published report is the durable
+      # copy and lives on the gh-pages branch, not in artifact storage.
+      - name: Upload shard results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-shard-${{ matrix.shard }}
+          path: |
+            allure-results
+            wdio-exit-code.txt
+          if-no-files-found: warn
+          retention-days: 1
+
       - name: Upload Appium log
         if: always()
         # Non-fatal: if the Actions artifact storage quota is full this upload
@@ -166,17 +243,108 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: appium-log-${{ github.run_number }}
+          name: appium-log-${{ github.run_number }}-shard-${{ matrix.shard }}
           path: appium.log
           if-no-files-found: ignore
           # Debug aid only - keep it short so old logs don't accumulate against
           # the shared Actions storage quota (default retention is 90 days).
           retention-days: 3
 
+  # ---------------------------------------------------------------------------
+  # Merge every shard's results into one report, publish it, notify Slack once.
+  # ---------------------------------------------------------------------------
+  report:
+    name: Merge results and publish report
+    needs: [prepare, emulator-test]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
+
+      - name: Get commit short SHA
+        id: commit
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Java (Allure)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Download every shard's results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: allure-results-shard-*
+          path: shard-artifacts
+
+      # Allure result files are uniquely named (uuid-result.json etc.), so the
+      # shards' results merge by simply being copied into one directory - there
+      # is nothing to reconcile and no chance of one shard overwriting another.
+      - name: Merge shard results
+        id: merge
+        run: |
+          rm -rf allure-results allure-report
+          mkdir -p allure-results
+
+          shopt -s nullglob
+          shard_dirs=(shard-artifacts/allure-results-shard-*)
+          echo "Found ${#shard_dirs[@]} shard artifact(s)"
+
+          worst=0
+          missing=0
+          for dir in "${shard_dirs[@]}"; do
+            name="$(basename "$dir")"
+
+            if [ -d "$dir/allure-results" ]; then
+              count=$(find "$dir/allure-results" -type f | wc -l)
+              echo "  $name -> $count result file(s)"
+              cp -r "$dir/allure-results/." allure-results/
+            else
+              echo "  $name -> NO allure-results (shard produced nothing)"
+              missing=$((missing + 1))
+            fi
+
+            # Trust each shard's real WDIO exit code, not the emulator-runner
+            # step outcome - that step exits non-zero because we hard-kill the
+            # emulator, even when the tests passed.
+            code="$(cat "$dir/wdio-exit-code.txt" 2>/dev/null || echo 1)"
+            echo "     exit code: $code"
+            [ "$code" = "0" ] || worst=1
+          done
+
+          # A shard that never wrote an exit code at all (runner died, job
+          # cancelled, timeout) must not be silently reported as a pass.
+          # Empty when `prepare` itself failed - then there is nothing to
+          # compare against and the missing artifacts already fail the run.
+          expected="${{ needs.prepare.outputs.shard_total }}"
+          expected="${expected:-0}"
+          if [ "${#shard_dirs[@]}" -ne "$expected" ]; then
+            echo "Expected $expected shard artifact(s), got ${#shard_dirs[@]} - marking the run failed"
+            worst=1
+          fi
+          [ "$missing" -eq 0 ] || worst=1
+
+          echo "exit_code=$worst" >> "$GITHUB_OUTPUT"
+          echo "Merged $(find allure-results -type f | wc -l) result file(s); overall exit code $worst"
+
       - name: Generate Allure report
         if: always()
         run: |
-          if [ -d "allure-results" ]; then
+          if [ -d "allure-results" ] && [ -n "$(ls -A allure-results 2>/dev/null)" ]; then
             npx --no-install allure generate allure-results --clean -o allure-report
           else
             mkdir -p allure-report
@@ -212,13 +380,11 @@ jobs:
           EOF
 
       - name: Determine test result
-        # Decide pass/fail from the real WDIO exit code (written by the test
-        # script), NOT from the emulator-runner step outcome - that step exits
-        # non-zero because we hard-kill the emulator, even when tests passed.
         if: always()
         id: result
         run: |
-          code=$(cat wdio-exit-code.txt 2>/dev/null || echo "1")
+          code="${{ steps.merge.outputs.exit_code }}"
+          code="${code:-1}"
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           if [ "$code" = "0" ]; then
             echo "outcome=success" >> "$GITHUB_OUTPUT"
@@ -271,6 +437,8 @@ jobs:
 
       - name: Send Slack report
         if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         uses: slackapi/slack-github-action@v2
         with:
           webhook: ${{ env.SLACK_WEBHOOK_URL }}
@@ -294,7 +462,7 @@ jobs:
                   ]
                 },
                 { "type": "divider" },
-                { "type": "context", "elements": [ { "type": "mrkdwn", "text": "💻 Execution: *GitHub Actions emulator (local Appium)*  ·  🔑 Commit: `${{ steps.commit.outputs.short_sha }}`" } ] },
+                { "type": "context", "elements": [ { "type": "mrkdwn", "text": "💻 Execution: *GitHub Actions emulator (local Appium)*  ·  ⚡ Parallel shards: *${{ needs.prepare.outputs.shard_total }}*  ·  🔑 Commit: `${{ steps.commit.outputs.short_sha }}`" } ] },
                 {
                   "type": "actions",
                   "elements": [
