@@ -1,7 +1,8 @@
 import axios from "axios";
 import FormData from "form-data";
 import { LoginData } from "../data/login.data";
-import { App, assertAppConfigured } from "../config/apps";
+import { App, assertAppConfigured, tfaSecretForEmail } from "../config/apps";
+import { generateTotp } from "./totp";
 
 // Resolved from the active app profile (tests/config/apps/<app>.app.ts) so the
 // same seeder drives Squadi, Basketball and whatever is added next.
@@ -10,41 +11,62 @@ const LIVESCORES_BASE_URL = App.api.livescoresBaseUrl;
 const SEED = App.seed;
 
 export class MatchApiHelper {
-  static async getToken(username: string, password: string): Promise<string> {
-    const encoded = Buffer.from(`${username}:${password}`).toString("base64");
+  static async getToken(
+    username: string,
+    password: string,
+    tfaSecret: string | undefined = tfaSecretForEmail(username),
+  ): Promise<string> {
+    const loginUrl = `${USERS_BASE_URL}/users/loginWithTfa`;
+    const headers = {
+      SourceSystem: "WebAdmin",
+      Accept: "application/json",
+    };
 
     try {
-      const response = await axios.get(`${USERS_BASE_URL}/users/loginWithTfa`, {
-        headers: {
-          Authorization: `BWSA ${encoded}`,
-          SourceSystem: "WebAdmin",
-          Accept: "application/json",
-        },
+      // Step 1 - standard login. Apps without 2FA (e.g. Squadi) return the
+      // token straight away; 2FA apps (e.g. basketball) return { tfaEnabled }.
+      const encoded = Buffer.from(`${username}:${password}`).toString("base64");
+      const response = await axios.get(loginUrl, {
+        headers: { ...headers, Authorization: `BWSA ${encoded}` },
       });
 
-      const token = response.data?.authToken;
+      if (response.data?.authToken) {
+        return response.data.authToken;
+      }
 
-      if (!token) {
+      // Step 2 - only when the server asks for a second factor. We react to the
+      // server's response, never to the app name, so a new app needs no code
+      // change here: give its accounts a tfaSecret in the profile (or not).
+      if (response.data?.tfaEnabled) {
+        if (!tfaSecret) {
+          throw new Error(
+            `[${App.displayName}] ${username} requires 2FA but no tfaSecret is ` +
+              `configured. Add it to the account in tests/config/apps/` +
+              `${App.key}.app.ts (or set SCORER_TFA_SECRET in .env).`,
+          );
+        }
+        const code = generateTotp(tfaSecret);
+        const confirmEncoded = Buffer.from(
+          `${username}:${password}:${code}`,
+        ).toString("base64");
+        const confirm = await axios.get(
+          `${USERS_BASE_URL}/users/confirmTfa`,
+          { headers: { ...headers, Authorization: `BWSA ${confirmEncoded}` } },
+        );
+        if (confirm.data?.authToken) {
+          return confirm.data.authToken;
+        }
         throw new Error(
-          `Auth token not found: ${JSON.stringify(response.data)}`,
+          `TFA confirmation returned no token: ${JSON.stringify(confirm.data)}`,
         );
       }
 
-      return token;
+      throw new Error(`Auth token not found: ${JSON.stringify(response.data)}`);
     } catch (err: any) {
-      // TEMP DIAGNOSTICS: surface the real cause behind a 403 in CI.
       if (axios.isAxiosError(err)) {
         console.error("=== getToken request failed ===");
-        console.error("URL:", `${USERS_BASE_URL}/users/loginWithTfa`);
-        console.error(
-          "Status:",
-          err.response?.status,
-          err.response?.statusText,
-        );
-        console.error(
-          "Response headers:",
-          JSON.stringify(err.response?.headers, null, 2),
-        );
+        console.error("URL:", loginUrl);
+        console.error("Status:", err.response?.status, err.response?.statusText);
         console.error(
           "Response body:",
           typeof err.response?.data === "string"
@@ -56,7 +78,6 @@ export class MatchApiHelper {
       throw err;
     }
   }
-
   static getPakistanFutureTimeUtc(minutesAhead: number = 3): string {
     const now = new Date();
 

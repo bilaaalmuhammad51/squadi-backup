@@ -95,6 +95,15 @@ function applyEnvOverrides(profile: AppProfile): AppProfile {
       venueCourtId: num("SEED_VENUE_COURT_ID", profile.seed.venueCourtId),
       roundId: num("SEED_ROUND_ID", profile.seed.roundId),
     },
+    accounts: {
+      ...profile.accounts,
+      scorer: {
+        ...profile.accounts.scorer,
+        // Lets CI inject the scorer's TOTP secret without committing it.
+        tfaSecret:
+          process.env.SCORER_TFA_SECRET || profile.accounts.scorer.tfaSecret,
+      },
+    },
     matchFormat: {
       ...profile.matchFormat,
       type: str("SEED_MATCH_TYPE", profile.matchFormat.type),
@@ -112,6 +121,20 @@ export const App: AppProfile = applyEnvOverrides(registry[APP_KEY]);
  * value this app has not been configured with yet - rather than POSTing a
  * placeholder ID at the back end and getting an opaque 400.
  */
+/**
+ * Look up the TOTP secret for a given login email in the active app profile.
+ * Used by the API auth flow to complete two-factor logins without any of the
+ * ~50 call sites needing to know whether the current app uses TFA.
+ */
+export function tfaSecretForEmail(email: string): string | undefined {
+  for (const account of Object.values(App.accounts)) {
+    if (account?.email?.toLowerCase() === email.toLowerCase()) {
+      return account.tfaSecret;
+    }
+  }
+  return undefined;
+}
+
 export function assertAppConfigured(
   fields: Record<string, number | string | undefined>,
   context: string,

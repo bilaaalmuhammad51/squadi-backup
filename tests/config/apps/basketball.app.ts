@@ -39,38 +39,56 @@ export const basketballApp: AppProfile = {
   },
 
   seed: {
-    competitionId: TBD_NUMBER,
-    competitionName: TBD_STRING,
-    organisationId: TBD_NUMBER,
-    yearRefId: 6,
-    divisionId: TBD_NUMBER,
-    team1Id: TBD_NUMBER,
-    team2Id: TBD_NUMBER,
-    venueCourtId: TBD_NUMBER,
-    venueIds: [],
-    roundId: TBD_NUMBER,
-    subCourt: "H",
+    // Real IDs from basketball-stg1 competition 1083 (comp + match payloads
+    // captured 2026-09-07). This comp is "HR-ASN2-MD-Only" (short name "MD").
+    competitionId: 1083,
+    competitionName: "HR-ASN2-MD-Only",
+    organisationId: 809,
+    yearRefId: 8,
+    divisionId: 5171,
+    team1Id: 30525,
+    team2Id: 30526,
+    venueCourtId: 2045,
+    venueIds: [882],
+    roundId: 33604,
+    // The captured match had subCourt: null (Squadi used "H").
+    subCourt: null,
+    // The captured match was created with empty rosters; fill once we have the
+    // roster user IDs from this environment.
     rosters: [],
-    courtScorerUserId: TBD_NUMBER,
-    umpire: { userId: TBD_NUMBER, roleId: 15, name: TBD_STRING },
+    courtScorerUserId: 303499,
+    // "Syed Referee1 Only" (shahshahbaz64+referee1only@) in comp 1083 - the same
+    // referee persona Squadi uses. Note there is also a "Referee1" (id 303567,
+    // +referee1@); the suite uses "Referee1 Only".
+    umpire: { userId: 303568, roleId: 15, name: "Syed Referee1 Only" },
+    // Real persona user IDs in basketball-stg1 comp 1083 (assigned 2026-09-07).
+    // Manager1 303564 -> team1 (30525, HR-ASN2Club1-D1-T2);
+    // Manager2 303565 -> team2 (30526, HR-ASN2Club2-D1-T3);
+    // Coach1  303566 -> both teams (so it is both team1 & team2 coach).
     officials: {
-      team1ManagerUserId: TBD_NUMBER,
-      team1CoachUserId: TBD_NUMBER,
-      team2ManagerUserId: TBD_NUMBER,
-      team2CoachUserId: TBD_NUMBER,
+      team1ManagerUserId: 303564,
+      team1CoachUserId: 303566,
+      team2ManagerUserId: 303565,
+      team2CoachUserId: 303566,
     },
     roleIds: { manager: 3, coach: 4 },
-    teamOfficialRoleIds: { manager: TBD_NUMBER, coach: TBD_NUMBER },
-    teamOfficialRoleList: [],
-    bestAndFairestIds: [TBD_NUMBER, TBD_NUMBER],
+    // teamOfficialRoleList ids for comp 1083 (Manager row id 239, Coach 240).
+    teamOfficialRoleIds: { manager: 239, coach: 240 },
+    teamOfficialRoleList: [
+      { id: 239, roleId: 3, lookupRoleId: 3, sequence: 1 },
+      { id: 240, roleId: 17, lookupRoleId: 17, sequence: 2 },
+    ],
+    bestAndFairestIds: [939, 938],
   },
 
   matchFormat: {
-    // Basketball is played in quarters. VERIFY the exact enum the back end
-    // accepts for this competition before the first seeded run.
-    type: "FOUR_QUARTERS",
+    // The captured match on comp 1083 was created as TWO_HALVES with
+    // matchDuration 4, mainBreakDuration null, breakDuration 2 - i.e. this
+    // test competition is configured the same way Squadi is, NOT as quarters.
+    // Match what the environment actually uses so seeded matches are valid.
+    type: "TWO_HALVES",
     matchDuration: 4,
-    mainBreakDuration: 2,
+    mainBreakDuration: null,
     breakDuration: 2,
   },
 
@@ -84,6 +102,9 @@ export const basketballApp: AppProfile = {
       email: "shahshahbaz64@gmail.com",
       password: "Connect123",
       name: "syed shah",
+      // basketball-stg1 has 2FA on this account; the seeder generates the code.
+      // Override at runtime with SCORER_TFA_SECRET in .env / CI if it rotates.
+      tfaSecret: "JVUTQP2RHQ",
     },
     manager1: {
       email: "shahshahbaz64+manager1@gmail.com",
@@ -122,7 +143,11 @@ export const basketballApp: AppProfile = {
   },
 
   teamSheet: {
-    teams: { homeTeam: TBD_STRING, awayTeam: TBD_STRING },
+    // Confirmed from comp 1083 team assignments: team1 30525 / team2 30526.
+    teams: {
+      homeTeam: "HR-ASN2Club1-D1-T2",
+      awayTeam: "HR-ASN2Club2-D1-T3",
+    },
     players: {},
     positions: {
       Bench: "Bench",
@@ -134,7 +159,8 @@ export const basketballApp: AppProfile = {
   },
 
   register: {
-    organisation: TBD_STRING,
+    // Affiliate org in comp 1083 (from the referee assignment data).
+    organisation: "PVT-ASN1",
     // Basketball drops "Profile" from the wording.
     heading: "Create Account or Register",
   },

@@ -20,6 +20,12 @@ export interface Account {
   password: string;
   /** Display name as it renders in the app (search results, team sheets, ...). */
   name?: string;
+  /**
+   * Base32 TOTP secret, set only for accounts whose login requires two-factor
+   * (e.g. basketball-stg1). When present, MatchApiHelper.getToken() completes
+   * the confirmTfa step automatically; when absent, the plain login is used.
+   */
+  tfaSecret?: string;
 }
 
 export interface RosterEntry {
@@ -61,7 +67,7 @@ export interface AppSeed {
   venueCourtId: number;
   venueIds: number[];
   roundId: number;
-  subCourt: string;
+  subCourt: string | null;
   /** Rosters attached to a freshly created match (scorer + court scorer etc). */
   rosters: RosterEntry[];
   /** Default court-scorer user for competition settings. */
@@ -91,7 +97,7 @@ export interface AppMatchFormat {
   /** e.g. "TWO_HALVES" for soccer, "FOUR_QUARTERS" for basketball. */
   type: string;
   matchDuration: number;
-  mainBreakDuration: number;
+  mainBreakDuration: number | null;
   breakDuration: number;
 }
 
