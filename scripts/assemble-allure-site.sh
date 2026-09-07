@@ -78,8 +78,8 @@ done
 #    weekly workflow added to the shared site.
 touch _site/.nojekyll
 {
-  echo '<!doctype html><meta charset="utf-8"><title>Squadi Test Reports</title>'
-  echo '<h1>Squadi Test Reports</h1>'
+  echo '<!doctype html><meta charset="utf-8"><title>Mobile Test Reports</title>'
+  echo '<h1>Mobile Test Reports</h1>'
   if ls -1d _site/emulator/*/ >/dev/null 2>&1; then
     echo '<h2>Emulator (daily)</h2><ul>'
     for d in $(ls -1d _site/emulator/*/ 2>/dev/null | sed 's#_site/emulator/##; s#/##' | sort -nr); do

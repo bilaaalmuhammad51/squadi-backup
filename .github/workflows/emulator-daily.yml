@@ -15,6 +15,14 @@ on:
         description: Branch to run tests from
         required: true
         default: develop
+      app:
+        description: "App to test"
+        required: true
+        default: Squadi
+        type: choice
+        options:
+          - Squadi
+          - Basketball
       api_level:
         description: Android API level for the emulator
         required: true
@@ -46,7 +54,10 @@ jobs:
     env:
       PLATFORM: android
       ENV: local
-      APP: Squadi
+      # Selected from the "Run workflow" dropdown; the scheduled run uses the
+      # repo variable DEFAULT_APP (falling back to Squadi) so the nightly app
+      # can be changed without editing this file.
+      APP: ${{ github.event.inputs.app || vars.DEFAULT_APP || 'Squadi' }}
       TEST_ENV: Dev
       API_LEVEL: ${{ github.event.inputs.api_level || '34' }}
       SPEC_PATH: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
@@ -102,27 +113,47 @@ jobs:
           sudo docker image prune --all --force
           df -h /
 
+      # Ask the app profile itself which APK file name this run needs, so the
+      # workflow never has to hardcode a per-app file name. Adding a third app
+      # means adding a profile - this step keeps working untouched.
+      - name: Resolve APK name for the selected app
+        id: apk
+        run: |
+          APK_NAME=$(./node_modules/.bin/tsx scripts/app-value.ts binaries.apk)
+          echo "App '$APP' -> APK '$APK_NAME'"
+          echo "name=$APK_NAME" >> "$GITHUB_OUTPUT"
+
       - name: Download test APK
         env:
           # The test APK is stored as an asset on a GitHub Release in this
           # repo (tag below). GITHUB_TOKEN can read it directly - no external
           # service, virus-scan page, or quota to fight with.
+          # Upload each app's APK to that release under the file name its
+          # profile declares (squadi-dev.apk, basketball-qa.apk, ...).
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APK_RELEASE_TAG: ${{ vars.APK_RELEASE_TAG || 'test-apk' }}
+          APK_NAME: ${{ steps.apk.outputs.name }}
         run: |
           mkdir -p tests/apps
-          gh release download "$APK_RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --pattern squadi-dev.apk \
-            --dir tests/apps \
-            --clobber
-          echo "Downloaded APK:"
-          ls -la tests/apps/squadi-dev.apk
+          if gh release download "$APK_RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --pattern "$APK_NAME" \
+              --dir tests/apps \
+              --clobber; then
+            echo "Downloaded APK from release:"
+          elif [ -f "tests/apps/$APK_NAME" ]; then
+            echo "Release asset '$APK_NAME' not found - using the copy already in tests/apps:"
+          else
+            echo "No APK named '$APK_NAME' on release '$APK_RELEASE_TAG' or in tests/apps."
+            echo "Upload the $APP build to that release as '$APK_NAME' and re-run."
+            exit 1
+          fi
+          ls -la "tests/apps/$APK_NAME"
           # Fail early if we somehow got something that isn't an APK
-          if ! file tests/apps/squadi-dev.apk | grep -qiE 'archive|android|zip'; then
+          if ! file "tests/apps/$APK_NAME" | grep -qiE 'archive|android|zip'; then
             echo "Downloaded file does not look like an APK:"
-            file tests/apps/squadi-dev.apk
-            head -c 200 tests/apps/squadi-dev.apk
+            file "tests/apps/$APK_NAME"
+            head -c 200 "tests/apps/$APK_NAME"
             exit 1
           fi
 
@@ -277,14 +308,15 @@ jobs:
           webhook-type: incoming-webhook
           payload: |
             {
-              "text": "Squadi Daily Emulator Test Result",
+              "text": "${{ env.APP }} Daily Emulator Test Result",
               "blocks": [
-                { "type": "header", "text": { "type": "plain_text", "text": "📱 Squadi Daily Emulator (Android)" } },
+                { "type": "header", "text": { "type": "plain_text", "text": "📱 ${{ env.APP }} Daily Emulator (Android)" } },
                 { "type": "section", "text": { "type": "mrkdwn", "text": "${{ steps.result.outputs.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}" } },
                 { "type": "divider" },
                 {
                   "type": "section",
                   "fields": [
+                    { "type": "mrkdwn", "text": "*📦 App*\n${{ env.APP }}" },
                     { "type": "mrkdwn", "text": "*🧪 Total*\n${{ steps.summary.outputs.total }}" },
                     { "type": "mrkdwn", "text": "*⏱ Duration*\n${{ steps.summary.outputs.duration }}" },
                     { "type": "mrkdwn", "text": "*✅ Passed*\n${{ steps.summary.outputs.passed }}" },

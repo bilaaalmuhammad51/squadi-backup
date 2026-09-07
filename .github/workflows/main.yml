@@ -1,4 +1,4 @@
-name: Squadi Mobile Tests Browserstack
+name: Mobile Tests Browserstack
 
 # Tier 2 of the Asma plan:
 # Weekly real-device coverage on BrowserStack. Android and iOS are scheduled at
@@ -38,8 +38,7 @@ on:
         type: choice
         options:
           - Squadi
-          - NetballConnect
-          - football
+          - Basketball
       environment:
         description: "Environment"
         required: true
@@ -241,9 +240,9 @@ jobs:
           webhook-type: incoming-webhook
           payload: |
             {
-              "text": "Squadi BrowserStack Test Result",
+              "text": "${{ env.APP }} BrowserStack Test Result",
               "blocks": [
-                { "type": "header", "text": { "type": "plain_text", "text": "📱 Squadi BrowserStack (${{ env.PLATFORM }})" } },
+                { "type": "header", "text": { "type": "plain_text", "text": "📱 ${{ env.APP }} BrowserStack (${{ env.PLATFORM }})" } },
                 { "type": "section", "text": { "type": "mrkdwn", "text": "${{ steps.run_tests.outcome == 'success' && '🟢 *PASSED*' || '🔴 *FAILED*' }}" } },
                 { "type": "divider" },
                 {

@@ -1,3 +1,6 @@
+import { App, strictRecord } from "../config/apps";
+
+// Role labels are the same across apps.
 export const UserRoles = {
   Scorer: "Scoring",
   Manager: "Managing",
@@ -6,38 +9,26 @@ export const UserRoles = {
 };
 
 export const TeamsInTeamSheet = {
-  HomeTeam: "HR-ASN2Club1-D1-T2",
-  Awayteam: "HR-ASN2Club2-D1-T3",
+  HomeTeam: App.teamSheet.teams.homeTeam,
+  Awayteam: App.teamSheet.teams.awayTeam,
 };
 
-export const PlayerNamesInTeamSheet = {
-  ClubPlayer1: "HR-ASN2Club1 -D1-T2",
-  ClubPlayer2: "HR-ASN2Club2-D1-T3 Player",
-  HomePlayer1: "ImpPlyr1 Test1",
-  HomePlayer2: "ImpPlyr2 Test2",
-  HomePlayer3: "ImpPlyr17 Test17",
-  AwayPlayer1: "ImpPlyr3 Test3",
-  AwayPlayer2: "ImpPlyr4 Test4",
-  AwayPlayer3: "ImpPlyr18 Test18",
-  BorrowPlayerTeam1: "HR-ASN2Club1-D2-T5 Player",
-  BorrowPlayerTeam2: "HR-ASN2Club2-D2-T6 Player",
-};
+export const PlayerNamesInTeamSheet = strictRecord(
+  App.teamSheet.players,
+  "PlayerNamesInTeamSheet",
+);
 
-export const PlayerPositions = {
-  Bench: "Bench",
-  Forward: "Forward",
-  Midfielder: "Midfielder",
-  Defender: "Defender",
-  Goalkeeper: "Goalkeeper",
-};
+/**
+ * Positions are sport-specific (Goalkeeper/Midfielder vs Guard/Centre), so
+ * they come from the profile. Specs that name a position that this sport does
+ * not have should be gated with the `startingFormation` feature flag.
+ */
+export const PlayerPositions = strictRecord(
+  App.teamSheet.positions,
+  "PlayerPositions",
+);
 
-export const PlayersInStartingFormation = {
-  ClubPlayer1: "H. -D1-T2",
-  ClubPlayer2: "H. Player",
-  HomePlayer1: "Test1",
-  HomePlayer2: "Test2",
-  HomePlayer3: "Test17",
-  AwayPlayer1: "Test3",
-  AwayPlayer2: "Test4",
-  AwayPlayer3: "Test18",
-};
+export const PlayersInStartingFormation = strictRecord(
+  App.teamSheet.playersInStartingFormation,
+  "PlayersInStartingFormation",
+);

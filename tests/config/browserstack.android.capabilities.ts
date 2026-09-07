@@ -1,10 +1,13 @@
+import { App } from "./apps";
+
 const timestamp = new Date().toISOString().replace("T", " ").replace("Z", "");
+
 export const browserstackAndroidCaps = {
   platformName: "Android",
   "appium:platformVersion": "14.0",
   "appium:deviceName": "Google Pixel 8 Pro",
   "appium:automationName": "UiAutomator2",
-  "appium:app": "bs://40e820f9f7baa012fd9b49127042221acd45c4b6",
+  "appium:app": App.binaries.browserstackAndroidAppId,
   "appium:autoGrantPermissions": true,
   "appium:autoAcceptAlerts": true,
   "appium:disableHiddenApiPolicyPrePApp": true,
@@ -12,9 +15,9 @@ export const browserstackAndroidCaps = {
   "appium:newCommandTimeout": 300,
   "appium:connectHardwareKeyboard": true,
   "bstack:options": {
-    projectName: "SQUADI Mobile App Automation",
-    buildName: `SQUADI Automation Android TESTS ${timestamp}`,
-    sessionName: "Android Test Session",
+    projectName: `${App.displayName} Mobile App Automation`,
+    buildName: `${App.displayName} Automation Android TESTS ${timestamp}`,
+    sessionName: `${App.displayName} Android Test Session`,
     debug: true,
     networkLogs: true,
     video: true,

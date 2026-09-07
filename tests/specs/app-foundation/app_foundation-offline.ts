@@ -6,10 +6,11 @@ import {
   setConnectivity,
 } from "../../utils/connectivity";
 import { LoginPage } from "../../pages/login.page";
+import { App } from "../../config/apps";
 
 describe.skip("App Foundation - Offline", () => {
   const loginPage = new LoginPage();
-  const appPackage = "com.wsa.netball.dev";
+  const appPackage = App.binaries.androidPackage;
 
   it("[APP-008, 005] Offline banner appears on connectivity loss and clears on reconnection, App shell renders without crash on cold start while offline", async () => {
     allureReporter.addFeature("App Foundation");
@@ -36,8 +37,8 @@ describe.skip("App Foundation - Offline", () => {
     });
 
     await step("5. Verify offline banner is removed", async () => {
-      await forceStopApp("com.wsa.netball.dev");
-      await driver.activateApp("com.wsa.netball.dev");
+      await forceStopApp(appPackage);
+      await driver.activateApp(appPackage);
       await loginPage.waitUntilVisibleWithRetry(loginPage.loginButton, 5);
       await loginPage.waitUntilInvisibleWithRetry(loginPage.offlineBanner);
     });

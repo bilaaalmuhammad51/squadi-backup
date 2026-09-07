@@ -1,5 +1,7 @@
+import { App } from "../config/apps";
+
 export const RegisterData = {
-    registerHeading: 'Create Account or Register Profile',
+    registerHeading: App.register.heading,
     password: 'Test135!',
     allGenderOptions : [
         'Male',
@@ -8,7 +10,7 @@ export const RegisterData = {
         'Differently Identify',
         'Cancel'
     ],
-    organisation : 'Anas Test State',
+    organisation : App.register.organisation,
     phoneNumber : '0420000000',
     yesOption: 'Yes',
     noOption: 'No'

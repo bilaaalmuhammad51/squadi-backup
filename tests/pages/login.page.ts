@@ -7,6 +7,7 @@ import {
 import { Timeout } from "../utils/timers";
 import Logger from "../utils/logger";
 import { TeamsInTeamSheet } from "../data/teamSheet.data";
+import { App } from "../config/apps";
 
 export class LoginPage extends BasePage {
   public offlineBanner = selector(
@@ -33,9 +34,15 @@ export class LoginPage extends BasePage {
     "Clear cache now button in splash screen",
   );
 
+  // Basketball labels this button "Create Account or Register" (no
+  // "Profile"). Same button, same flow - only the wording differs.
+  // Squadi says "Create Account or Register Profile", basketball drops
+  // "Profile". The wording is already a profile value (it is asserted as text
+  // too), so build the locator from it rather than keeping a second copy in a
+  // per-app override.
   public createAccountOrRegisterProfile = selector(
-    "~Create Account or Register Profile",
-    "~Create Account or Register Profile",
+    `~${App.register.heading}`,
+    `~${App.register.heading}`,
     "Create Account or Register Profile",
   );
   public followTeamOrLeague = selector(
@@ -118,10 +125,20 @@ export class LoginPage extends BasePage {
     "squadi Logo in Field Closure page",
   );
 
+  // Basketball's reset-password page (registration-stg.basketballconnect)
+  // renders a single EditText, so the field is instance(0); Squadi's page has
+  // two and the one we want is instance(1).
   public usernameOrEmailField = selector(
     '-android uiautomator:new UiSelector().className("android.widget.EditText").instance(1)',
     '-ios predicate string: value == "Username/Email" AND type == "XCUIElementTypeTextField"',
     "username or email field for forgot password flow",
+    {
+      basketball: {
+        android:
+          '-android uiautomator:new UiSelector().className("android.widget.EditText").instance(0)',
+        ios: '-ios predicate string: value == "Username/Email" AND type == "XCUIElementTypeTextField"',
+      },
+    },
   );
   public submitUsernameOrEmailBtn = selector(
     '-android uiautomator:new UiSelector().text("Submit")',
@@ -158,8 +175,12 @@ export class LoginPage extends BasePage {
     '-ios predicate string:name == "Ok"',
     "invalid username or password ok button",
   );
+  // instance(12) used to point here but is the non-clickable "Password" label
+  // in both apps, so the toggle never fired. The eye is the first *clickable*
+  // View on the login screen (the next one is "Forgot/ Reset Password?"),
+  // which does not depend on an absolute index into a flat view list.
   public viewPassword = selector(
-    '-android uiautomator:new UiSelector().className("android.view.View").instance(12)',
+    '-android uiautomator:new UiSelector().className("android.view.View").clickable(true).instance(0)',
     "//XCUIElementTypeWindow/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]/XCUIElementTypeOther[3]/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther",
     "view password",
   );
@@ -227,8 +248,8 @@ export class LoginPage extends BasePage {
   );
 
   public createAccountOrRegisterProfileOptionInMoreTab = selector(
-    "~Create Account or Register Profile",
-    "~Create Account or Register Profile",
+    `~${App.register.heading}`,
+    `~${App.register.heading}`,
     "Create Account or Register Profile option in More tab",
   );
 

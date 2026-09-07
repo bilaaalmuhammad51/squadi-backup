@@ -1,22 +1,22 @@
+import { App } from "../config/apps";
+
+/**
+ * Accounts for the app currently under test. The shape is unchanged so specs
+ * keep working; the values now come from the active app profile
+ * (tests/config/apps/<app>.app.ts) instead of being hardcoded to Squadi.
+ */
 export const LoginData = {
   loginHeading: "Log In",
-  email: "shahshahbaz64@gmail.com",
-  password: "Connect123",
-  manager1Email: "shahshahbaz64+manager1@gmail.com",
-  manager2Email: "shahshahbaz64+manager2@gmail.com",
-  coachEmail: "shahshahbaz64+coach1@gmail.com",
-  refereeEmail: "shahshahbaz64+referee1only@gmail.com",
-  parentEmail: "testparentemail1@gmail.com",
+  email: App.accounts.scorer.email,
+  password: App.accounts.scorer.password,
+  manager1Email: App.accounts.manager1.email,
+  manager2Email: App.accounts.manager2.email,
+  coachEmail: App.accounts.coach.email,
+  refereeEmail: App.accounts.referee.email,
+  parentEmail: App.accounts.parent.email,
 };
 
-export const namesOfUsers = {
-  scorerName: "syed shah",
-  caochName: "Syed Coach1",
-  refereeName: "Syed Referee1 Only",
-  homeTeamManagerName: "Syed Manager1",
-  awayTeamManagerName: "Syed Manager2",
-  childFullName: "Test child User",
-}
+export const namesOfUsers = App.names;
 
 export const emailLoginTestData = {
   emptyEmail: {
@@ -25,6 +25,8 @@ export const emailLoginTestData = {
   },
 };
 
+// App-agnostic: these are all rejected credentials, so they need no real
+// records in any environment.
 export const invalidLoginErrorData = {
   invalidUsernameOrPassword: "Incorrect Username or Password",
   cases: [

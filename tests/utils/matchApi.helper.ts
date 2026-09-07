@@ -1,9 +1,13 @@
 import axios from "axios";
 import FormData from "form-data";
 import { LoginData } from "../data/login.data";
+import { App, assertAppConfigured } from "../config/apps";
 
-const USERS_BASE_URL = "https://api-dev1.squadi.com/users";
-const LIVESCORES_BASE_URL = "https://api-dev1.squadi.com/livescores";
+// Resolved from the active app profile (tests/config/apps/<app>.app.ts) so the
+// same seeder drives Squadi, Basketball and whatever is added next.
+const USERS_BASE_URL = App.api.usersBaseUrl;
+const LIVESCORES_BASE_URL = App.api.livescoresBaseUrl;
+const SEED = App.seed;
 
 export class MatchApiHelper {
   static async getToken(username: string, password: string): Promise<string> {
@@ -68,25 +72,40 @@ export class MatchApiHelper {
     minutesAhead: number = 3,
     roundId?: number,
   ): Promise<number> {
+    assertAppConfigured(
+      {
+        divisionId: SEED.divisionId,
+        competitionId: SEED.competitionId,
+        team1Id: SEED.team1Id,
+        team2Id: SEED.team2Id,
+        venueCourtId: SEED.venueCourtId,
+        roundId: SEED.roundId,
+      },
+      "createMatch()",
+    );
+
     const startTime = this.getPakistanFutureTimeUtc(minutesAhead);
 
     const payload = {
       id: 0,
       startTime,
 
-      divisionId: 541,
-      type: "TWO_HALVES",
-      competitionId: 239,
+      divisionId: SEED.divisionId,
+      // Sport-specific: TWO_HALVES for Squadi, FOUR_QUARTERS for basketball.
+      type: App.matchFormat.type,
+      competitionId: SEED.competitionId,
 
-      team1Id: 2269,
-      team2Id: 2270,
+      team1Id: SEED.team1Id,
+      team2Id: SEED.team2Id,
 
-      venueCourtId: 42,
-      roundId: roundId || 13215,
+      venueCourtId: SEED.venueCourtId,
+      // Callers can pin a round (added with the draws-tab tests); otherwise
+      // fall back to the active app profile's round.
+      roundId: roundId || SEED.roundId,
 
-      matchDuration: 4,
-      mainBreakDuration: 2,
-      breakDuration: 2,
+      matchDuration: App.matchFormat.matchDuration,
+      mainBreakDuration: App.matchFormat.mainBreakDuration,
+      breakDuration: App.matchFormat.breakDuration,
 
       team1Score: 0,
       team2Score: 0,
@@ -105,20 +124,7 @@ export class MatchApiHelper {
 
       endTime: null,
 
-      rosters: [
-        {
-          roleId: 21,
-          userId: 8364,
-          teamId: null,
-          sequence: 1,
-        },
-        {
-          roleId: 4,
-          userId: 160547,
-          teamId: 2269,
-          sequence: 1,
-        },
-      ],
+      rosters: SEED.rosters,
 
       isFinals: false,
       isLocked: false,
@@ -130,7 +136,7 @@ export class MatchApiHelper {
       extraTimeWinByGoals: null,
       extraTimeFor: null,
 
-      subCourt: "H",
+      subCourt: SEED.subCourt,
 
       competitionOrganisationId: null,
 
@@ -273,19 +279,29 @@ export class MatchApiHelper {
   static async assignReferee(
     token: string,
     matchId: number,
-    umpireUserId = 161700,
+    umpireUserId = SEED.umpire.userId,
   ): Promise<void> {
+    assertAppConfigured(
+      {
+        competitionId: SEED.competitionId,
+        organisationId: SEED.organisationId,
+        umpireUserId,
+        umpireName: SEED.umpire.name,
+      },
+      "assignReferee()",
+    );
+
     const payload = {
       matchId,
-      competitionId: 239,
-      organisationId: 58,
+      competitionId: SEED.competitionId,
+      organisationId: SEED.organisationId,
       rosters: [
         {
           userId: umpireUserId,
-          roleId: 15,
+          roleId: SEED.umpire.roleId,
           sequence: 1,
           matchId,
-          umpireName: "Syed Referee1 Only",
+          umpireName: SEED.umpire.name,
           competitionOrganisationId: 0, // replace with your value
           umpireType: "USERS",
           enableAffiliateAssignment: false,
@@ -311,9 +327,9 @@ export class MatchApiHelper {
     console.log(`Publishing match officials for Match ID: ${matchId}`);
     const params = new URLSearchParams({
       timezone: "Asia/Karachi",
-      yearRefId: "6",
-      competitionId: "239",
-      organisationId: "58",
+      yearRefId: String(SEED.yearRefId),
+      competitionId: String(SEED.competitionId),
+      organisationId: String(SEED.organisationId),
       matchId: String(matchId),
       divisionIds: "[]",
       roundIds: "[]",
@@ -351,20 +367,29 @@ export class MatchApiHelper {
   ): Promise<any> {
     // ===== Defaults =====
     const scoringMode = options?.scoringMode ?? "COURT";
-    const courtScorerUserId = options?.courtScorerUserId ?? 160547;
+    const courtScorerUserId = options?.courtScorerUserId ?? SEED.courtScorerUserId;
     const gameTimeTrackingEnabled = options?.gameTimeTrackingEnabled ?? true;
     const liveScoring = options?.liveScoring ?? true;
     const allowHomeTeamManagerToVerifyOfficials =
       options?.allowHomeTeamManagerToVerifyOfficials ?? false;
 
+    assertAppConfigured(
+      {
+        competitionId: SEED.competitionId,
+        competitionName: SEED.competitionName,
+        organisationId: SEED.organisationId,
+      },
+      "updateCompetitionSettings()",
+    );
+
     const form = new FormData();
 
     // ===== Basic Info =====
-    form.append("id", "239");
-    form.append("name", "HR-ASN2-MD-Only");
-    form.append("longName", "HR-ASN2-MD-Only");
-    form.append("organisationId", "58");
-    form.append("yearRefId", "6");
+    form.append("id", String(SEED.competitionId));
+    form.append("name", SEED.competitionName);
+    form.append("longName", SEED.competitionName);
+    form.append("organisationId", String(SEED.organisationId));
+    form.append("yearRefId", String(SEED.yearRefId));
 
     // ===== Scoring Settings =====
     form.append("scoringType", liveScoring ? "SINGLE" : "NO_SCORING_CARD");
@@ -474,29 +499,19 @@ export class MatchApiHelper {
 
     form.append(
       "teamOfficialRoleList",
-      JSON.stringify([
-        {
-          id: 435,
-          competitionId: 239,
-          roleId: 3,
-          lookupRoleId: 3,
-          sequence: 1,
-        },
-        {
-          id: 436,
-          competitionId: 239,
-          roleId: 17,
-          lookupRoleId: 17,
-          sequence: 2,
-        },
-      ]),
+      JSON.stringify(
+        SEED.teamOfficialRoleList.map((role) => ({
+          ...role,
+          competitionId: SEED.competitionId,
+        })),
+      ),
     );
 
     form.append(
       "bestAndFairests",
       JSON.stringify([
         {
-          id: 1728,
+          id: SEED.bestAndFairestIds[0],
           enabled: false,
           preferenceSetByRefId: 1,
           awardWhichTeamRefId: 1,
@@ -504,7 +519,7 @@ export class MatchApiHelper {
           bestAndFairestTypeRefId: 2,
         },
         {
-          id: 1727,
+          id: SEED.bestAndFairestIds[1],
           enabled: false,
           preferenceSetByRefId: 1,
           awardWhichTeamRefId: 1,
@@ -546,7 +561,8 @@ export class MatchApiHelper {
     form.append("isInvitorsChanged", "false");
 
     const response = await axios.post(
-      `${LIVESCORES_BASE_URL}/competitions?competitionId=239&venues=[12,112]`,
+      `${LIVESCORES_BASE_URL}/competitions?competitionId=${SEED.competitionId}` +
+        `&venues=[${SEED.venueIds.join(",")}]`,
       form,
       {
         headers: {
@@ -583,23 +599,22 @@ export class MatchApiHelper {
   // CONSTANTS – adjust these to your environment
   // ============================================================
 
-  // These are the user IDs that will be assigned when the boolean is true.
-  // Replace with actual IDs from your system.
+  // Per-app; defined in tests/config/apps/<app>.app.ts under `seed`.
   private static readonly OFFICIALS = {
-    TEAM1_MANAGER: 161275, // Syed Manager1
-    TEAM1_COACH: 161628, // Syed Coach1
-    TEAM2_MANAGER: 161431, // Syed Manager2
-    TEAM2_COACH: 161628, // Syed Coach1 (if the same person coaches both)
+    TEAM1_MANAGER: SEED.officials.team1ManagerUserId,
+    TEAM1_COACH: SEED.officials.team1CoachUserId,
+    TEAM2_MANAGER: SEED.officials.team2ManagerUserId,
+    TEAM2_COACH: SEED.officials.team2CoachUserId,
   };
 
   private static readonly ROLE_IDS = {
-    MANAGER: 3,
-    COACH: 4,
+    MANAGER: SEED.roleIds.manager,
+    COACH: SEED.roleIds.coach,
   };
 
   private static readonly TEAM_OFFICIAL_ROLE_IDS = {
-    MANAGER: 435,
-    COACH: 436,
+    MANAGER: SEED.teamOfficialRoleIds.manager,
+    COACH: SEED.teamOfficialRoleIds.coach,
   };
 
   // ============================================================
@@ -639,7 +654,7 @@ export class MatchApiHelper {
         teamId: currentMatch.team1Id,
         teamOfficialRoleId: this.TEAM_OFFICIAL_ROLE_IDS.MANAGER,
         userId: this.OFFICIALS.TEAM1_MANAGER,
-        userName: "Syed Manager1",
+        userName: App.names.homeTeamManagerName,
         roleId: this.ROLE_IDS.MANAGER,
         roleDescription: "Manager",
       });
@@ -652,7 +667,7 @@ export class MatchApiHelper {
         teamId: currentMatch.team1Id,
         teamOfficialRoleId: this.TEAM_OFFICIAL_ROLE_IDS.COACH,
         userId: this.OFFICIALS.TEAM1_COACH,
-        userName: "Syed Coach1",
+        userName: App.names.caochName,
         roleId: this.ROLE_IDS.COACH,
         roleDescription: "Coach",
       });
@@ -665,7 +680,7 @@ export class MatchApiHelper {
         teamId: currentMatch.team2Id,
         teamOfficialRoleId: this.TEAM_OFFICIAL_ROLE_IDS.MANAGER,
         userId: this.OFFICIALS.TEAM2_MANAGER,
-        userName: "Syed Manager2",
+        userName: App.names.awayTeamManagerName,
         roleId: this.ROLE_IDS.MANAGER,
         roleDescription: "Manager",
       });
@@ -678,7 +693,7 @@ export class MatchApiHelper {
         teamId: currentMatch.team2Id,
         teamOfficialRoleId: this.TEAM_OFFICIAL_ROLE_IDS.COACH,
         userId: this.OFFICIALS.TEAM2_COACH,
-        userName: "Syed Coach1",
+        userName: App.names.caochName,
         roleId: this.ROLE_IDS.COACH,
         roleDescription: "Coach",
       });

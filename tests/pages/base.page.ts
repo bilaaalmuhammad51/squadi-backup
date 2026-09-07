@@ -1,7 +1,12 @@
 import { AssertionError } from "node:assert";
 import { $, $$, browser, expect } from "@wdio/globals";
 import { getPlatform } from "../factories/selector.factory";
-import { selector, type DualSelector } from "../factories/page.factory";
+import {
+  resolveLocator,
+  selector,
+  type DualSelector,
+} from "../factories/page.factory";
+import { App, TBD_STRING } from "../config/apps";
 import Logger from "../utils/logger";
 import { Timeout } from "../utils/timers";
 
@@ -33,7 +38,7 @@ export default class BasePage {
 
   async resolve(selector: DualSelector) {
     const platform = await getPlatform();
-    return $(platform === "android" ? selector.android : selector.ios);
+    return $(resolveLocator(selector, platform));
   }
 
   async resolveSelectorObjToString(selectorObj: any): Promise<string> {
@@ -42,17 +47,19 @@ export default class BasePage {
     }
 
     if (driver.isAndroid) {
-      if (!selectorObj.android) {
+      const androidLocator = resolveLocator(selectorObj, "android");
+      if (!androidLocator) {
         throw new Error("Android selector missing");
       }
-      return selectorObj.android;
+      return androidLocator;
     }
 
     if (driver.isIOS) {
-      if (!selectorObj.ios) {
+      const iosLocator = resolveLocator(selectorObj, "ios");
+      if (!iosLocator) {
         throw new Error("iOS selector missing");
       }
-      return selectorObj.ios;
+      return iosLocator;
     }
 
     throw new Error("Unknown platform");
@@ -243,6 +250,18 @@ export default class BasePage {
   }
 
   async type(selector: DualSelector, value: string) {
+    // A value the active app profile has not been filled in with would
+    // otherwise be typed literally ("__TBD__") into the field, and the failure
+    // would surface many steps later as a baffling "element not visible".
+    // Stop here and name the real cause instead.
+    if (value === TBD_STRING) {
+      throw new Error(
+        `[${App.displayName}] Tried to type a placeholder value into ` +
+          `${selector.log}. This app profile is missing that value - fill it ` +
+          `in tests/config/apps/${App.key}.app.ts (or override via .env).`,
+      );
+    }
+
     Logger.info(`Typing text into element: ${selector.log}`);
     const element = await this.getElement(selector);
     await element.setValue(value);
@@ -519,11 +538,12 @@ export default class BasePage {
 
     if (platform === "android") {
       let uiSelector: string;
+      const androidLocator = resolveLocator(selector, "android");
 
-      if (selector.android.startsWith("android=")) {
-        uiSelector = selector.android.replace(/^android=/, "");
-      } else if (selector.android.startsWith("~")) {
-        const desc = selector.android.substring(1);
+      if (androidLocator.startsWith("android=")) {
+        uiSelector = androidLocator.replace(/^android=/, "");
+      } else if (androidLocator.startsWith("~")) {
+        const desc = androidLocator.substring(1);
         uiSelector = `new UiSelector().description("${desc}")`;
       } else {
         // Can't build a UiSelector from this locator
@@ -696,7 +716,10 @@ export default class BasePage {
     container: DualSelector,
     direction: "left" | "right" = "right",
   ) {
-    const selectorStr = driver.isAndroid ? container.android : container.ios;
+    const selectorStr = resolveLocator(
+      container,
+      driver.isAndroid ? "android" : "ios",
+    );
     const element = await $(selectorStr);
 
     // Get the exact location and size of your scrollable container

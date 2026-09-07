@@ -8,6 +8,7 @@ import Logger from "./tests/utils/logger";
 import allureReporter from "@wdio/allure-reporter";
 import { Timeout } from "./tests/utils/timers";
 import BasePage from "./tests/pages/base.page";
+import { App } from "./tests/config/apps";
 const ENV = (process.env.ENV || "local").toLowerCase();
 const PLATFORM = (process.env.PLATFORM || "android").toLowerCase();
 
@@ -41,7 +42,9 @@ export const config: WebdriverIO.Config = {
   framework: "mocha",
   ...getServerConfig(),
   onPrepare: function () {
-    Logger.info(`Running tests on ${PLATFORM} on ${ENV} environment`);
+    Logger.info(
+      `Running ${App.displayName} tests on ${PLATFORM} on ${ENV} environment`,
+    );
   },
 
   reporters: [
@@ -58,6 +61,10 @@ export const config: WebdriverIO.Config = {
 
   specs: ["./tests/specs/**/*.ts"],
   maxInstances: 1,
+  // Session creation includes a full uninstall/reinstall (fullReset), and the
+  // app binaries are large enough (basketball-qa.apk is ~147MB) that the
+  // WebdriverIO default of 120s expires mid-install on a cold emulator.
+  connectionRetryTimeout: 300000,
   logLevel: "error",
 
   // Retry a failed spec once - safety net for intermittent CI-emulator
@@ -82,7 +89,7 @@ export const config: WebdriverIO.Config = {
           JSON.stringify({
             action: "setSessionName",
             arguments: {
-              name: `${PLATFORM === "android" ? "Android" : "iOS"}: ${test.title} | ${timestamp}`,
+              name: `${App.displayName} ${PLATFORM === "android" ? "Android" : "iOS"}: ${test.title} | ${timestamp}`,
             },
           }),
       );

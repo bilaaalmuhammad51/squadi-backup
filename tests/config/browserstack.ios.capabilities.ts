@@ -1,9 +1,12 @@
+import { App } from "./apps";
+
 const timestamp = new Date().toISOString().replace("T", " ").replace("Z", "");
+
 export const browserstackIosCaps = {
   platformName: "iOS",
   "appium:deviceName": "iPhone 15 Plus",
   "appium:automationName": "XCUITest",
-  "appium:app": "bs://290b5edb7a9799a60fb68d939f2fe8b0861ed185",
+  "appium:app": App.binaries.browserstackIosAppId,
   "appium:xcodeSigningId": "iPhone Developer",
   "appium:useNewWDA": true,
   "appium:showXcodeLog": true,
@@ -13,9 +16,9 @@ export const browserstackIosCaps = {
   "appium:fullReset": true,
   "appium:noReset": false,
   "bstack:options": {
-    projectName: "SQUADI Mobile App Automation",
-    buildName: `SQUADI Automation iOS TESTS ${timestamp}`,
-    sessionName: "iOS Test Session",
+    projectName: `${App.displayName} Mobile App Automation`,
+    buildName: `${App.displayName} Automation iOS TESTS ${timestamp}`,
+    sessionName: `${App.displayName} iOS Test Session`,
     debug: true,
     networkLogs: true,
     video: true,

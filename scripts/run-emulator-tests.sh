@@ -8,7 +8,7 @@
 
 set -uo pipefail
 
-APP="${APP:-Squadi}"
+APP="${APP:-Squadi}"   # resolved to an app profile by tests/config/apps
 TEST_ENV="${TEST_ENV:-Dev}"
 SPEC_PATH="${SPEC_PATH:-tests/specs/**/*.ts}"
 
@@ -69,7 +69,10 @@ for _s in "${_specs[@]}"; do
   [ -n "$_s" ] && SPEC_ARGS+=(--spec "$_s")
 done
 
-# Execute the suite locally against the booted emulator
+# Execute the suite locally against the booted emulator. APP selects the app
+# profile (tests/config/apps), which in turn picks the APK, the API base URLs,
+# the seeding IDs, the accounts and the feature flags.
+echo "Running the $APP suite"
 PLATFORM=android ENV=local APP="$APP" TEST_ENV="$TEST_ENV" \
   ./node_modules/.bin/wdio run ./wdio.conf.ts "${SPEC_ARGS[@]}"
 STATUS=$?

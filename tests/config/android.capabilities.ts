@@ -1,10 +1,12 @@
 import path from "path";
+import { App } from "./apps";
+
 export const androidCaps = {
-    platformName: 'Android',
-    'appium:automationName': 'UiAutomator2',
-    'appium:deviceName': 'Android Emulator',
-    "appium:app": path.resolve(__dirname, "../apps/squadi-dev.apk"),
-    'appium:autoGrantPermissions': true,
-    'appium:fullReset': true,
-    'appium:noReset': false,
-}
+  platformName: "Android",
+  "appium:automationName": "UiAutomator2",
+  "appium:deviceName": "Android Emulator",
+  "appium:app": path.resolve(__dirname, "../apps", App.binaries.apk),
+  "appium:autoGrantPermissions": true,
+  "appium:fullReset": true,
+  "appium:noReset": false,
+};

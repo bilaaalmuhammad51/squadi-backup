@@ -7,7 +7,9 @@ import { $ } from "../../factories/page.factory";
 import { Timeout } from "../../utils/timers";
 import { LoginData } from "../../data/login.data";
 
-const APP_PACKAGE = "com.wsa.netball.dev";
+import { App } from "../../config/apps";
+
+const APP_PACKAGE = App.binaries.androidPackage;
 
 describe("App Foundation - Splash & Cold Start", () => {
   const loginPage = new LoginPage();

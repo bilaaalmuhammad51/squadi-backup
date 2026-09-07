@@ -16,6 +16,7 @@ squadi-mobile-automation/
 ├── tests/
 │   ├── apps/                  # APK / IPA files
 │   ├── config/                # Platform and environment capabilities
+│   │   └── apps/              # Per-app profiles (Squadi, Basketball, ...)
 │   ├── data/                  # Test data
 │   ├── factories/             # Selector and page factories
 │   ├── pages/                 # Page objects
@@ -72,16 +73,122 @@ cd squadi-mobile-automation
 npm install
 ```
 
+# 🎛️ Multi-app support (Squadi / Basketball / next)
+
+The suite drives more than one app. They overlap by roughly 80-90%, so there is
+**one** set of specs and page objects; everything that differs lives in an *app
+profile*.
+
+```text
+tests/config/apps/
+├── app.profile.ts     # the AppProfile interface (what can differ)
+├── squadi.app.ts      # Squadi values
+├── basketball.app.ts  # Basketball values
+└── index.ts           # picks the profile from APP, applies .env overrides
+```
+
+Select the app with the `APP` environment variable (default `Squadi`):
+
+```bash
+APP=Basketball PLATFORM=android npx wdio run wdio.conf.ts --spec tests/specs/login/test_validate_successful_login_flow.ts
+```
+
+The profile drives the APK/IPA, the BrowserStack app id, the API base URLs, the
+match-seeding IDs, the test accounts, team-sheet data, sport terminology, and
+the feature flags.
+
+## The one rule
+
+**Never branch on the app name inside a spec or page object.** Branch on a
+capability or read a value from the profile. That way adding app #3 is one new
+profile file and zero test edits.
+
+### 1. Values -> read them from the profile
+
+```ts
+import { App } from "../config/apps";
+
+App.seed.competitionId;      // per environment
+App.terminology.scoreUnit;   // "Goal" vs "Point"
+App.rules.fouls?.perPlayerLimit;
+```
+
+### 2. Screens one app does not have -> feature flags
+
+Declare the capability in each profile's `features`, then gate the spec. Missing
+features are **skipped**, not failed, so the report shows the gap honestly and
+the run stays green:
+
+```ts
+import { itIfFeature, describeIfFeature } from "../../utils/features";
+
+describe("Fouls", () => {
+  itIfFeature("fouls", "records a personal foul", async () => { ... });
+});
+```
+
+### 3. Same screen, different locator -> per-app selector override
+
+Pass an override for the app that differs; every other app keeps the shared
+default:
+
+```ts
+public homeTeamScore = selector(
+  "~Home team score",            // default (Squadi and anything new)
+  "~Home team score",
+  "Home Team Score",
+  { basketball: { android: "~HOME points", ios: "~HOME points" } },
+);
+```
+
+## Running a specific app in CI
+
+Both workflows expose an **App** dropdown on *Run workflow*:
+
+- **Daily Android Emulator Tests** - picks the app, then resolves the APK file
+  name from that app's profile (`scripts/app-value.ts`) and downloads that asset
+  from the APK release. Upload each app's build to the release under the file
+  name its profile declares (`squadi-dev.apk`, `basketball-qa.apk`).
+  `tests/apps/` is gitignored, so the release is the only source in CI - the
+  step falls back to a file already sitting in `tests/apps/` only for
+  self-hosted or local runs.
+  The scheduled nightly run uses the repo variable `DEFAULT_APP` (default
+  `Squadi`), so the nightly app can be changed without editing the workflow.
+- **Mobile Tests Browserstack** - picks the app and uses that profile's
+  BrowserStack app id (override per run with the `BROWSERSTACK_APP_ID` /
+  `BROWSERSTACK_IOS_APP_ID` variables).
+
+The app name flows into the Slack message and the BrowserStack build/session
+names, so reports from different apps are easy to tell apart.
+
+## Adding a new app
+
+1. Drop the build into `tests/apps/` and upload it to the APK release
+   (the same file name the profile declares).
+2. Copy `squadi.app.ts` to `<newapp>.app.ts` and fill in the values.
+3. Register it in `tests/config/apps/index.ts` (`registry` + `aliases`) and add
+   the `AppKey` union member in `app.profile.ts`.
+4. Add it to the `app` dropdown in both workflows.
+5. Run the suite and triage failures into: selector override, feature flag, or a
+   real bug in the app.
+
+Values you have not filled in yet stay as `TBD_NUMBER` / `TBD_STRING`. Any test
+that reaches for one fails immediately with a message naming the missing field,
+rather than seeding into the wrong competition with a stale ID.
+
+Anything in a profile can also be overridden from `.env` while you are still
+pinning an environment down - see `.env.example`.
+
 # 🏃 Running Tests
 ## Android Local
 
-Run a specific test:
+Run a specific test (`APP` defaults to `Squadi`):
 ```bash
-PLATFORM=android npx wdio run wdio.conf.ts --spec <path-to-spec>
+APP=<Squadi|Basketball> PLATFORM=android npx wdio run wdio.conf.ts --spec <path-to-spec>
 ```
 Example:
 ```bash
-PLATFORM=android npx wdio run wdio.conf.ts --spec tests/specs/login/test_validate_successful_login_flow.ts
+APP=Basketball PLATFORM=android npx wdio run wdio.conf.ts --spec tests/specs/login/test_validate_successful_login_flow.ts
 ```
 ## iOS Local
 Run a specific test:

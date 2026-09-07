@@ -2,10 +2,11 @@ import { LoginPage } from "./login.page";
 import { selector } from "../factories/page.factory";
 import { generateUniqueNames } from "../utils/helpers";
 import { RegisterData } from "../data/register.data";
+import { App } from "../config/apps";
 export class RegisterProfilePage extends LoginPage {
   public createAccountOrRegisterProfileHeading = selector(
-    "~Create Account or Register Profile",
-    "~Create Account or Register Profile",
+    `~${App.register.heading}`,
+    `~${App.register.heading}`,
     "Create Account or Register Profile heading",
   );
 
