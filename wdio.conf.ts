@@ -109,9 +109,26 @@ export const config: WebdriverIO.Config = {
   maxInstances: 1,
   logLevel: "error",
 
-  // Retry a failed spec once - safety net for intermittent CI-emulator
-  // flakiness (e.g. a transient system ANR). A fresh retry re-creates state.
-  specFileRetries: 0,
+  // Retry a failed spec file once. Across runs #72 and #74 there were 16
+  // distinct parallel-only failures and only 4 recurred - twelve showed up in
+  // one run and not the other. That churn is why the retry is global rather
+  // than scoped to a known-flaky list: next run's failures are specs neither
+  // list would have named. It is also why retrying beats moving them to the
+  // sequential phase, which would cost ~25 minutes and still leave a fresh
+  // set of transient failures behind.
+  //
+  // specFileRetries and NOT mochaOpts.retries on purpose. This re-runs the
+  // file in a brand-new session, so fullReset reinstalls the app and logs in
+  // again; the failures being absorbed are "the app ended up in a state where
+  // the element never appeared". mochaOpts.retries would re-run just the `it`
+  // in the same session with the app still mid-flow, and would mostly fail
+  // again.
+  //
+  // Cost is bounded: retries spread across the shards rather than
+  // serialising, so ~9 failures over 7 shards adds roughly 6 minutes to the
+  // slowest one. A run where everything fails pays 2x, capped by the job
+  // timeout - which is a run you want slow and loud anyway.
+  specFileRetries: 1,
   specFileRetriesDelay: 0,
 
   mochaOpts: {
