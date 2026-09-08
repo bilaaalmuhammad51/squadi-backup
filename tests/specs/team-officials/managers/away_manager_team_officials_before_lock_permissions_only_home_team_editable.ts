@@ -28,7 +28,7 @@ describe("Away team Manager team officials before lock permissions - only away t
         LoginData.password,
       );
 
-      matchId = await MatchApiHelper.createMatch(token, 10);
+      matchId = await MatchApiHelper.createMatch(token, 8);
 
       allureReporter.addAttachment(
         "Created Match ID",

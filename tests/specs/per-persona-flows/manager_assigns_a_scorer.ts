@@ -27,7 +27,7 @@ describe("F40 - Manager Assigns a Scorer", () => {
           scoringMode: "MANAGERS",
         });
 
-        matchId = await MatchApiHelper.createMatch(token, 10);
+        matchId = await MatchApiHelper.createMatch(token, 8);
 
         console.log("Created Match ID:", matchId);
 

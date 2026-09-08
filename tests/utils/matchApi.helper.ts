@@ -30,13 +30,6 @@ const TEST_TEAM_IDS = [2269, 2270];
 // run has no one to collide with.
 const SHARD_INDEX = Math.max(1, parseInt(process.env.SHARD_INDEX || "1", 10) || 1);
 
-// Extra offset so two shards never request the exact same kickoff second.
-// Deliberately SECONDS, not minutes: specs pass minutesAhead tuned to the
-// window they assert (0 = already started, 9/10/15 = pre-recording), so
-// shifting by whole minutes would push a shard out of the window its
-// assertions depend on.
-const STAGGER_SECONDS = parseInt(process.env.SHARD_TIME_STAGGER_SECONDS || "20", 10) || 0;
-
 export class MatchApiHelper {
   static async getToken(username: string, password: string): Promise<string> {
     const encoded = Buffer.from(`${username}:${password}`).toString("base64");
@@ -199,9 +192,14 @@ export class MatchApiHelper {
     // Add minutes to current real time first
     now.setMinutes(now.getMinutes() + minutesAhead);
 
-    // Then nudge by this shard's sub-minute offset. Keeps the minute-level
-    // window the caller asked for intact while de-synchronising shards.
-    now.setSeconds(now.getSeconds() + (SHARD_INDEX - 1) * STAGGER_SECONDS);
+    // NO per-shard time offset. An earlier version added (shard-1) * 20s to
+    // de-synchronise shards, which was a mistake: the app only shows the
+    // match start/resume control once kickoff is within 10 minutes, and specs
+    // encode that as an ABSOLUTE minutesAhead. On shard 7 the offset turned a
+    // 10-minute match into a 12-minute one, so the control never appeared and
+    // the spec failed on a missing Match Timer / Resume button. Five of the
+    // six 9-and-10-minute specs among run #72's failures were pushed past the
+    // boundary this way. Separation is the round lane's job, not the clock's.
 
     // toISOString gives UTC automatically
     return now.toISOString();
