@@ -42,6 +42,24 @@ export class IncidentPage extends BasePage {
 
   private NextBtn = selector("~Next", "~Next", "Next button in Incident Type");
 
+  private selectATeamHeading = selector(
+    "~Select a Team",
+    "~Select a Team",
+    "Select a Team heading in Incident Type after selecting Other",
+  );
+
+  private incidentHeadingAfterTeamSelection = selector(
+    "~Incident",
+    "~Incident",
+    "Incident heading after selecting team and clicking Next",
+  );
+
+  private descriptionField = selector(
+    'android=new UiSelector().className("android.widget.EditText")',
+    "",
+    "Description field in Incident",
+  );
+
   private sendIncidentReportBtn = selector(
     "~Send Incident Report",
     "~Send Incident Report",
@@ -85,6 +103,26 @@ export class IncidentPage extends BasePage {
     await this.waitUntilVisibleWithRetry(this.sendIncidentReportBtn);
     await this.click(this.sendIncidentReportBtn);
     await this.waitUntilVisibleWithRetry(this.reportOtherIncidentOption);
+  }
+
+  async submitOtherIncidentReportWithDescription(description: string) {
+    await this.waitUntilVisibleWithRetry(this.reportOtherIncidentOption);
+    await this.click(this.reportOtherIncidentOption);
+    await this.waitUntilVisibleWithRetry(this.incidentTypHeading);
+    await this.assertElementDisplayed(this.incidentTypHeading);
+    await this.waitUntilVisibleWithRetry(this.otherOption);
+    await this.click(this.otherOption);
+    await this.scrollUntilElementVisible(this.selectATeamHeading);
+    await this.assertElementDisplayed(this.selectATeamHeading);
+    await this.click(this.teamInIncidentType(TeamsInTeamSheet.Awayteam));
+    await this.click(this.NextBtn);
+    await this.waitUntilVisibleWithRetry(this.incidentHeadingAfterTeamSelection);
+    await this.assertElementDisplayed(this.incidentHeadingAfterTeamSelection);
+    await this.click(this.descriptionField);
+    await this.type(this.descriptionField, description);
+    await this.click(this.sendIncidentReportBtn);
+    await this.waitUntilVisibleWithRetry(this.reportOtherIncidentOption);
+    await this.assertElementDisplayed(this.reportOtherIncidentOption);
   }
 
   async submitRefereeReport() {

@@ -111,6 +111,48 @@ export class HomePage extends LoginPage {
     "Article body",
   );
 
+  public refereeActivityOptionInMoreTab = selector(
+    "~Referee Activity",
+    "~Referee Activity",
+    "Referee Activity option in More tab",
+  );
+
+  public activityHeadingInRefereeActivity = selector(
+    "~Activity",
+    "~Activity",
+    "Activity heading after opening Referee Activity",
+  );
+
+  public matchIdColumnHeadingInRefereeActivity = selector(
+    '//android.view.View[@content-desc="Match Id"]',
+    "",
+    "Match Id column heading in Referee Activity",
+  );
+
+  public dateColumnHeadingInRefereeActivity = selector(
+    '//android.view.View[@content-desc="Date"]',
+    "",
+    "Date column heading in Referee Activity",
+  );
+
+  public timeColumnHeadingInRefereeActivity = selector(
+    '//android.view.View[@text="Time"]',
+    "",
+    "Time column heading in Referee Activity",
+  );
+
+  public competitionColumnHeadingInRefereeActivity = selector(
+    '//android.view.View[@content-desc="Competition"]',
+    "",
+    "Competition column heading in Referee Activity",
+  );
+
+  public pastMatchRowInRefereeActivity = selector(
+    '//android.view.View[@text="HR-ASN2-MD-Only"]',
+    "",
+    "Past match row (Competition) listed in Referee Activity",
+  );
+
   async assertHomeTabElements() {
     await this.waitUntilVisibleWithRetry(this.welcomeBackHeading);
     await this.assertElementDisplayed(this.welcomeBackHeading);
@@ -188,5 +230,25 @@ export class HomePage extends LoginPage {
     await this.waitUntilVisibleWithRetry(this.newsHeadingInArticle);
     await this.assertElementDisplayed(this.articleBody);
     await this.clickCloseCrossBtn();
+  }
+
+  async openRefereeActivityAndValidatePastMatchListed() {
+    await this.gotoMoreTab();
+    await this.scrollUntilElementVisible(this.refereeActivityOptionInMoreTab);
+    await this.click(this.refereeActivityOptionInMoreTab);
+    await this.waitUntilVisibleWithRetry(this.activityHeadingInRefereeActivity);
+    await this.assertElementDisplayed(this.activityHeadingInRefereeActivity);
+    await this.waitUntilVisibleWithRetry(
+      this.matchIdColumnHeadingInRefereeActivity,
+    );
+    await this.assertElementDisplayed(
+      this.matchIdColumnHeadingInRefereeActivity,
+    );
+    await this.assertElementDisplayed(this.dateColumnHeadingInRefereeActivity);
+    await this.assertElementDisplayed(this.timeColumnHeadingInRefereeActivity);
+    await this.assertElementDisplayed(
+      this.competitionColumnHeadingInRefereeActivity,
+    );
+    await this.assertElementDisplayed(this.pastMatchRowInRefereeActivity);
   }
 }
