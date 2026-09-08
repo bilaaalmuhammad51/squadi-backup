@@ -5,6 +5,33 @@ import { LoginData } from "../data/login.data";
 const USERS_BASE_URL = "https://api-dev1.squadi.com/users";
 const LIVESCORES_BASE_URL = "https://api-dev1.squadi.com/livescores";
 
+// ---------------------------------------------------------------------------
+// Per-shard "lanes"
+// ---------------------------------------------------------------------------
+// Every spec seeds its match on the same two teams (2269 v 2270) on the same
+// court, so when the suite runs in parallel those teams end up playing several
+// matches at once in overlapping time windows. Team sheets, team officials and
+// the scorer's current-match resolution are all team-scoped views, which is
+// why the parallel runs failed AFTER opening the right match (missing Match
+// Timer, Resume button, Confirm Team Officials) while sequential runs passed.
+//
+// Giving each shard its own round separates those matches into different
+// draw lanes. These are the seven REAL rounds on division 541 (verified
+// against livescores/round?competitionId=239&divisionId=541) - inventing ids
+// would just make createMatch fail.
+const ROUND_POOL = [13215, 1275, 13332, 13333, 13334, 15596, 15597];
+
+// Shard identity, injected by the CI workflow. Absent locally, where a single
+// run has no one to collide with.
+const SHARD_INDEX = Math.max(1, parseInt(process.env.SHARD_INDEX || "1", 10) || 1);
+
+// Extra offset so two shards never request the exact same kickoff second.
+// Deliberately SECONDS, not minutes: specs pass minutesAhead tuned to the
+// window they assert (0 = already started, 9/10/15 = pre-recording), so
+// shifting by whole minutes would push a shard out of the window its
+// assertions depend on.
+const STAGGER_SECONDS = parseInt(process.env.SHARD_TIME_STAGGER_SECONDS || "20", 10) || 0;
+
 export class MatchApiHelper {
   static async getToken(username: string, password: string): Promise<string> {
     const encoded = Buffer.from(`${username}:${password}`).toString("base64");
@@ -53,11 +80,20 @@ export class MatchApiHelper {
     }
   }
 
+  /** The round this shard owns, so shards don't seed into each other's draw. */
+  static laneRoundId(): number {
+    return ROUND_POOL[(SHARD_INDEX - 1) % ROUND_POOL.length];
+  }
+
   static getPakistanFutureTimeUtc(minutesAhead: number = 3): string {
     const now = new Date();
 
     // Add minutes to current real time first
     now.setMinutes(now.getMinutes() + minutesAhead);
+
+    // Then nudge by this shard's sub-minute offset. Keeps the minute-level
+    // window the caller asked for intact while de-synchronising shards.
+    now.setSeconds(now.getSeconds() + (SHARD_INDEX - 1) * STAGGER_SECONDS);
 
     // toISOString gives UTC automatically
     return now.toISOString();
@@ -82,7 +118,7 @@ export class MatchApiHelper {
       team2Id: 2270,
 
       venueCourtId: 42,
-      roundId: roundId || 13215,
+      roundId: roundId || this.laneRoundId(),
 
       matchDuration: 4,
       mainBreakDuration: 2,

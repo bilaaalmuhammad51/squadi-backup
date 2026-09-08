@@ -46,9 +46,9 @@ on:
         required: false
         default: "tests/specs/**/*.ts"
       shard_total:
-        description: "Parallel emulators for phase 1 (8 is the sweet spot; past ~10 the serialised exclusive phase dominates)"
+        description: "Parallel emulators for phase 1. Cap is 7 - MatchApiHelper.ROUND_POOL has 7 real rounds on division 541, and beyond that two shards share a round lane and seed into each other's draw."
         required: false
-        default: "8"
+        default: "7"
 
 permissions:
   contents: write # push the report to the gh-pages branch
@@ -85,7 +85,7 @@ jobs:
         id: plan
         env:
           SPEC_PATH: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
-          REQUESTED_SHARDS: ${{ github.event.inputs.shard_total || '8' }}
+          REQUESTED_SHARDS: ${{ github.event.inputs.shard_total || '7' }}
         run: |
           # Parallel-safe specs (phase 1) and competition-settings specs
           # (phase 2) are counted separately - only the former get sharded.
@@ -97,6 +97,15 @@ jobs:
           # emulators with nothing to run - pure wasted runner minutes.
           if ! [ "$requested" -ge 1 ] 2>/dev/null; then requested=1; fi
           if [ "$requested" -gt "$spec_count" ]; then requested="$spec_count"; fi
+
+          # Never exceed the round pool: past that, two shards seed matches
+          # into the same round and pollute each other's draw - the exact
+          # collision the lanes exist to prevent.
+          rounds="$(node -e 'const s=require("fs").readFileSync("tests/utils/matchApi.helper.ts","utf8");console.log(s.match(/ROUND_POOL = \[([^\]]*)\]/)[1].split(",").length)')"
+          if [ "$requested" -gt "$rounds" ]; then
+            echo "Capping shards at the round-pool size ($rounds)"
+            requested="$rounds"
+          fi
 
           shards="$(seq 1 "$requested" | jq -R . | jq -sc .)"
 

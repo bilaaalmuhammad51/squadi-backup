@@ -27,13 +27,21 @@
  * failed + 3 broken - and the ~21 extra failures were almost entirely
  * team-sheet and team-officials specs, i.e. the readers of that global record.
  *
+ * A second, narrower class has the same problem for a different reason: a spec
+ * that seeds MORE THAN ONE match, or pins an explicit roundId, is inspecting
+ * cross-match state (the draw for a round, matches listed for a team) rather
+ * than just its own match. Anything another shard seeds pollutes what it sees.
+ * Both such specs failed in the parallel runs and passed sequentially.
+ *
  * So specs are split into two populations:
- *   - PARALLEL-SAFE: never writes competition settings. Free to run on any
- *     shard, concurrently with anything else.
- *   - EXCLUSIVE: writes competition settings. These must not overlap with any
- *     other spec, so they run in a single dedicated job after the parallel
- *     phase, grouped so that specs needing the SAME competition state run
- *     back to back.
+ *   - PARALLEL-SAFE: touches only its own match and never writes competition
+ *     settings. Free to run on any shard, concurrently with anything else.
+ *     Each shard also seeds into its OWN round (MatchApiHelper.laneRoundId)
+ *     so parallel shards do not share a draw lane.
+ *   - EXCLUSIVE: writes competition settings, or reads cross-match state.
+ *     These must not overlap with any other spec, so they run in a single
+ *     dedicated job after the parallel phase, grouped so specs needing the
+ *     same conditions run back to back.
  *
  * Membership is DERIVED from the spec source (see readCompetitionState), not
  * hand-listed, so a newly added spec that touches competition settings is
@@ -200,7 +208,30 @@ function readCompetitionState(file) {
   return [...states].sort().join(" + ");
 }
 
-const state = new Map(matched.map((file) => [file, readCompetitionState(file)]));
+/**
+ * Returns why a spec cannot run alongside others, or null when it can.
+ *
+ * Two independent reasons, both derived from the source so a new spec is
+ * classified automatically:
+ *   - it writes the shared competition record, or
+ *   - it reads state spanning more than its own match, which any other shard's
+ *     seeding would disturb. Seeding two matches, or pinning a specific
+ *     roundId, is what that looks like in this suite.
+ */
+function exclusiveReason(file) {
+  const competition = readCompetitionState(file);
+  if (competition) return `competition-settings: ${competition}`;
+
+  const src = fs.readFileSync(file, "utf8");
+  const seeds = (src.match(/create(?:AndPublish)?Match\(/g) || []).length;
+  const pinsRound = /createMatch\(\s*[A-Za-z_$][\w$]*\s*,\s*\d+\s*,\s*\d+/.test(src);
+
+  if (seeds > 1 || pinsRound) return "cross-match-state";
+
+  return null;
+}
+
+const state = new Map(matched.map((file) => [file, exclusiveReason(file)]));
 const parallelSafe = matched.filter((f) => state.get(f) === null);
 const exclusive = matched.filter((f) => state.get(f) !== null);
 
