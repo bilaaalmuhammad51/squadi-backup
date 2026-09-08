@@ -21,6 +21,11 @@ const LIVESCORES_BASE_URL = "https://api-dev1.squadi.com/livescores";
 // would just make createMatch fail.
 const ROUND_POOL = [13215, 1275, 13332, 13333, 13334, 15596, 15597];
 
+// The two teams every seeded match is played between. Used to keep the lane
+// reset below narrowly scoped: it only ever removes matches belonging to this
+// suite's fixtures, never anything else someone has set up on the competition.
+const TEST_TEAM_IDS = [2269, 2270];
+
 // Shard identity, injected by the CI workflow. Absent locally, where a single
 // run has no one to collide with.
 const SHARD_INDEX = Math.max(1, parseInt(process.env.SHARD_INDEX || "1", 10) || 1);
@@ -78,6 +83,109 @@ export class MatchApiHelper {
       }
       throw err;
     }
+  }
+
+  // Every match this process created, so it can be cleaned up unconditionally
+  // at the end of the spec file regardless of how the test ended.
+  private static createdMatchIds = new Set<number>();
+  private static lastToken: string | null = null;
+
+  /**
+   * Deletes every match this process created. Called from the `after` hook in
+   * wdio.conf.ts - once per spec FILE, not per test, because
+   * manager_team_sheet_starting_formation_post_match_window_permissions seeds
+   * its match in a `before()` and then uses it across two `it`s. Deleting per
+   * test would pull the match out from under the second one.
+   */
+  static async cleanupCreatedMatches(): Promise<number> {
+    if (this.createdMatchIds.size === 0 || !this.lastToken) return 0;
+
+    const ids = [...this.createdMatchIds];
+    this.createdMatchIds.clear();
+    let deleted = 0;
+
+    for (const id of ids) {
+      try {
+        await this.deleteMatch(this.lastToken, id);
+        deleted++;
+      } catch {
+        // Already gone (the spec's own after() got there first) or the backend
+        // refuses to delete it. Either way this is best-effort cleanup and
+        // must never fail the run - the lane reset catches the remainder.
+      }
+    }
+
+    return deleted;
+  }
+
+  /** Matches currently sitting in a round. */
+  static async listMatchesInRound(
+    token: string,
+    roundId: number,
+  ): Promise<any[]> {
+    const params = new URLSearchParams({
+      competitionId: "239",
+      roundIds: `[${roundId}]`,
+      limit: "100",
+      offset: "0",
+    });
+
+    const response = await axios.get(
+      `${LIVESCORES_BASE_URL}/matches?${params.toString()}`,
+      {
+        headers: {
+          Authorization: `${token}`,
+          SourceSystem: "WebAdmin",
+          Accept: "application/json",
+        },
+      },
+    );
+
+    return response.data?.matches ?? [];
+  }
+
+  /**
+   * Clears this shard's round before the run starts, so a shard always begins
+   * from a known-empty lane no matter what a previous run left behind.
+   *
+   * Deliberately narrow: only matches in THIS shard's round, and only those
+   * between this suite's own two fixture teams. Anything else on competition
+   * 239 - including matches someone set up by hand - is left alone.
+   */
+  static async resetLane(token: string, roundIds?: number[]): Promise<number> {
+    const targets = roundIds ?? [this.laneRoundId()];
+    let deleted = 0;
+
+    for (const roundId of targets) {
+      let matches: any[] = [];
+
+      try {
+        matches = await this.listMatchesInRound(token, roundId);
+      } catch {
+        continue; // A lane we cannot read is a lane we must not delete from.
+      }
+
+      const ours = matches.filter(
+        (m) =>
+          TEST_TEAM_IDS.includes(m.team1Id) && TEST_TEAM_IDS.includes(m.team2Id),
+      );
+
+      for (const match of ours) {
+        try {
+          await this.deleteMatch(token, match.id);
+          deleted++;
+        } catch {
+          // Leave it; a match the backend won't delete is not worth failing over.
+        }
+      }
+    }
+
+    return deleted;
+  }
+
+  /** All rounds used as shard lanes - reset together by the exclusive phase. */
+  static allLaneRounds(): number[] {
+    return [...ROUND_POOL];
   }
 
   /** The round this shard owns, so shards don't seed into each other's draw. */
@@ -196,6 +304,14 @@ export class MatchApiHelper {
     if (!matchId) {
       throw new Error(`Match ID not found: ${JSON.stringify(response.data)}`);
     }
+
+    // Remember it so the spec file's `after` hook can remove it even when the
+    // test fails. Specs delete their own match in an `after()` they register
+    // themselves, but that does not survive every failure path (a mocha
+    // timeout, or a throw before the hook is registered), which is how round
+    // 13215 ended up holding five stale matches from earlier runs.
+    this.createdMatchIds.add(matchId);
+    this.lastToken = token;
 
     return matchId;
   }

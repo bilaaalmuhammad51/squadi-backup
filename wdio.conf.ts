@@ -8,6 +8,8 @@ import Logger from "./tests/utils/logger";
 import allureReporter from "@wdio/allure-reporter";
 import { Timeout } from "./tests/utils/timers";
 import BasePage from "./tests/pages/base.page";
+import { MatchApiHelper } from "./tests/utils/matchApi.helper";
+import { LoginData } from "./tests/data/login.data";
 const ENV = (process.env.ENV || "local").toLowerCase();
 const PLATFORM = (process.env.PLATFORM || "android").toLowerCase();
 
@@ -40,8 +42,55 @@ export const config: WebdriverIO.Config = {
   runner: "local",
   framework: "mocha",
   ...getServerConfig(),
-  onPrepare: function () {
+  onPrepare: async function () {
     Logger.info(`Running tests on ${PLATFORM} on ${ENV} environment`);
+
+    // Clear this shard's round before anything runs. A failed spec does not
+    // always manage to delete the match it seeded, so lanes accumulate stale
+    // matches across runs - and because every match uses the same two fixture
+    // teams, those leftovers surface in the team-scoped views (team sheet,
+    // team officials, a round's draw) that the assertions read. Round 13215
+    // was holding five such matches from earlier runs. Starting from an empty
+    // lane makes a shard independent of whatever ran before it.
+    //
+    // The exclusive phase clears every lane, not just its own: it runs alone,
+    // and the draw spec pins specific rounds that other shards use as lanes.
+    const mode = (process.env.SHARD_MODE || "parallel").toLowerCase();
+    const rounds =
+      mode === "exclusive" ? MatchApiHelper.allLaneRounds() : undefined;
+
+    try {
+      const token = await MatchApiHelper.getToken(
+        LoginData.email,
+        LoginData.password,
+      );
+      const deleted = await MatchApiHelper.resetLane(token, rounds);
+      const cleared = rounds ?? [MatchApiHelper.laneRoundId()];
+      Logger.info(
+        `Lane reset: removed ${deleted} stale match(es) from round(s) ${cleared.join(", ")}`,
+      );
+    } catch (error) {
+      // Never block the run on cleanup - a backend hiccup here should cost
+      // tidiness, not the whole suite.
+      Logger.info(`Lane reset skipped: ${error}`);
+    }
+  },
+
+  // Runs once per spec FILE. Removes any match this file seeded that is still
+  // around. Specs register their own after() cleanup, but that does not
+  // survive every failure path (a mocha timeout, or a throw before the hook
+  // is registered). Per-file rather than per-test on purpose:
+  // manager_team_sheet_starting_formation_post_match_window_permissions seeds
+  // its match in a before() and uses it across two it()s.
+  after: async function () {
+    try {
+      const deleted = await MatchApiHelper.cleanupCreatedMatches();
+      if (deleted > 0) {
+        Logger.info(`Cleaned up ${deleted} match(es) left over from this spec`);
+      }
+    } catch (error) {
+      Logger.info(`Match cleanup skipped: ${error}`);
+    }
   },
 
   reporters: [
