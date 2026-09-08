@@ -5,15 +5,27 @@ name: Daily Android Emulator Tests
 # GitHub Actions runner (local Appium server + UiAutomator2). No BrowserStack
 # minutes are consumed here - runner minutes only.
 #
-# The suite runs SHARDED: `prepare` splits the spec files into N groups,
-# `emulator-test` runs one group per matrix job, and `report` merges every
-# shard's allure-results into a single report and one Slack message.
+# The suite runs SHARDED in two phases:
+#   prepare            - plans the shard matrix
+#   emulator-test      - N parallel shards, PARALLEL-SAFE specs only
+#   emulator-exclusive - one serialised job for the specs that rewrite the
+#                        shared competition record (see below)
+#   report             - merges every shard's results into one report + Slack
 #
-# Isolation: each shard is a separate GitHub runner with its own emulator, its
-# own Appium server and its own app install, so shards cannot touch each
-# other's device state. On the server side each spec that mutates match data
-# creates its own match through the API first (MatchApiHelper.createMatch), so
-# concurrent shards never edit the same match either.
+# Device state is isolated by construction: each shard is a separate runner
+# with its own emulator, Appium server and app install. Match data is isolated
+# too - every mutating spec creates its own match via
+# MatchApiHelper.createMatch().
+#
+# What is NOT isolated is competition 239. MatchApiHelper.updateCompetitionSettings
+# PUTs that whole record, and the entire suite reads it, so a spec that flips
+# gameTimeTrackingEnabled or lockAttendanceMinutes breaks every team-sheet and
+# team-officials spec running at that moment - then resets to defaults and
+# breaks them again. Measured: sequential run #95 was 103 passed / 5 failed;
+# the first naive 6-way parallel run (#70) was 82 passed / 23 failed + 3
+# broken, and the extra failures were overwhelmingly readers of that record.
+# Hence the second phase: scripts/shard-specs.js derives which specs write
+# competition settings and keeps them out of the parallel phase entirely.
 
 on:
   schedule:
@@ -34,9 +46,9 @@ on:
         required: false
         default: "tests/specs/**/*.ts"
       shard_total:
-        description: "How many emulators to run in parallel (1 = old sequential behaviour)"
+        description: "Parallel emulators for phase 1 (8 is the sweet spot; past ~10 the serialised exclusive phase dominates)"
         required: false
-        default: "6"
+        default: "8"
 
 permissions:
   contents: write # push the report to the gh-pages branch
@@ -61,6 +73,8 @@ jobs:
       shards: ${{ steps.plan.outputs.shards }}
       shard_total: ${{ steps.plan.outputs.shard_total }}
       spec_count: ${{ steps.plan.outputs.spec_count }}
+      exclusive_count: ${{ steps.plan.outputs.exclusive_count }}
+      expected_artifacts: ${{ steps.plan.outputs.expected_artifacts }}
     steps:
       - name: Checkout selected branch
         uses: actions/checkout@v4
@@ -71,9 +85,12 @@ jobs:
         id: plan
         env:
           SPEC_PATH: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
-          REQUESTED_SHARDS: ${{ github.event.inputs.shard_total || '6' }}
+          REQUESTED_SHARDS: ${{ github.event.inputs.shard_total || '8' }}
         run: |
-          spec_count="$(node scripts/shard-specs.js --count)"
+          # Parallel-safe specs (phase 1) and competition-settings specs
+          # (phase 2) are counted separately - only the former get sharded.
+          spec_count="$(SHARD_MODE=parallel node scripts/shard-specs.js --count)"
+          exclusive_count="$(SHARD_MODE=exclusive node scripts/shard-specs.js --count)"
           requested="$REQUESTED_SHARDS"
 
           # Clamp to [1, spec_count]. More shards than specs would boot
@@ -82,180 +99,75 @@ jobs:
           if [ "$requested" -gt "$spec_count" ]; then requested="$spec_count"; fi
 
           shards="$(seq 1 "$requested" | jq -R . | jq -sc .)"
-          echo "Splitting $spec_count spec(s) across $requested shard(s): $shards"
+
+          # One artifact per parallel shard, plus one from the exclusive phase
+          # when it has anything to run. The report job checks against this so
+          # a shard whose runner died cannot be mistaken for a pass.
+          expected=$requested
+          if [ "$exclusive_count" -gt 0 ]; then expected=$((expected + 1)); fi
+
+          echo "Parallel-safe: $spec_count spec(s) across $requested shard(s): $shards"
+          echo "Exclusive (rewrite competition settings): $exclusive_count spec(s)"
+          echo "Expecting $expected result artifact(s)"
+          echo
+          SHARD_TOTAL="$requested" node scripts/shard-specs.js --plan
 
           {
             echo "spec_count=$spec_count"
+            echo "exclusive_count=$exclusive_count"
             echo "shard_total=$requested"
             echo "shards=$shards"
+            echo "expected_artifacts=$expected"
           } >> "$GITHUB_OUTPUT"
 
   # ---------------------------------------------------------------------------
-  # One emulator per shard, all running at the same time.
+  # Phase 1: the parallel-safe specs, N emulators at once, duration-balanced.
   # ---------------------------------------------------------------------------
   emulator-test:
-    name: Android Emulator (shard ${{ matrix.shard }}/${{ needs.prepare.outputs.shard_total }})
+    name: Parallel
     needs: prepare
-    runs-on: ubuntu-latest
-    # Safety net against a true runaway only - the emulator is force-killed
-    # after tests so the job ends promptly on its own. A shard runs roughly
-    # 1/N of the suite, so this is far more slack than a shard ever needs.
-    timeout-minutes: 120
-
     strategy:
       # Never cancel the other shards because one of them failed - we want the
       # full picture in the merged report, not a partial one.
       fail-fast: false
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.shards) }}
+    uses: ./.github/workflows/emulator-shard.yml
+    with:
+      shard-name: ${{ matrix.shard }}
+      shard-index: ${{ matrix.shard }}
+      shard-total: ${{ needs.prepare.outputs.shard_total }}
+      shard-mode: parallel
+      spec-path: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
+      api-level: ${{ github.event.inputs.api_level || '34' }}
+      ref: ${{ github.event.inputs.branch || github.ref_name }}
 
-    env:
-      PLATFORM: android
-      ENV: local
-      APP: Squadi
-      TEST_ENV: Dev
-      API_LEVEL: ${{ github.event.inputs.api_level || '34' }}
-      SPEC_PATH: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
-      SHARD_INDEX: ${{ matrix.shard }}
-      SHARD_TOTAL: ${{ needs.prepare.outputs.shard_total }}
-
-    steps:
-      - name: Checkout selected branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch || github.ref_name }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Appium UiAutomator2 driver
-        # Pin to the 3.x line: driver v4+ requires Appium 3, but this project
-        # uses Appium 2 (see package.json). 3.x is the Appium-2-compatible line.
-        run: npx appium driver install uiautomator2@3.10.0
-
-      - name: Setup Java (Allure + Android tooling)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Enable KVM for hardware acceleration
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
-            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      # The hosted runner ships with ~6.9 GB free, but the pixel_6 profile asks
-      # for a 7372.80 MB userdata partition, so the emulator dies at launch with
-      # "Not enough space to create userdata partition" and every later adb poll
-      # fails until the boot timeout. Dropping the preinstalled toolchains we
-      # never use buys back well over 20 GB. df is printed so the margin is
-      # visible in the log if this ever gets tight again.
-      - name: Free disk space for the emulator
-        run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost \
-                      /usr/local/lib/android/sdk/ndk /opt/hostedtoolcache/CodeQL
-          sudo docker image prune --all --force
-          df -h /
-
-      - name: Download test APK
-        env:
-          # The test APK is stored as an asset on a GitHub Release in this
-          # repo (tag below). GITHUB_TOKEN can read it directly - no external
-          # service, virus-scan page, or quota to fight with.
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APK_RELEASE_TAG: ${{ vars.APK_RELEASE_TAG || 'test-apk' }}
-        run: |
-          mkdir -p tests/apps
-          gh release download "$APK_RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --pattern squadi-dev.apk \
-            --dir tests/apps \
-            --clobber
-          echo "Downloaded APK:"
-          ls -la tests/apps/squadi-dev.apk
-          # Fail early if we somehow got something that isn't an APK
-          if ! file tests/apps/squadi-dev.apk | grep -qiE 'archive|android|zip'; then
-            echo "Downloaded file does not look like an APK:"
-            file tests/apps/squadi-dev.apk
-            head -c 200 tests/apps/squadi-dev.apk
-            exit 1
-          fi
-
-      - name: Clean old reports
-        run: rm -rf allure-results allure-report
-
-      - name: Run tests on Android emulator
-        id: run_tests
-        continue-on-error: true
-        # Step cap for ONE shard. The teardown hang is handled by force-killing
-        # the emulator at the end of the script, so this is only a runaway
-        # guard - normal shards end well before it.
-        timeout-minutes: 110
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: ${{ env.API_LEVEL }}
-          target: google_apis
-          arch: x86_64
-          profile: pixel_6
-          force-avd-creation: false
-          # pixel_6 otherwise defaults to a 7.2 GB userdata partition, which is
-          # more than the runner has free. 6 GB is ample for the app plus its
-          # data and keeps the AVD under the limit on every runner pool.
-          disk-size: 6144M
-          # More RAM/cores so the launcher doesn't ANR ("Pixel Launcher isn't
-          # responding") under load. -no-snapshot-save avoids a slow snapshot
-          # write that can hang teardown.
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 4096 -cores 2
-          disable-animations: true
-          # The runner executes each line of an inline script as a separate
-          # shell, so the full sequence lives in one file instead.
-          script: bash scripts/run-emulator-tests.sh
-
-      # allure-results is how this shard's results reach the `report` job -
-      # unlike the Appium log this upload is NOT optional, so it is left to
-      # fail the shard if it fails. Retention is 1 day because these are
-      # consumed by the very next job; the published report is the durable
-      # copy and lives on the gh-pages branch, not in artifact storage.
-      - name: Upload shard results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-results-shard-${{ matrix.shard }}
-          path: |
-            allure-results
-            wdio-exit-code.txt
-          if-no-files-found: warn
-          retention-days: 1
-
-      - name: Upload Appium log
-        if: always()
-        # Non-fatal: if the Actions artifact storage quota is full this upload
-        # fails, but it must not fail the run - the report is published to the
-        # gh-pages branch (git storage), which does not use artifact storage.
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: appium-log-${{ github.run_number }}-shard-${{ matrix.shard }}
-          path: appium.log
-          if-no-files-found: ignore
-          # Debug aid only - keep it short so old logs don't accumulate against
-          # the shared Actions storage quota (default retention is 90 days).
-          retention-days: 3
+  # ---------------------------------------------------------------------------
+  # Phase 2: the specs that rewrite competition 239, one at a time, alone.
+  #
+  # `needs: emulator-test` is the whole point - this phase must not overlap the
+  # parallel phase, or it corrupts it. It still runs when a parallel shard
+  # failed (we want complete results), but not if `prepare` never produced a
+  # plan.
+  # ---------------------------------------------------------------------------
+  emulator-exclusive:
+    name: Exclusive
+    needs: [prepare, emulator-test]
+    if: ${{ !cancelled() && needs.prepare.result == 'success' && needs.prepare.outputs.exclusive_count != '0' }}
+    uses: ./.github/workflows/emulator-shard.yml
+    with:
+      shard-name: exclusive
+      shard-mode: exclusive
+      spec-path: ${{ github.event.inputs.spec_path || 'tests/specs/**/*.ts' }}
+      api-level: ${{ github.event.inputs.api_level || '34' }}
+      ref: ${{ github.event.inputs.branch || github.ref_name }}
 
   # ---------------------------------------------------------------------------
   # Merge every shard's results into one report, publish it, notify Slack once.
   # ---------------------------------------------------------------------------
   report:
     name: Merge results and publish report
-    needs: [prepare, emulator-test]
+    needs: [prepare, emulator-test, emulator-exclusive]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -330,7 +242,7 @@ jobs:
           # cancelled, timeout) must not be silently reported as a pass.
           # Empty when `prepare` itself failed - then there is nothing to
           # compare against and the missing artifacts already fail the run.
-          expected="${{ needs.prepare.outputs.shard_total }}"
+          expected="${{ needs.prepare.outputs.expected_artifacts }}"
           expected="${expected:-0}"
           if [ "${#shard_dirs[@]}" -ne "$expected" ]; then
             echo "Expected $expected shard artifact(s), got ${#shard_dirs[@]} - marking the run failed"

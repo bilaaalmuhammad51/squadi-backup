@@ -19,8 +19,14 @@ TEST_ENV="${TEST_ENV:-Dev}"
 SPEC_PATH="${SPEC_PATH:-tests/specs/**/*.ts}"
 SHARD_INDEX="${SHARD_INDEX:-1}"
 SHARD_TOTAL="${SHARD_TOTAL:-1}"
+SHARD_MODE="${SHARD_MODE:-parallel}"
 
-echo "Running shard ${SHARD_INDEX} of ${SHARD_TOTAL} (SPEC_PATH=${SPEC_PATH})"
+if [ "$SHARD_MODE" = "exclusive" ]; then
+  echo "Running the EXCLUSIVE phase: specs that rewrite competition settings,"
+  echo "serialised and grouped by the state each one needs."
+else
+  echo "Running shard ${SHARD_INDEX} of ${SHARD_TOTAL} (mode=${SHARD_MODE}, SPEC_PATH=${SPEC_PATH})"
+fi
 
 # Work out this shard's specs BEFORE booting anything else. If the suite has
 # fewer specs than shards the tail shards legitimately get nothing to do -
@@ -32,8 +38,8 @@ echo "Running shard ${SHARD_INDEX} of ${SHARD_TOTAL} (SPEC_PATH=${SPEC_PATH})"
 # tail shard.
 SHARD_LIST="$(mktemp)"
 if ! SPEC_PATH="$SPEC_PATH" SHARD_INDEX="$SHARD_INDEX" SHARD_TOTAL="$SHARD_TOTAL" \
-  node scripts/shard-specs.js > "$SHARD_LIST"; then
-  echo "Could not work out the specs for shard ${SHARD_INDEX}/${SHARD_TOTAL}"
+  SHARD_MODE="$SHARD_MODE" node scripts/shard-specs.js > "$SHARD_LIST"; then
+  echo "Could not work out the specs for shard ${SHARD_INDEX}/${SHARD_TOTAL} (mode=${SHARD_MODE})"
   echo "1" > "${GITHUB_WORKSPACE:-.}/wdio-exit-code.txt"
   exit 1
 fi
@@ -45,12 +51,12 @@ done < "$SHARD_LIST"
 rm -f "$SHARD_LIST"
 
 if [ "${#SHARD_SPECS[@]}" -eq 0 ]; then
-  echo "Shard ${SHARD_INDEX}/${SHARD_TOTAL} has no specs to run - nothing to do."
+  echo "This shard has no specs to run - nothing to do."
   echo "0" > "${GITHUB_WORKSPACE:-.}/wdio-exit-code.txt"
   exit 0
 fi
 
-echo "Shard ${SHARD_INDEX}/${SHARD_TOTAL} will run ${#SHARD_SPECS[@]} spec(s):"
+echo "This job will run ${#SHARD_SPECS[@]} spec(s):"
 printf '  %s\n' "${SHARD_SPECS[@]}"
 
 # Let the device settle after boot_completed. The launcher can still be warming

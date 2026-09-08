@@ -1,0 +1,193 @@
+name: Emulator shard
+
+# Runs ONE shard of the WDIO suite on its own runner, with its own emulator and
+# its own Appium server, then uploads that shard's allure-results.
+#
+# This is a reusable workflow rather than a composite action because both
+# phases of emulator-daily.yml (the parallel matrix and the serialised
+# exclusive phase) need an identical ~10-step setup, and the emulator step
+# needs `continue-on-error` and `timeout-minutes` - neither of which a
+# composite action's steps support.
+
+on:
+  workflow_call:
+    inputs:
+      shard-name:
+        description: Artifact suffix identifying this shard (e.g. "3" or "exclusive")
+        required: true
+        type: string
+      shard-index:
+        description: 1-based shard index (always 1 for the exclusive phase)
+        required: false
+        default: "1"
+        type: string
+      shard-total:
+        description: Number of parallel shards (always 1 for the exclusive phase)
+        required: false
+        default: "1"
+        type: string
+      shard-mode:
+        description: parallel | exclusive | all
+        required: true
+        type: string
+      spec-path:
+        required: true
+        type: string
+      api-level:
+        required: true
+        type: string
+      ref:
+        description: Branch to check out
+        required: true
+        type: string
+      app:
+        required: false
+        default: Squadi
+        type: string
+      test-env:
+        required: false
+        default: Dev
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  shard:
+    name: shard ${{ inputs.shard-name }}
+    runs-on: ubuntu-latest
+    # Safety net against a true runaway only - the emulator is force-killed
+    # after tests so the job ends promptly on its own.
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Appium UiAutomator2 driver
+        # Pin to the 3.x line: driver v4+ requires Appium 3, but this project
+        # uses Appium 2 (see package.json). 3.x is the Appium-2-compatible line.
+        run: npx appium driver install uiautomator2@3.10.0
+
+      - name: Setup Java (Allure + Android tooling)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Enable KVM for hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # The hosted runner ships with ~6.9 GB free, but the pixel_6 profile asks
+      # for a 7372.80 MB userdata partition, so the emulator dies at launch with
+      # "Not enough space to create userdata partition" and every later adb poll
+      # fails until the boot timeout. Dropping the preinstalled toolchains we
+      # never use buys back well over 20 GB.
+      - name: Free disk space for the emulator
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost \
+                      /usr/local/lib/android/sdk/ndk /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h /
+
+      - name: Download test APK
+        env:
+          # The test APK is stored as an asset on a GitHub Release in this
+          # repo. GITHUB_TOKEN can read it directly - no external service,
+          # virus-scan page, or quota to fight with.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APK_RELEASE_TAG: ${{ vars.APK_RELEASE_TAG || 'test-apk' }}
+        run: |
+          mkdir -p tests/apps
+          gh release download "$APK_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern squadi-dev.apk \
+            --dir tests/apps \
+            --clobber
+          echo "Downloaded APK:"
+          ls -la tests/apps/squadi-dev.apk
+          # Fail early if we somehow got something that isn't an APK
+          if ! file tests/apps/squadi-dev.apk | grep -qiE 'archive|android|zip'; then
+            echo "Downloaded file does not look like an APK:"
+            file tests/apps/squadi-dev.apk
+            head -c 200 tests/apps/squadi-dev.apk
+            exit 1
+          fi
+
+      - name: Clean old reports
+        run: rm -rf allure-results allure-report
+
+      - name: Run tests on Android emulator
+        continue-on-error: true
+        # Runaway guard only. The script force-kills the emulator when it is
+        # done, so a shard normally ends well before this.
+        timeout-minutes: 110
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          SHARD_INDEX: ${{ inputs.shard-index }}
+          SHARD_TOTAL: ${{ inputs.shard-total }}
+          SHARD_MODE: ${{ inputs.shard-mode }}
+          SPEC_PATH: ${{ inputs.spec-path }}
+          APP: ${{ inputs.app }}
+          TEST_ENV: ${{ inputs.test-env }}
+        with:
+          api-level: ${{ inputs.api-level }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          # pixel_6 otherwise defaults to a 7.2 GB userdata partition, which is
+          # more than the runner has free. 6 GB is ample for the app plus its
+          # data and keeps the AVD under the limit on every runner pool.
+          disk-size: 6144M
+          # More RAM/cores so the launcher doesn't ANR ("Pixel Launcher isn't
+          # responding") under load. -no-snapshot-save avoids a slow snapshot
+          # write that can hang teardown.
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 4096 -cores 2
+          disable-animations: true
+          # The runner executes each line of an inline script as a separate
+          # shell, so the full sequence lives in one file instead.
+          script: bash scripts/run-emulator-tests.sh
+
+      # This is how the shard's results reach the report job, so unlike the
+      # Appium log it is NOT optional and is left to fail the shard if it fails.
+      # Retention is 1 day because the very next job consumes it; the durable
+      # copy is the published report on the gh-pages branch.
+      - name: Upload shard results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-shard-${{ inputs.shard-name }}
+          path: |
+            allure-results
+            wdio-exit-code.txt
+          if-no-files-found: warn
+          retention-days: 1
+
+      - name: Upload Appium log
+        if: always()
+        # Non-fatal: if the Actions artifact storage quota is full this upload
+        # fails, but it must not fail the run - the report is published to the
+        # gh-pages branch (git storage), which does not use artifact storage.
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-log-${{ github.run_number }}-shard-${{ inputs.shard-name }}
+          path: appium.log
+          if-no-files-found: ignore
+          retention-days: 3
