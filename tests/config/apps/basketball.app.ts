@@ -148,7 +148,10 @@ export const basketballApp: AppProfile = {
       homeTeam: "HR-ASN2Club1-D1-T2",
       awayTeam: "HR-ASN2Club2-D1-T3",
     },
-    players: {},
+    players: {
+      ClubPlayer1: "Player1 T1",
+      ClubPlayer2: "Player1 T2",
+    },
     positions: {
       Bench: "Bench",
       Guard: "Guard",
@@ -158,11 +161,69 @@ export const basketballApp: AppProfile = {
     playersInStartingFormation: {},
   },
 
+  confirmBtnForSavingTeamSheetOrSelection: {
+    confirmTeam: "Confirm team",
+  },
+
   register: {
     // Affiliate org in comp 1083 (from the referee assignment data).
     organisation: "PVT-ASN1",
     // Basketball drops "Profile" from the wording.
     heading: "Create Account or Register",
+  },
+
+  teamAttendance: {
+    name: "Team Selection",
+  },
+
+  teamSheetNotAvailableMsg: {
+    message: "Team List is not available yet",
+  },
+
+  matchYesButtonAndroidSelector:
+    '//android.view.View[@content-desc="Match ID: {matchId}"]/following-sibling::android.view.View[@content-desc="Yes"][1]',
+
+  fieldOption: {
+    label: "Court",
+  },
+
+  pauseOrStopButton: {
+    label: "STOP",
+  },
+
+  // Distinct from the initial startBtn's "Start" - Basketball shows "START"
+  // (all caps) when resuming a stopped match.
+  resumeOrStartButton: {
+    label: "START",
+  },
+
+  reportIncidentTitle: {
+    title: "Report Incident",
+  },
+
+  calendarBtn: { selector: '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]/android.widget.Button[2]'},
+
+  backBtnInCalendar: { selector: '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]/android.widget.Button'},
+
+  appNameFinderOptionInMoreTab: { label: "Basketball Finder" },
+  // Basketball has no separate heading per referee slot - the slot name is
+  // only the placeholder/hint text on the search field itself, so this
+  // matches the EditText by its hint rather than an accessibility id.
+  // iOS predicate is a best-effort guess (no iOS page source captured yet
+  // for this screen) - verify against a real iOS run before relying on it.
+  refereeSlots: {
+    slot1: {
+      android: '//android.widget.EditText[contains(@hint,"Referee 1")]',
+      ios: '-ios predicate string:label CONTAINS "Referee 1"',
+    },
+    slot2: {
+      android: '//android.widget.EditText[contains(@hint,"Referee 2")]',
+      ios: '-ios predicate string:label CONTAINS "Referee 2"',
+    },
+    slot3: {
+      android: '//android.widget.EditText[contains(@hint,"Referee 3")]',
+      ios: '-ios predicate string:label CONTAINS "Referee 3"',
+    },
   },
 
   terminology: {
@@ -175,19 +236,24 @@ export const basketballApp: AppProfile = {
   features: {
     fouls: true,
     sendOffReports: false,
-    startingFormation: true,
-    substitutions: true,
+    startingFormation: false,
+    substitutions: false,
     ladderGoalDifference: false,
     shop: true,
     incidents: true,
     fieldClosure: false,
+    matchStartConfirmation: false,
+    refereeMustAcceptMatchBeforeScoring: true,
   },
 
   rules: {
     fouls: {
       perPlayerLimit: 5,
       teamBonusThreshold: 5,
-      types: ["Personal", "Technical", "Flagrant", "Offensive"],
+      // Confirmed from the real foul pad (page-source capture 2026-09-11):
+      // PERSONAL / TECHNICAL / UNSPORTSMANLIKE / DISQUALIFYING - not the
+      // Flagrant/Offensive labels this used to list.
+      types: ["Personal", "Technical", "Unsportsmanlike", "Disqualifying"],
       resetsEachPeriod: true,
     },
   },

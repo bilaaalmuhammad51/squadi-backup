@@ -188,9 +188,9 @@ describe("Member - Persona Flow", () => {
       await homePage.gotoMoreTab();
       await homePage.clickChooseLanguageOptionInMoreTab();
       await homePage.assertEnglishLanguageSelected();
-      await homePage.selectEnglishUSALanguage();
+      await homePage.selectSpanishLanguage();
       await homePage.clickChooseLanguageOptionInMoreTab();
-      await homePage.assertEnglishUSALanguageSelected();
+      await homePage.assertSpanishLanguageSelected();
       await homePage.selectEnglishLanguage();
       await homePage.clickChooseLanguageOptionInMoreTab();
       await homePage.assertEnglishLanguageSelected();

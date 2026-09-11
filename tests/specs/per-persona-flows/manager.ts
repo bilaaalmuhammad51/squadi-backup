@@ -197,7 +197,7 @@ describe("Manager Persona Flows", () => {
 
     await step("save Starting Formation", async () => {
       await scorerPage.saveStartingFormation();
-      await scorerPage.waitUntilVisibleWithRetry(scorerPage.fieldOption);
+      await scorerPage.waitUntilVisibleWithRetry(scorerPage.fieldOrCourtOption);
       await scorerPage.clickBackBtn();
     });
 
@@ -321,7 +321,7 @@ describe("Manager Persona Flows", () => {
 
     await step("save Starting Formation", async () => {
       await scorerPage.saveStartingFormation();
-      await scorerPage.waitUntilVisibleWithRetry(scorerPage.fieldOption);
+      await scorerPage.waitUntilVisibleWithRetry(scorerPage.fieldOrCourtOption);
       await scorerPage.clickBackBtn();
     });
   });

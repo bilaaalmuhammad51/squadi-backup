@@ -36,7 +36,10 @@ describe("App Foundation - Splash & Cold Start", () => {
     });
 
     await step("3. Observe the splash screen", async () => {
-      await loginPage.waitUntilVisible(loginPage.clearCacheBtnInSplashScreen, Timeout.TEN_SECONDS);
+      await loginPage.waitUntilVisible(
+        loginPage.clearCacheBtnInSplashScreen,
+        Timeout.TEN_SECONDS,
+      );
       await loginPage.assertElementDisplayed(
         loginPage.clearCacheBtnInSplashScreen,
       );
@@ -110,7 +113,9 @@ describe("App Foundation - Lifecycle", () => {
 
     await step("2. Select the <More> tab", async () => {
       await loginPage.click(loginPage.moreTab);
-      await loginPage.waitUntilVisibleWithRetry(loginPage.myScheduleOptionInMoreTab);
+      await loginPage.waitUntilVisibleWithRetry(
+        loginPage.myScheduleOptionInMoreTab,
+      );
     });
 
     await step("3. Background the app", async () => {

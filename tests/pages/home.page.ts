@@ -1,4 +1,5 @@
 import { DualSelector, selector } from "../factories/page.factory";
+import { App } from "../config/apps";
 import { LoginPage } from "./login.page";
 
 export class HomePage extends LoginPage {
@@ -158,7 +159,7 @@ export class HomePage extends LoginPage {
     await this.assertElementDisplayed(this.welcomeBackHeading);
     await this.assertElementDisplayed(this.loginButtonOnHomeTab);
     await this.assertElementDisplayed(this.addTeamOrLeague);
-    await this.assertElementDisplayed(this.squadiFinderOptionInMoreTab);
+    await this.assertElementDisplayed(this.appNameFinderOptionInMoreTab);
   }
 
   async verifyHomeScreenElements() {
@@ -188,7 +189,7 @@ export class HomePage extends LoginPage {
   private matchYesButton(matchId: string | number): DualSelector {
     const id = String(matchId);
     return selector(
-      `android=new UiSelector().descriptionContains("Match ID: ${id}").childSelector(new UiSelector().description("Yes"))`,
+      App.matchYesButtonAndroidSelector.replace("{matchId}", id),
       `//XCUIElementTypeOther[contains(@name, 'Match ID: ${id}')]/following-sibling::XCUIElementTypeStaticText[@name='Yes']`,
       `Yes button for Match ID ${id}`,
     );
@@ -228,6 +229,7 @@ export class HomePage extends LoginPage {
     await this.waitUntilVisibleWithRetry(this.newsArticle);
     await this.click(this.newsArticle);
     await this.waitUntilVisibleWithRetry(this.newsHeadingInArticle);
+    await this.waitUntilVisibleWithRetry(this.articleBody);
     await this.assertElementDisplayed(this.articleBody);
     await this.clickCloseCrossBtn();
   }

@@ -11,7 +11,7 @@ describe("Guest - Persona Flows", () => {
   const homePage = new HomePage();
   const laddersPage = new LaddersPage();
 
-it("[TC-G14] Guest follows then unfollows a team", async () => {
+  it("[TC-G14] Guest follows then unfollows a team", async () => {
     allureReporter.addFeature("Guest Persona Flow");
     allureReporter.addStory("TC-G14 - Guest follows then unfollows a team");
     allureReporter.addSeverity("critical");
@@ -116,7 +116,7 @@ it("[TC-G14] Guest follows then unfollows a team", async () => {
           await loginPage.clickNextButton();
           await loginPage.addUsernameOrEmailForForgotPasswordFlow(
             LoginData.email,
-          );          
+          );
           await loginPage.scrollDown();
           await loginPage.clickSubmitBtnForForgotPasswordFlow();
           await loginPage.verifyTextAfterSubmittingUsernameOrEmail();
@@ -157,7 +157,9 @@ it("[TC-G14] Guest follows then unfollows a team", async () => {
     let matchId: number;
     let token: string;
 
-    const isCloseCrossBtnVisible = await loginPage.isElementVisible(loginPage.crossCloseBtn);
+    const isCloseCrossBtnVisible = await loginPage.isElementVisible(
+      loginPage.crossCloseBtn,
+    );
     if (isCloseCrossBtnVisible) {
       await loginPage.clickCloseCrossBtn();
       await loginPage.clickBackBtn();

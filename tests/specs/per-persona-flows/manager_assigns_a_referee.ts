@@ -92,7 +92,7 @@ describe("Manager Assigns a Referee", () => {
       "Open Game Referees option and validate the assigned referee persists",
       async () => {
         await scorerPage.openGameRefereesOption();
-        await scorerPage.assertElementDisplayed(scorerPage.matchRefereeHeading);
+        await scorerPage.assertElementDisplayed(scorerPage.refereeSlot1Heading);
         await scorerPage.validateSelectedReferee(namesOfUsers.refereeName);
       },
     );

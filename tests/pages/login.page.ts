@@ -241,10 +241,10 @@ export class LoginPage extends BasePage {
     "Ladders option in More tab",
   );
 
-  public squadiFinderOptionInMoreTab = selector(
-    "~squadi Finder",
-    "~squadi Finder",
-    "squadi Finder option in More tab",
+  public appNameFinderOptionInMoreTab = selector(
+    `~${App.appNameFinderOptionInMoreTab.label}`,
+    `~${App.appNameFinderOptionInMoreTab.label}`,
+    `${App.appNameFinderOptionInMoreTab.label} option in More tab`,
   );
 
   public createAccountOrRegisterProfileOptionInMoreTab = selector(
@@ -259,22 +259,34 @@ export class LoginPage extends BasePage {
     "Choose Language option in More tab",
   );
 
+  public chooseLanguageOptionInSpanishInMoreTab = selector(
+    "~Elegir idioma",
+    "~Elegir idioma",
+    "Choose Language option in Spanish language in More tab",
+  );
+
   public englishLanguage = selector(
     "~English",
     "~English",
     "English language option in Choose Language screen",
   );
 
-  public englishUSALanguage = selector(
-    "~English (U.S.A)",
-    "~English (U.S.A)",
-    "English (U.S.A) language option in Choose Language screen",
+  public spanishLanguage = selector(
+    "~Español",
+    "~Español",
+    "Español language option in Choose Language screen",
   );
 
   public applyButtonAtTheBottom = selector(
     "~Apply",
     "~Apply",
     "Apply button at the bottom",
+  );
+
+  public applyButtonInSpanishAtTheBottom = selector(
+    "~Solicitar",
+    "~Solicitar",
+    "Apply button in Spanish at the bottom",
   );
 
   public switchProfileOptionInMoreTab = selector(
@@ -405,8 +417,7 @@ export class LoginPage extends BasePage {
   );
 
   public calendarBtn = selector(
-    '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]/android.widget.Button[2]',
-    "",
+    App.calendarBtn.selector,
     "Calendar button in My Schedule page",
   );
 
@@ -417,9 +428,9 @@ export class LoginPage extends BasePage {
   );
 
   public backBtnInCalendar = selector(
-    '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]/android.widget.Button',
+    App.backBtnInCalendar.selector,
     "",
-    "Back Btn in Calendar"
+    "Back Btn in Calendar",
   );
 
   public myEventsOptionInMoreTab = selector(
@@ -822,8 +833,11 @@ export class LoginPage extends BasePage {
     const isNextBtnVisible = await this.isElementVisible(this.nextButton, 9000);
     if (isNextBtnVisible) {
       await this.click(this.nextButton);
-      const nextStillVisible = await this.isElementVisible(this.nextButton, 9000);
-      if(nextStillVisible) {
+      const nextStillVisible = await this.isElementVisible(
+        this.nextButton,
+        9000,
+      );
+      if (nextStillVisible) {
         await this.click(this.nextButton);
       }
       await this.waitUntilInvisibleWithRetry(this.nextButton, undefined, 30000);
@@ -923,7 +937,7 @@ export class LoginPage extends BasePage {
   async assertMoreTabAvailableOptionsWhenLoggedOut() {
     await this.waitUntilVisibleWithRetry(this.laddersOptionInMoreTab);
     await this.assertElementDisplayed(this.laddersOptionInMoreTab);
-    await this.assertElementDisplayed(this.squadiFinderOptionInMoreTab);
+    await this.assertElementDisplayed(this.appNameFinderOptionInMoreTab);
     await this.assertElementDisplayed(
       this.createAccountOrRegisterProfileOptionInMoreTab,
     );
@@ -995,8 +1009,14 @@ export class LoginPage extends BasePage {
     await this.click(this.calendarBtn);
     await this.waitUntilVisibleWithRetry(this.calendarSync);
     await this.assertElementDisplayed(this.calendarSync);
+    await this.waitUntilVisibleWithRetry(this.backBtnInCalendar);
     await this.click(this.backBtnInCalendar);
-    await this.clickBackBtn();
+    if (await this.isElementVisible(this.backBtnInCalendar)) {
+      await this.click(this.backBtnInCalendar);
+    }
+    if (await this.isElementVisible(this.backBtn)) {
+      await this.clickBackBtn();
+    }
   }
 
   async switchProfileToChild() {
@@ -1339,6 +1359,16 @@ export class LoginPage extends BasePage {
     await this.click(this.chooseLanguageOptionInMoreTab);
   }
 
+  async clickChooseLanguageOptionInSpanishInMoreTab() {
+    await this.scrollUntilElementVisible(
+      this.chooseLanguageOptionInSpanishInMoreTab,
+    );
+    await this.waitUntilVisibleWithRetry(
+      this.chooseLanguageOptionInSpanishInMoreTab,
+    );
+    await this.click(this.chooseLanguageOptionInSpanishInMoreTab);
+  }
+
   async selectEnglishLanguage() {
     const element = await this.waitUntilVisibleWithRetry(this.englishLanguage);
 
@@ -1364,25 +1394,8 @@ export class LoginPage extends BasePage {
     await this.click(this.applyButtonAtTheBottom);
   }
 
-  async assertEnglishLanguageSelected() {
-    const englishClass = await (
-      await this.resolve(this.englishLanguage)
-    ).getAttribute("class");
-
-    const englishUsClass = await (
-      await this.resolve(this.englishUSALanguage)
-    ).getAttribute("class");
-
-    expect(englishClass).toBe("android.widget.ImageView");
-    expect(englishUsClass).toBe("android.widget.Button");
-
-    Logger.info("Verified English language is selected");
-  }
-
-  async selectEnglishUSALanguage() {
-    const element = await this.waitUntilVisibleWithRetry(
-      this.englishUSALanguage,
-    );
+  async selectEnglishLanguageFromSpanish() {
+    const element = await this.waitUntilVisibleWithRetry(this.englishLanguage);
 
     const className = await element.getAttribute("class");
 
@@ -1392,13 +1405,53 @@ export class LoginPage extends BasePage {
       await browser.waitUntil(
         async () => {
           const cls = await (
-            await this.resolve(this.englishUSALanguage)
+            await this.resolve(this.englishLanguage)
           ).getAttribute("class");
           return cls === "android.widget.ImageView";
         },
         {
           timeout: Timeout.FIVE_SECONDS,
-          timeoutMsg: "English (U.S.A) language was not selected",
+          timeoutMsg: "English language was not selected",
+        },
+      );
+    }
+
+    await this.click(this.applyButtonInSpanishAtTheBottom);
+  }
+
+  async assertEnglishLanguageSelected() {
+    const englishClass = await (
+      await this.resolve(this.englishLanguage)
+    ).getAttribute("class");
+
+    const spanishClass = await (
+      await this.resolve(this.spanishLanguage)
+    ).getAttribute("class");
+
+    expect(englishClass).toBe("android.widget.ImageView");
+    expect(spanishClass).toBe("android.widget.Button");
+
+    Logger.info("Verified English language is selected");
+  }
+
+  async selectSpanishLanguage() {
+    const element = await this.waitUntilVisibleWithRetry(this.spanishLanguage);
+
+    const className = await element.getAttribute("class");
+
+    if (className === "android.widget.Button") {
+      await element.click();
+
+      await browser.waitUntil(
+        async () => {
+          const cls = await (
+            await this.resolve(this.spanishLanguage)
+          ).getAttribute("class");
+          return cls === "android.widget.ImageView";
+        },
+        {
+          timeout: Timeout.FIVE_SECONDS,
+          timeoutMsg: "Español language was not selected",
         },
       );
     }
@@ -1406,19 +1459,19 @@ export class LoginPage extends BasePage {
     await this.click(this.applyButtonAtTheBottom);
   }
 
-  async assertEnglishUSALanguageSelected() {
+  async assertSpanishLanguageSelected() {
     const englishClass = await (
       await this.resolve(this.englishLanguage)
     ).getAttribute("class");
 
-    const englishUsClass = await (
-      await this.resolve(this.englishUSALanguage)
+    const spanishClass = await (
+      await this.resolve(this.spanishLanguage)
     ).getAttribute("class");
 
-    expect(englishUsClass).toBe("android.widget.ImageView");
+    expect(spanishClass).toBe("android.widget.ImageView");
     expect(englishClass).toBe("android.widget.Button");
 
-    Logger.info("Verified English (U.S.A) language is selected");
+    Logger.info("Verified Español language is selected");
   }
 
   async clickApplyButtonToApplyLanguageChange() {

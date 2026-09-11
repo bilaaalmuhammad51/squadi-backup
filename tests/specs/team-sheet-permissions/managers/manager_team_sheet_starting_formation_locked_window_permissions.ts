@@ -12,6 +12,7 @@ import {
   PlayerPositions,
 } from "../../../data/teamSheet.data";
 import { MatchApiHelper } from "../../../utils/matchApi.helper";
+import { hasFeature } from "../../../utils/features";
 
 let matchId: number;
 let token: string;
@@ -62,19 +63,19 @@ describe("Manager team sheet locked window permissions", () => {
     }
   });
 
-  it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for respective team", async () => {
-    await step("Verify welcome screen is visible", async () => {
-      await loginPage.validateLoginBtnIsVisible();
-    });
-
-    await step("Verify welcome screen elements", async () => {
-      await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
-      await loginPage.assertElementDisplayed(
-        loginPage.createAccountOrRegisterProfile,
-      );
-      await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
-      await loginPage.assertElementDisplayed(loginPage.loginButton);
-    });
+  it("Team 2 Manager then Team 1 Manager submit their Team Sheets and Starting Formations; once the match reaches the locked window, Team 1 Manager sees a read-only Substitution row and cannot reposition players for either team", async () => {
+    await step(
+      "Verify welcome screen and its elements are displayed",
+      async () => {
+        await loginPage.validateLoginBtnIsVisible();
+        await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
+        await loginPage.assertElementDisplayed(
+          loginPage.createAccountOrRegisterProfile,
+        );
+        await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
+        await loginPage.assertElementDisplayed(loginPage.loginButton);
+      },
+    );
 
     await step("Navigate to login screen", async () => {
       await loginPage.click(loginPage.loginButton);
@@ -91,12 +92,9 @@ describe("Manager team sheet locked window permissions", () => {
       await loginPage.assertElementDisplayed(loginPage.forgotPassword);
     });
 
-    await step("Enter valid credentials", async () => {
+    await step("Enter valid credentials and submit login", async () => {
       await loginPage.addUserName(LoginData.manager2Email);
       await loginPage.addPassword(LoginData.password);
-    });
-
-    await step("Submit login", async () => {
       await loginPage.click(loginPage.login);
     });
 
@@ -137,33 +135,42 @@ describe("Manager team sheet locked window permissions", () => {
       },
     );
 
-    await step("Select players and their positions for home team", async () => {
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.ClubPlayer2,
-        PlayerPositions.Forward,
-      );
-      await scorerPage.clickDoneBtn();
-      await scorerPage.saveStartingFormation();
-      await scorerPage.clickBackBtn();
-    });
+    await step(
+      "Select player and position for away team (Team 2 Manager's own team), then click Confirm to save and save Starting Formation",
+      async () => {
+        await scorerPage.selectPlayerAndPositionOfTeam(
+          PlayerNamesInTeamSheet.ClubPlayer2,
+          PlayerPositions.Forward,
+        );
+        await scorerPage.clickConfirmBtnForSavingTeamSheet();
+        await scorerPage.saveStartingFormation();
+        await scorerPage.clickBackBtn();
+        if (!hasFeature("startingFormation")) {
+          await scorerPage.clickBackBtn();
+        }
+      },
+    );
 
-    await step("Logout and Log In again with Team2 Manager", async () => {
-      await scorerPage.logoutUser();
-    });
+    await step(
+      "Logout Team 2 Manager (Team 1 Manager logs in next)",
+      async () => {
+        await scorerPage.logoutUser();
+      },
+    );
 
-    await step("Verify welcome screen is visible", async () => {
-      await loginPage.gotoLoginTab();
-      await loginPage.validateLoginBtnIsVisible();
-    });
-
-    await step("Verify welcome screen elements", async () => {
-      await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
-      await loginPage.assertElementDisplayed(
-        loginPage.createAccountOrRegisterProfile,
-      );
-      await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
-      await loginPage.assertElementDisplayed(loginPage.loginButton);
-    });
+    await step(
+      "Verify welcome screen and its elements are displayed",
+      async () => {
+        await loginPage.gotoLoginTab();
+        await loginPage.validateLoginBtnIsVisible();
+        await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
+        await loginPage.assertElementDisplayed(
+          loginPage.createAccountOrRegisterProfile,
+        );
+        await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
+        await loginPage.assertElementDisplayed(loginPage.loginButton);
+      },
+    );
 
     await step("Navigate to login screen", async () => {
       await loginPage.click(loginPage.loginButton);
@@ -180,12 +187,9 @@ describe("Manager team sheet locked window permissions", () => {
       await loginPage.assertElementDisplayed(loginPage.forgotPassword);
     });
 
-    await step("Enter valid credentials", async () => {
+    await step("Enter valid credentials and submit login", async () => {
       await loginPage.addUserName(LoginData.manager1Email);
       await loginPage.addPassword(LoginData.password);
-    });
-
-    await step("Submit login", async () => {
       await loginPage.click(loginPage.login);
     });
 
@@ -212,51 +216,73 @@ describe("Manager team sheet locked window permissions", () => {
 
     //login completed
 
-    await step("Select players and their positions for away team", async () => {
-      await scorerPage.openTeamSheetOption();
-      await scorerPage.validateHomeTeamSheetElements(TeamsInTeamSheet.HomeTeam);
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.ClubPlayer1,
-        PlayerPositions.Midfielder,
-      );
-    });
+    await step(
+      "Select player and position for home team (Team 1 Manager's own team), then click Confirm to save and save Starting Formation",
+      async () => {
+        await scorerPage.openTeamSheetOption();
+        await scorerPage.validateHomeTeamSheetElements(
+          TeamsInTeamSheet.HomeTeam,
+        );
+        await scorerPage.selectPlayerAndPositionOfTeam(
+          PlayerNamesInTeamSheet.ClubPlayer1,
+          PlayerPositions.Forward,
+        );
+        await scorerPage.clickConfirmBtnForSavingTeamSheet();
+        await scorerPage.saveStartingFormation();
+      },
+    );
 
-    await step("click Done button after managing team sheets", async () => {
-      await scorerPage.clickDoneBtn();
-      await scorerPage.saveStartingFormation();
+    await step("Advance the match past the lock boundary via API", async () => {
+      await MatchApiHelper.updateMatchStartTime(token, matchId, 0);
+      console.log("match time updated");
+
+      if (driver.isAndroid) {
+        await scorerPage.handleMatchTimeUpdatePopup(matchId.toString());
+      }
     });
 
     await step(
-      "Open substitutions option and validate substitution elements",
+      "Re-open Substitution/Team Sheet to pick up the now-locked state",
       async () => {
-        await MatchApiHelper.updateMatchStartTime(token, matchId, 0);
-        console.log("match time updated");
-        
-        if (driver.isAndroid) {
-          await scorerPage.handleMatchTimeUpdatePopup(matchId.toString());
+        if (hasFeature("startingFormation")) {
+          await scorerPage.waitUntilTeamSheetBecomesSubstitution(matchElement);
+          await scorerPage.openSubstitutionOption();
+        } else {
+          await scorerPage.openTeamSheetOption();
         }
-        await scorerPage.waitUntilTeamSheetBecomesSubstitution(matchElement);
-        await scorerPage.openSubstitutionOption();
+      },
+    );
+
+    await step(
+      "Validate home team Substitution elements are shown",
+      async () => {
         await scorerPage.validateHomeSubstitutionElements(
           TeamsInTeamSheet.HomeTeam,
         );
       },
     );
 
-    await step("Unselect and select player for home team", async () => {
-      await scorerPage.selectOrUnselectPlayerInSubstitution(
-        PlayerNamesInTeamSheet.ClubPlayer1,
-      );
-      await scorerPage.selectOrUnselectPlayerInSubstitution(
-        PlayerNamesInTeamSheet.ClubPlayer1,
-      );
-      await scorerPage.clickDoneBtn();
-    });
+    await step(
+      "Toggle home team player selection in Substitution, then click Confirm to save",
+      async () => {
+        await scorerPage.selectOrUnselectPlayerInSubstitution(
+          PlayerNamesInTeamSheet.ClubPlayer1,
+        );
+        await scorerPage.selectOrUnselectPlayerInSubstitution(
+          PlayerNamesInTeamSheet.ClubPlayer1,
+        );
+        await scorerPage.clickConfirmBtnForSavingTeamSheet();
+      },
+    );
 
     await step(
-      "validate player selection and shirt number not editable for away team in substitution",
+      "Switch to away team tab and toggle player selection in Substitution (still editable while locked), then click Confirm to save",
       async () => {
-        await scorerPage.openSubstitutionOption();
+        if (hasFeature("substitutions")) {
+          await scorerPage.openSubstitutionOption();
+        } else {
+          await scorerPage.openTeamSheetOption();
+        }
         await scorerPage.click(
           scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
         );
@@ -266,76 +292,85 @@ describe("Manager team sheet locked window permissions", () => {
         await scorerPage.selectOrUnselectPlayerInSubstitution(
           PlayerNamesInTeamSheet.ClubPlayer2,
         );
+        await scorerPage.clickConfirmBtnForSavingTeamSheet();
       },
     );
 
-    await step("click Done button after managing team sheets", async () => {
-      await scorerPage.clickDoneBtn();
-    });
+    if (hasFeature("startingFormation")) {
+      await step("opening Starting Formation", async () => {
+        await scorerPage.openStartingFormationOption();
+      });
 
-    await step("opening Starting Formation", async () => {
-      await scorerPage.openStartingFormationOption();
-    });
+      await step(
+        "validating uneditable home players behavior in Starting Formation",
+        async () => {
+          homePlayer1InitialPosition = await scorerPage.getPlayerPosition(
+            PlayersInStartingFormation.ClubPlayer1,
+          );
+
+          await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer1);
+
+          homePlayer1FinalPosition = await scorerPage.getPlayerPosition(
+            PlayersInStartingFormation.ClubPlayer1,
+          );
+          expect(homePlayer1InitialPosition).toEqual(homePlayer1FinalPosition);
+        },
+      );
+
+      await step(
+        "validating uneditable away players behavior in Starting Formation",
+        async () => {
+          await scorerPage.click(
+            scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+          );
+          awayPlayer1InitialPosition = await scorerPage.getPlayerPosition(
+            PlayersInStartingFormation.ClubPlayer2,
+          );
+
+          await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer2);
+          awayPlayer1FinalPosition = await scorerPage.getPlayerPosition(
+            PlayersInStartingFormation.ClubPlayer2,
+          );
+          expect(awayPlayer1InitialPosition).toEqual(awayPlayer1FinalPosition);
+        },
+      );
+
+      await step(
+        "go back from Starting Formation without saving (formation is read-only in the locked window)",
+        async () => {
+          await scorerPage.clickBackBtn();
+          await scorerPage.clickBackBtn();
+        },
+      );
+    } else {
+      await step("back to Home", async () => {
+        await scorerPage.clickBackBtn();
+        await scorerPage.clickBackBtn();
+      });
+    }
 
     await step(
-      "validating uneditable home players behavior in Starting Formation",
+      "Logout after validating locked-window restrictions",
       async () => {
-        homePlayer1InitialPosition = await scorerPage.getPlayerPosition(
-          PlayersInStartingFormation.ClubPlayer1,
-        );
-
-        await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer1);
-
-        homePlayer1FinalPosition = await scorerPage.getPlayerPosition(
-          PlayersInStartingFormation.ClubPlayer1,
-        );
-        expect(homePlayer1InitialPosition).toEqual(homePlayer1FinalPosition);
+        await scorerPage.logoutUser();
       },
     );
-
-    await step(
-      "validating uneditable away players behavior in Starting Formation",
-      async () => {
-        await scorerPage.click(
-          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
-        );
-        awayPlayer1InitialPosition = await scorerPage.getPlayerPosition(
-          PlayersInStartingFormation.ClubPlayer2,
-        );
-
-        await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer2);
-        awayPlayer1FinalPosition = await scorerPage.getPlayerPosition(
-          PlayersInStartingFormation.ClubPlayer2,
-        );
-        expect(awayPlayer1InitialPosition).toEqual(awayPlayer1FinalPosition);
-      },
-    );
-
-    await step("save Starting Formation", async () => {
-      await scorerPage.clickBackBtn();
-      await scorerPage.clickBackBtn();
-    });
-
-    await step("Logout and Log In again with Team2 Manager", async () => {
-      await scorerPage.logoutUser();
-    });
   });
 
-  it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for respective team", async () => {
-
-    await step("Verify welcome screen is visible", async () => {
-      await loginPage.gotoLoginTab();
-      await loginPage.validateLoginBtnIsVisible();
-    });
-
-    await step("Verify welcome screen elements", async () => {
-      await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
-      await loginPage.assertElementDisplayed(
-        loginPage.createAccountOrRegisterProfile,
-      );
-      await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
-      await loginPage.assertElementDisplayed(loginPage.loginButton);
-    });
+  it("Team 2 Manager logs back in during the locked window and sees a read-only Substitution row and cannot reposition players for either team", async () => {
+    await step(
+      "Verify welcome screen and its elements are displayed",
+      async () => {
+        await loginPage.gotoLoginTab();
+        await loginPage.validateLoginBtnIsVisible();
+        await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
+        await loginPage.assertElementDisplayed(
+          loginPage.createAccountOrRegisterProfile,
+        );
+        await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
+        await loginPage.assertElementDisplayed(loginPage.loginButton);
+      },
+    );
 
     await step("Navigate to login screen", async () => {
       await loginPage.click(loginPage.loginButton);
@@ -352,12 +387,9 @@ describe("Manager team sheet locked window permissions", () => {
       await loginPage.assertElementDisplayed(loginPage.forgotPassword);
     });
 
-    await step("Enter valid credentials", async () => {
+    await step("Enter valid credentials and submit login", async () => {
       await loginPage.addUserName(LoginData.manager2Email);
       await loginPage.addPassword(LoginData.password);
-    });
-
-    await step("Submit login", async () => {
       await loginPage.click(loginPage.login);
     });
 
@@ -372,7 +404,7 @@ describe("Manager team sheet locked window permissions", () => {
     );
 
     await step("Open a match from the Home screen", async () => {
-      // const matchElement = homePage.matchById(matchId.toString());
+
       await basePage.scrollUntilElementVisible(matchElement);
       await homePage.assertElementDisplayed(matchElement);
       await homePage.click(matchElement);
@@ -392,27 +424,38 @@ describe("Manager team sheet locked window permissions", () => {
     await step(
       "Open substitutions option and validate substitution elements",
       async () => {
-        await scorerPage.openSubstitutionOption();
+        if (hasFeature("substitutions")) {
+          await scorerPage.openSubstitutionOption();
+        } else {
+          await scorerPage.openTeamSheetOption();
+        }
         await scorerPage.validateAwaySubstitutionElements(
           TeamsInTeamSheet.Awayteam,
         );
       },
     );
 
-    await step("Unselect and select player for home team", async () => {
-      await scorerPage.selectOrUnselectPlayerInSubstitution(
-        PlayerNamesInTeamSheet.ClubPlayer2,
-      );
-      await scorerPage.selectOrUnselectPlayerInSubstitution(
-        PlayerNamesInTeamSheet.ClubPlayer2,
-      );
-      await scorerPage.clickDoneBtn();
-    });
+    await step(
+      "Toggle away team (Team 2 Manager's own team) player selection in Substitution, then click Confirm to save",
+      async () => {
+        await scorerPage.selectOrUnselectPlayerInSubstitution(
+          PlayerNamesInTeamSheet.ClubPlayer2,
+        );
+        await scorerPage.selectOrUnselectPlayerInSubstitution(
+          PlayerNamesInTeamSheet.ClubPlayer2,
+        );
+        await scorerPage.clickConfirmBtnForSavingTeamSheet();
+      },
+    );
 
     await step(
-      "validate player selection and shirt number not editable for away team in substitution",
+      "Switch to home team tab and toggle player selection in Substitution (still editable while locked), then click Confirm to save",
       async () => {
-        await scorerPage.openSubstitutionOption();
+        if (hasFeature("substitutions")) {
+          await scorerPage.openSubstitutionOption();
+        } else {
+          await scorerPage.openTeamSheetOption();
+        }
         await scorerPage.click(
           scorerPage.homeTeamSheetTab(TeamsInTeamSheet.HomeTeam),
         );
@@ -422,52 +465,51 @@ describe("Manager team sheet locked window permissions", () => {
         await scorerPage.selectOrUnselectPlayerInSubstitution(
           PlayerNamesInTeamSheet.ClubPlayer1,
         );
+        await scorerPage.clickConfirmBtnForSavingTeamSheet();
       },
     );
 
-    await step("click Done button after managing team sheets", async () => {
-      await scorerPage.clickDoneBtn();
-    });
+    if (hasFeature("startingFormation")) {
+      await step("opening Starting Formation", async () => {
+        await scorerPage.openStartingFormationOption();
+      });
 
-    await step("opening Starting Formation", async () => {
-      await scorerPage.openStartingFormationOption();
-    });
+      await step(
+        "validating uneditable away players behavior in Starting Formation",
+        async () => {
+          await scorerPage.click(
+            scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+          );
+          awayPlayer1InitialPosition = await scorerPage.getPlayerPosition(
+            PlayersInStartingFormation.ClubPlayer2,
+          );
 
-    await step(
-      "validating uneditable home players behavior in Starting Formation",
-      async () => {
-        await scorerPage.click(
-          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
-        );
-        awayPlayer1InitialPosition = await scorerPage.getPlayerPosition(
-          PlayersInStartingFormation.ClubPlayer2,
-        );
+          await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer2);
 
-        await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer2);
+          awayPlayer1FinalPosition = await scorerPage.getPlayerPosition(
+            PlayersInStartingFormation.ClubPlayer2,
+          );
+          expect(awayPlayer1InitialPosition).toEqual(awayPlayer1FinalPosition);
+        },
+      );
 
-        awayPlayer1FinalPosition = await scorerPage.getPlayerPosition(
-          PlayersInStartingFormation.ClubPlayer2,
-        );
-        expect(awayPlayer1InitialPosition).toEqual(awayPlayer1FinalPosition);
-      },
-    );
+      await step(
+        "validating uneditable home players behavior in Starting Formation",
+        async () => {
+          await scorerPage.click(
+            scorerPage.homeTeamSheetTab(TeamsInTeamSheet.HomeTeam),
+          );
+          homePlayer1InitialPosition = await scorerPage.getPlayerPosition(
+            PlayersInStartingFormation.ClubPlayer1,
+          );
 
-    await step(
-      "validating uneditable away players behavior in Starting Formation",
-      async () => {
-        await scorerPage.click(
-          scorerPage.homeTeamSheetTab(TeamsInTeamSheet.HomeTeam),
-        );
-        homePlayer1InitialPosition = await scorerPage.getPlayerPosition(
-          PlayersInStartingFormation.ClubPlayer1,
-        );
-
-        await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer1);
-        homePlayer1FinalPosition = await scorerPage.getPlayerPosition(
-          PlayersInStartingFormation.ClubPlayer1,
-        );
-        expect(homePlayer1InitialPosition).toEqual(homePlayer1FinalPosition);
-      },
-    );
+          await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer1);
+          homePlayer1FinalPosition = await scorerPage.getPlayerPosition(
+            PlayersInStartingFormation.ClubPlayer1,
+          );
+          expect(homePlayer1InitialPosition).toEqual(homePlayer1FinalPosition);
+        },
+      );
+    }
   });
 });

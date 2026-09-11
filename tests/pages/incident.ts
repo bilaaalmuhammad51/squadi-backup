@@ -1,3 +1,4 @@
+import { App } from "../config/apps";
 import { TeamsInTeamSheet } from "../data/teamSheet.data";
 import { selector } from "../factories/page.factory";
 import BasePage from "./base.page";
@@ -9,10 +10,15 @@ export class IncidentPage extends BasePage {
     "Report Incident option in Match",
   );
 
+  // private reportOtherIncidentOption = selector(
+  //   "~Report Other Incident",
+  //   "~Report Other Incident",
+  //   "Report Other Incident in Match Game Settings",
+  // );
   private reportOtherIncidentOption = selector(
-    "~Report Other Incident",
-    "~Report Other Incident",
-    "Report Other Incident in Match Game Settings",
+    `~${App.reportIncidentTitle.title}`,
+    `~${App.reportIncidentTitle.title}`,
+    `${App.reportIncidentTitle.title} in Match Game Settings`,
   );
 
   private incidentTypHeading = selector(
@@ -116,7 +122,9 @@ export class IncidentPage extends BasePage {
     await this.assertElementDisplayed(this.selectATeamHeading);
     await this.click(this.teamInIncidentType(TeamsInTeamSheet.Awayteam));
     await this.click(this.NextBtn);
-    await this.waitUntilVisibleWithRetry(this.incidentHeadingAfterTeamSelection);
+    await this.waitUntilVisibleWithRetry(
+      this.incidentHeadingAfterTeamSelection,
+    );
     await this.assertElementDisplayed(this.incidentHeadingAfterTeamSelection);
     await this.click(this.descriptionField);
     await this.type(this.descriptionField, description);

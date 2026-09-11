@@ -24,19 +24,29 @@ describe("Scorer team officials - Lock Attendance ON, after lock - editing block
     allureReporter.addStory("Lock Attendance, Team Officials Permissions Flow");
     allureReporter.addSeverity("critical");
 
-    await step("Enable Lock Attendance and create match after lock time", async () => {
-      token = await MatchApiHelper.getToken(LoginData.email, LoginData.password);
+    await step(
+      "Enable Lock Attendance and create match after lock time",
+      async () => {
+        token = await MatchApiHelper.getToken(
+          LoginData.email,
+          LoginData.password,
+        );
 
-      await MatchApiHelper.updateCompetitionSettings(token, {
-        lockAttendanceMinutes: 10,
-      });
+        await MatchApiHelper.updateCompetitionSettings(token, {
+          lockAttendanceMinutes: 10,
+        });
 
-      matchId = await MatchApiHelper.createMatch(token, 0);
+        matchId = await MatchApiHelper.createMatch(token, 0);
 
-      console.log("Created Match ID:", matchId);
+        console.log("Created Match ID:", matchId);
 
-      allureReporter.addAttachment("Created Match ID", String(matchId), "text/plain");
-    });
+        allureReporter.addAttachment(
+          "Created Match ID",
+          String(matchId),
+          "text/plain",
+        );
+      },
+    );
 
     after(async () => {
       try {
@@ -61,7 +71,9 @@ describe("Scorer team officials - Lock Attendance ON, after lock - editing block
 
     await step("Verify welcome screen elements", async () => {
       await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
-      await loginPage.assertElementDisplayed(loginPage.createAccountOrRegisterProfile);
+      await loginPage.assertElementDisplayed(
+        loginPage.createAccountOrRegisterProfile,
+      );
       await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
       await loginPage.assertElementDisplayed(loginPage.loginButton);
     });
@@ -73,7 +85,10 @@ describe("Scorer team officials - Lock Attendance ON, after lock - editing block
     await step("Verify login screen elements", async () => {
       await loginPage.assertElementDisplayed(loginPage.backButton);
       await loginPage.assertElementDisplayed(loginPage.loginHeading);
-      await loginPage.assertTextContains(loginPage.loginHeading, LoginData.loginHeading);
+      await loginPage.assertTextContains(
+        loginPage.loginHeading,
+        LoginData.loginHeading,
+      );
       await loginPage.assertElementDisplayed(loginPage.rememberPassword);
       await loginPage.assertElementDisplayed(loginPage.forgotPassword);
     });
@@ -87,12 +102,15 @@ describe("Scorer team officials - Lock Attendance ON, after lock - editing block
       await loginPage.click(loginPage.login);
     });
 
-    await step("Validate successful login by checking Home screen", async () => {
-      await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
-      await homePage.assertElementDisplayed(homePage.homeTab);
-      await homePage.assertElementDisplayed(homePage.drawsTab);
-      await homePage.assertElementDisplayed(homePage.laddersTab);
-    });
+    await step(
+      "Validate successful login by checking Home screen",
+      async () => {
+        await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
+        await homePage.assertElementDisplayed(homePage.homeTab);
+        await homePage.assertElementDisplayed(homePage.drawsTab);
+        await homePage.assertElementDisplayed(homePage.laddersTab);
+      },
+    );
 
     await step("Open a match from the Home screen", async () => {
       const matchElement = homePage.matchById(matchId.toString());
@@ -114,7 +132,9 @@ describe("Scorer team officials - Lock Attendance ON, after lock - editing block
     });
 
     await step("Validate and Open Team Officials", async () => {
-      expect(await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable()).toBeTruthy();
+      expect(
+        await teamOfficialsPage.validateIfTeamOfficialsMenuAvailable(),
+      ).toBeTruthy();
       await teamOfficialsPage.openTeamOfficials();
     });
 
@@ -123,7 +143,9 @@ describe("Scorer team officials - Lock Attendance ON, after lock - editing block
     });
 
     await step("Validate disabled Away Team elements", async () => {
-      await teamOfficialsPage.click(scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam));
+      await teamOfficialsPage.click(
+        scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+      );
       await teamOfficialsPage.assertDisabledTeamOfficialsElements();
     });
   });

@@ -9,7 +9,9 @@ describe("Shop Admin and Payment Terminal - Persona Checklist", () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
 
-    allureReporter.addFeature("Shop Admin and Payment Terminal Persona Checklist");
+    allureReporter.addFeature(
+      "Shop Admin and Payment Terminal Persona Checklist",
+    );
     allureReporter.addStory(
       "Tap to Pay Android only for shop admin, Canteen Android only for payment terminal",
     );

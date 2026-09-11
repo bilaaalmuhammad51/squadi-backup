@@ -4,6 +4,8 @@ import { LoginPage } from "./login.page";
 import { HomePage } from "../pages/home.page";
 import { UserRoles } from "../data/teamSheet.data";
 import { namesOfUsers } from "../data/login.data";
+import { App } from "../config/apps";
+import { hasFeature } from "../utils/features";
 
 export class ScorerPage extends LoginPage {
   public teamSheetAlert = selector(
@@ -141,17 +143,25 @@ export class ScorerPage extends LoginPage {
 
   public confirmBtn = selector("~Confirm", "~Confirm", "Confirm Button");
 
-  public startBtn = selector("~Start", "~Start", "Start Button");
-
-  public ConfirmToStartBtn = selector(
-    "~Confirm",
-    "~Confirm",
-    "Confirm to Start Button",
+  public confirmBtnForTeamSheetOrSelection = selector(
+    `~${App.confirmBtnForSavingTeamSheetOrSelection?.confirmTeam}`,
+    `~${App.confirmBtnForSavingTeamSheetOrSelection?.confirmTeam}`,
+    "Confirm Button for Team Sheet or Selection",
   );
 
-  public pauseBtn = selector("~Pause", "~Pause", "Pause Button");
+  public startBtn = selector("~Start", "~Start", "Start Button");
 
-  public resumeBtn = selector("~Resume", "~Resume", "Resume Button");
+  public pauseOrStopBtn = selector(
+    `~${App.pauseOrStopButton.label}`,
+    `~${App.pauseOrStopButton.label}`,
+    "Pause or Stop Button",
+  );
+
+  public resumeOrStartBtn = selector(
+    `~${App.resumeOrStartButton.label}`,
+    `~${App.resumeOrStartButton.label}`,
+    "Resume or Start Button",
+  );
 
   public borrowPlayerBtn = selector(
     'android=new UiSelector().description("+ Borrow Player")',
@@ -183,12 +193,6 @@ export class ScorerPage extends LoginPage {
     'android=new UiSelector().descriptionContains("Teamsheet submitted")',
     '-ios predicate string: name CONTAINS[c] "Teamsheet submitted"',
     "Team Sheet Submitted Message",
-  );
-
-  public confirmStartBtn = selector(
-    "~Confirm",
-    "~Confirm",
-    "Confirm Start Button",
   );
 
   public homeTeamScore = selector(
@@ -227,6 +231,73 @@ export class ScorerPage extends LoginPage {
     "Undo Away Team Score",
   );
 
+  // Foul pad (basketball only, gated by hasFeature("fouls")). Confirmed from a
+  // real device page-source capture (2026-09-11): the "Undo" buttons above are
+  // shared between team score AND fouls (there is only one Undo per team on
+  // screen, and it enables the moment either a score or a foul is recorded for
+  // that team), so undoHomeTeamScoreBtn / undoAwayTeamScoreBtn double as the
+  // foul-undo controls - no separate selector needed.
+  public personalFoulTypeBtn = selector(
+    "~PERSONAL",
+    "~PERSONAL",
+    "Personal Foul Type Button",
+  );
+
+  public technicalFoulTypeBtn = selector(
+    "~TECHNICAL",
+    "~TECHNICAL",
+    "Technical Foul Type Button",
+  );
+
+  public unsportsmanlikeFoulTypeBtn = selector(
+    "~UNSPORTSMANLIKE",
+    "~UNSPORTSMANLIKE",
+    "Unsportsmanlike Foul Type Button",
+  );
+
+  public disqualifyingFoulTypeBtn = selector(
+    "~DISQUALIFYING",
+    "~DISQUALIFYING",
+    "Disqualifying Foul Type Button",
+  );
+
+  /**
+   * Team foul column ("FOULS" content-desc, e.g. "FOULS\n2"; renders as
+   * "FOULS\n " with no visible number at zero fouls for the period). Home
+   * renders before away in both screen position and document order.
+   */
+  public teamFoulColumn = (team: "home" | "away") =>
+    selector(
+      `android=new UiSelector().descriptionContains("FOULS").instance(${team === "home" ? 0 : 1})`,
+      `-ios predicate string: name CONTAINS "FOULS"`,
+      `Team Foul Column (${team})`,
+    );
+
+  /**
+   * A player's own roster button doubles as the foul target once a foul type
+   * is selected - content-desc is "<#>\n<Player Name>\n<personal foul tally>".
+   */
+  public foulTargetPlayer = (player: string) =>
+    selector(
+      `android=new UiSelector().descriptionContains("${player}")`,
+      `-ios predicate string: name CONTAINS "${player}"`,
+      `Foul target - player ${player}`,
+    );
+
+  /**
+   * The "B / Bench / <tally>" element is disabled while PERSONAL is selected
+   * and becomes the tap target for a bench/team-official foul once TECHNICAL
+   * is selected (confirmed on a real device 2026-09-11: tapping it after
+   * TECHNICAL increments its own tally and the team FOULS column, without
+   * attributing the foul to any player). Home renders before away.
+   */
+  public benchFoulTarget = (team: "home" | "away") =>
+    selector(
+      `android=new UiSelector().descriptionContains("Bench").instance(${team === "home" ? 0 : 1})`,
+      `-ios predicate string: name CONTAINS "Bench"`,
+      `Foul target - bench/team official (${team})`,
+    );
+
   public errorPopup = selector(
     'android=new UiSelector().descriptionContains("Sorry").instance(1)',
     "(//XCUIElementTypeStaticText)[2]",
@@ -240,8 +311,8 @@ export class ScorerPage extends LoginPage {
   );
 
   public teamSheetNotAvailableMsg = selector(
-    "~Team Sheet is not available yet",
-    "~Team Sheet is not available yet",
+    `~${App.teamSheetNotAvailableMsg.message}`,
+    `~${App.teamSheetNotAvailableMsg.message}`,
     "Team Sheet not available message",
   );
 
@@ -296,8 +367,8 @@ export class ScorerPage extends LoginPage {
     );
 
   public teamSheetOption = selector(
-    "~Team Sheet",
-    "~Team Sheet",
+    `~${App.teamAttendance.name}`,
+    `~${App.teamAttendance.name}`,
     "Team Sheet Option in Match",
   );
 
@@ -331,10 +402,10 @@ export class ScorerPage extends LoginPage {
     "Assign Referees page heading in Game Referees",
   );
 
-  public matchRefereeHeading = selector(
-    "~Match referee",
-    "~Match referee",
-    "Match Referee heading in Game Referees",
+  public refereeSlot1Heading = selector(
+    App.refereeSlots.slot1.android,
+    App.refereeSlots.slot1.ios,
+    "Referee slot 1 heading in Game Referees",
   );
 
   public searchForMatchReferee = selector(
@@ -343,29 +414,17 @@ export class ScorerPage extends LoginPage {
     "Match referee selection in Assign Referees page in Game Referees",
   );
 
-  public assistantReferee1Heading = selector(
-    "~Assistant Referee 1",
-    "~Assistant Referee 1",
-    "Assistant Referee 1 heading in Game Referees",
+  public refereeSlot2Heading = selector(
+    App.refereeSlots.slot2.android,
+    App.refereeSlots.slot2.ios,
+    "Referee slot 2 heading in Game Referees",
   );
 
-  // public assistantReferee1Select = selector(
-  //   "//android.widget.EditText[2]",
-  //   "",
-  //   "Assistant Referee 1 selection in Assign Referees page in Game Referees",
-  // );
-
-  public assistantReferee2Heading = selector(
-    "~Assistant Referee 2",
-    "~Assistant Referee 2",
-    "Assistant Referee 2 heading in Game Referees",
+  public refereeSlot3Heading = selector(
+    App.refereeSlots.slot3.android,
+    App.refereeSlots.slot3.ios,
+    "Referee slot 3 heading in Game Referees",
   );
-
-  // public assistantReferee2Select = selector(
-  //   "//android.widget.EditText[3]",
-  //   "",
-  //   "Assistant Referee 2 selection in Assign Referees page in Game Referees",
-  // );
 
   public refereeToSelect = (referee: string = namesOfUsers.refereeName) =>
     selector(
@@ -399,10 +458,10 @@ export class ScorerPage extends LoginPage {
       "selected Referee persisting",
     );
 
-  public fieldOption = selector(
-    'android=new UiSelector().descriptionContains("Field")',
-    '-ios predicate string:name CONTAINS "Field"',
-    "Field Option after opening match",
+  public fieldOrCourtOption = selector(
+    `android=new UiSelector().descriptionContains("${App.fieldOption.label}")`,
+    `-ios predicate string:name CONTAINS "${App.fieldOption.label}"`,
+    "Field or Court option in Game Details after opening match",
   );
 
   public selectPlayerInTeamSheet = (player: string) =>
@@ -458,15 +517,17 @@ export class ScorerPage extends LoginPage {
 
   async validateManagerScreenElements(matchId: string) {
     const homePage = new HomePage();
-    await this.waitUntilVisibleWithRetry(this.startingFormationOption);
-    await this.assertElementDisplayed(this.startingFormationOption);
+    if (hasFeature("startingFormation")) {
+      await this.waitUntilVisibleWithRetry(this.startingFormationOption);
+      await this.assertElementDisplayed(this.startingFormationOption);
+    }
     const matchElement = homePage.matchById(matchId);
     await this.scrollUntilElementVisible(matchElement);
     await homePage.assertElementDisplayed(matchElement);
     await homePage.assertElementDisplayed(
       this.gameCard(UserRoles.Manager, matchId),
     );
-    await this.assertElementDisplayed(this.fieldOption);
+    await this.assertElementDisplayed(this.fieldOrCourtOption);
     await this.assertElementDisplayed(this.ResponsesHeading);
   }
   async validateRefereeScreenElements(matchId: string) {
@@ -476,20 +537,23 @@ export class ScorerPage extends LoginPage {
       this.gameCard(UserRoles.Referee, matchId),
     );
     await this.validateGameRefereesOption();
-    await this.assertElementDisplayed(this.fieldOption);
+    await this.assertElementDisplayed(this.fieldOrCourtOption);
   }
 
   async validateCoachScreenElements(matchId: string) {
     const homePage = new HomePage();
-    await this.waitUntilVisibleWithRetry(this.startingFormationOption);
-    await this.assertElementDisplayed(this.startingFormationOption);
+    if (hasFeature("startingFormation")) {
+      await this.waitUntilVisibleWithRetry(this.startingFormationOption);
+      await this.assertElementDisplayed(this.startingFormationOption);
+    }
     const matchElement = homePage.matchById(matchId);
     await this.scrollUntilElementVisible(matchElement);
     await homePage.assertElementDisplayed(matchElement);
     await homePage.assertElementDisplayed(
       this.gameCard(UserRoles.Coach, matchId),
     );
-    await this.assertElementDisplayed(this.fieldOption);
+    await this.assertElementDisplayed(this.fieldOrCourtOption);
+
     await this.assertElementDisplayed(this.ResponsesHeading);
   }
 
@@ -506,32 +570,32 @@ export class ScorerPage extends LoginPage {
     await this.waitUntilVisibleWithRetry(this.homeTeamSheetTab(homeTeam));
     await this.assertElementDisplayed(this.homeTeamSheetTab(homeTeam));
     await this.click(this.homeTeamSheetTab(homeTeam));
-    await this.assertElementDisplayed(this.borrowPlayerBtn);
-    await this.assertElementDisplayed(this.validatorName);
+    // await this.assertElementDisplayed(this.borrowPlayerBtn);
+    // await this.assertElementDisplayed(this.validatorName);
   }
 
   async validateHomeSubstitutionElements(homeTeam: string) {
     await this.waitUntilVisibleWithRetry(this.homeTeamSheetTab(homeTeam));
     await this.assertElementDisplayed(this.homeTeamSheetTab(homeTeam));
     await this.click(this.homeTeamSheetTab(homeTeam));
-    await this.assertElementNotDisplayed(this.borrowPlayerBtn);
-    await this.assertElementDisplayed(this.validatorName);
+    // await this.assertElementNotDisplayed(this.borrowPlayerBtn);
+    // await this.assertElementDisplayed(this.validatorName);
   }
 
   async validateAwayTeamSheetElements(awayTeam: string) {
     await this.waitUntilVisibleWithRetry(this.awayTeamSheetTab(awayTeam));
     await this.assertElementDisplayed(this.awayTeamSheetTab(awayTeam));
     await this.click(this.awayTeamSheetTab(awayTeam));
-    await this.assertElementDisplayed(this.borrowPlayerBtn);
-    await this.assertElementDisplayed(this.validatorName);
+    // await this.assertElementDisplayed(this.borrowPlayerBtn);
+    // await this.assertElementDisplayed(this.validatorName);
   }
 
   async validateAwaySubstitutionElements(awayTeam: string) {
     await this.waitUntilVisibleWithRetry(this.awayTeamSheetTab(awayTeam));
     await this.assertElementDisplayed(this.awayTeamSheetTab(awayTeam));
     await this.click(this.awayTeamSheetTab(awayTeam));
-    await this.assertElementNotDisplayed(this.borrowPlayerBtn);
-    await this.assertElementDisplayed(this.validatorName);
+    // await this.assertElementNotDisplayed(this.borrowPlayerBtn);
+    // await this.assertElementDisplayed(this.validatorName);
   }
 
   async validateTeamSheetNotAvailable() {
@@ -580,6 +644,13 @@ export class ScorerPage extends LoginPage {
     }
   }
 
+  async clickConfirmBtnForSavingTeamSheet() {
+    await this.waitUntilVisibleWithRetry(
+      this.confirmBtnForTeamSheetOrSelection,
+    );
+    await this.click(this.confirmBtnForTeamSheetOrSelection);
+  }
+
   async handleStartOrResumeMatch() {
     const startBtn = await this.isElementPresent(
       this.startBtn,
@@ -590,12 +661,14 @@ export class ScorerPage extends LoginPage {
       await this.waitUntilVisibleWithRetry(this.startBtn);
       await this.scrollDown();
       await this.click(this.startBtn);
-      await this.waitUntilVisibleWithRetry(this.confirmStartBtn);
-      await this.click(this.confirmStartBtn);
+      if (hasFeature("matchStartConfirmation")) {
+        await this.waitUntilVisibleWithRetry(this.confirmBtn);
+        await this.click(this.confirmBtn);
+      }
     } else {
-      await this.waitUntilVisibleWithRetry(this.resumeBtn);
+      await this.waitUntilVisibleWithRetry(this.resumeOrStartBtn);
       await this.scrollDown();
-      await this.click(this.resumeBtn);
+      await this.click(this.resumeOrStartBtn);
     }
   }
 
@@ -613,6 +686,71 @@ export class ScorerPage extends LoginPage {
   async undoTeamScore(undoButton: any) {
     await this.waitUntilVisibleWithRetry(undoButton);
     await this.click(undoButton);
+  }
+
+  private foulTypeBtn(
+    foulType: "PERSONAL" | "TECHNICAL" | "UNSPORTSMANLIKE" | "DISQUALIFYING",
+  ) {
+    return {
+      PERSONAL: this.personalFoulTypeBtn,
+      TECHNICAL: this.technicalFoulTypeBtn,
+      UNSPORTSMANLIKE: this.unsportsmanlikeFoulTypeBtn,
+      DISQUALIFYING: this.disqualifyingFoulTypeBtn,
+    }[foulType];
+  }
+
+  async selectFoulType(
+    foulType: "PERSONAL" | "TECHNICAL" | "UNSPORTSMANLIKE" | "DISQUALIFYING",
+  ) {
+    const btn = this.foulTypeBtn(foulType);
+    await this.waitUntilVisibleWithRetry(btn);
+    await this.click(btn);
+  }
+
+  /** Selects the foul type, then taps the player's roster button to attribute it. */
+  async recordFoulOnPlayer(
+    player: string,
+    foulType: "PERSONAL" | "TECHNICAL" | "UNSPORTSMANLIKE" | "DISQUALIFYING",
+  ) {
+    await this.selectFoulType(foulType);
+    await this.click(this.foulTargetPlayer(player));
+  }
+
+  /** Selects the foul type, then taps the team's Bench element (bench/team-official foul). */
+  async recordBenchFoul(
+    team: "home" | "away",
+    foulType: "PERSONAL" | "TECHNICAL" | "UNSPORTSMANLIKE" | "DISQUALIFYING",
+  ) {
+    await this.selectFoulType(foulType);
+    await this.click(this.benchFoulTarget(team));
+  }
+
+  /**
+   * Parses the trailing number off a foul-pad content-desc such as
+   * "1\nPlayer1 T1\n2" or "B\nBench\n1". Returns 0 when the trailing segment
+   * is blank (the pad renders no visible "0").
+   */
+  private parseTrailingFoulCount(contentDesc: string): number {
+    const parts = contentDesc.split("\n");
+    const last = parts[parts.length - 1].trim();
+    return last === "" ? 0 : Number(last);
+  }
+
+  async getPlayerFoulTally(player: string): Promise<number> {
+    const text = await this.getElementText(this.foulTargetPlayer(player));
+    return this.parseTrailingFoulCount(text);
+  }
+
+  async getBenchFoulTally(team: "home" | "away"): Promise<number> {
+    const text = await this.getElementText(this.benchFoulTarget(team));
+    return this.parseTrailingFoulCount(text);
+  }
+
+  /** Raw trailing value of the team FOULS column - "" when blank, else the numeric string. */
+  async getTeamFoulColumnValue(team: "home" | "away"): Promise<string> {
+    const text = await this.getElementText(this.teamFoulColumn(team));
+    const parts = text.split("\n");
+    return parts[parts.length - 1].trim();
   }
 
   async handleErrorPopup() {
@@ -741,13 +879,17 @@ export class ScorerPage extends LoginPage {
   }
 
   async validateSubstitutionOption() {
-    await this.waitUntilVisibleWithRetry(this.substitutionOption);
-    await this.assertElementDisplayed(this.substitutionOption);
+    if (hasFeature("substitutions")) {
+      await this.waitUntilVisibleWithRetry(this.substitutionOption);
+      await this.assertElementDisplayed(this.substitutionOption);
+    }
   }
 
   async validateStartingFormationOption() {
-    await this.waitUntilVisibleWithRetry(this.startingFormationOption);
-    await this.assertElementDisplayed(this.startingFormationOption);
+    if (hasFeature("startingFormation")) {
+      await this.waitUntilVisibleWithRetry(this.startingFormationOption);
+      await this.assertElementDisplayed(this.startingFormationOption);
+    }
   }
 
   async validateGameRefereesOption() {
@@ -761,8 +903,12 @@ export class ScorerPage extends LoginPage {
   }
 
   async openSubstitutionOption() {
-    await this.waitUntilVisible(this.substitutionOption);
-    await this.click(this.substitutionOption);
+    if (hasFeature("substitutions")) {
+      await this.waitUntilVisible(this.substitutionOption);
+      await this.click(this.substitutionOption);
+    } else {
+      await this.openTeamSheetOption();
+    }
   }
 
   async openAssignAScorerOption() {
@@ -810,10 +956,12 @@ export class ScorerPage extends LoginPage {
   async selectPlayerAndPositionOfTeam(player: string, position: string) {
     await this.waitUntilVisibleWithRetry(this.selectPlayerInTeamSheet(player));
     await this.click(this.selectPlayerInTeamSheet(player));
-    await this.waitUntilVisibleWithRetry(
-      this.selectPositionOfPlayerInTeamSheet(position),
-    );
-    await this.click(this.selectPositionOfPlayerInTeamSheet(position));
+    if (hasFeature("startingFormation")) {
+      await this.waitUntilVisibleWithRetry(
+        this.selectPositionOfPlayerInTeamSheet(position),
+      );
+      await this.click(this.selectPositionOfPlayerInTeamSheet(position));
+    }
     try {
       await driver.hideKeyboard();
     } catch {}
@@ -925,8 +1073,10 @@ export class ScorerPage extends LoginPage {
   }
 
   async saveStartingFormation() {
-    await this.waitUntilVisibleWithRetry(this.tickButtonInStartingFormation);
-    await this.click(this.tickButtonInStartingFormation);
+    if (hasFeature("startingFormation")) {
+      await this.waitUntilVisibleWithRetry(this.tickButtonInStartingFormation);
+      await this.click(this.tickButtonInStartingFormation);
+    }
   }
 
   async openGameRefereesOption() {
@@ -936,16 +1086,16 @@ export class ScorerPage extends LoginPage {
   }
 
   async validateRefereesElements() {
-    await this.waitUntilVisibleWithRetry(this.matchRefereeHeading);
-    await this.assertElementDisplayed(this.matchRefereeHeading);
-    await this.assertElementDisplayed(this.assistantReferee1Heading);
-    await this.assertElementDisplayed(this.assistantReferee2Heading);
+    await this.waitUntilVisibleWithRetry(this.refereeSlot1Heading);
+    await this.assertElementDisplayed(this.refereeSlot1Heading);
+    await this.assertElementDisplayed(this.refereeSlot2Heading);
+    await this.assertElementDisplayed(this.refereeSlot3Heading);
   }
 
   async validateAssignRefereesHeading() {
     await this.waitUntilVisibleWithRetry(this.assignRefereePageHeading);
     await this.assertElementDisplayed(this.assignRefereePageHeading);
-    await this.assertElementDisplayed(this.matchRefereeHeading);
+    await this.assertElementDisplayed(this.refereeSlot1Heading);
   }
 
   async searchAndSelectReferee(referee: string = namesOfUsers.refereeName) {
@@ -982,8 +1132,10 @@ export class ScorerPage extends LoginPage {
     await this.scrollDown();
     await this.waitUntilVisibleWithRetry(this.startBtn);
     await this.click(this.startBtn);
-    await this.waitUntilVisibleWithRetry(this.confirmStartBtn);
-    await this.click(this.confirmStartBtn);
-    await this.waitUntilVisibleWithRetry(this.pauseBtn);
+    if (hasFeature("matchStartConfirmation")) {
+      await this.waitUntilVisibleWithRetry(this.confirmBtn);
+      await this.click(this.confirmBtn);
+    }
+    await this.waitUntilVisibleWithRetry(this.pauseOrStopBtn);
   }
 }

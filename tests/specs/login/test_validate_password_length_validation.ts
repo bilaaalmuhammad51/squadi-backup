@@ -11,7 +11,6 @@ const passwordTests = [
   { length: 9, expectedState: "enabled" },
 ];
 
-
 describe("Authentication - Password Length Validation", () => {
   let loginPage: LoginPage;
   let loginBtn: ChainablePromiseElement;

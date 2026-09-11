@@ -27,7 +27,7 @@ describe("Parent-as-child - Persona Checklist", () => {
     await step("Register shows an alert instead of the page", async () => {
       await loginPage.validateRegisterAlertForChild();
     });
-    });
+  });
 
   it("TC-P3 - Hides Password / Tap-to-Pay / Canteen", async () => {
     await step("Hides Password / Tap-to-Pay / Canteen", async () => {

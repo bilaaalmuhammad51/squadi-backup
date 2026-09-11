@@ -12,164 +12,171 @@ import {
   TeamsInTeamSheet,
 } from "../../../data/teamSheet.data";
 import { MatchApiHelper } from "../../../utils/matchApi.helper";
+import { describeIfFeature } from "../../../utils/features";
 
 let matchId: number;
 let token: string;
 
-describe("Coach Access Starting Formation When Positions Are Enabled", () => {
-  it("log in with valid credentials, update setting via API, open a match, validate starting formation is available", async () => {
-    const loginPage = new LoginPage();
-    const homePage = new HomePage();
-    const scorerPage = new ScorerPage();
-    const basePage = new BasePage();
+describeIfFeature(
+  "startingFormation",
+  "Coach: Team Sheet and Starting Formation are available for both teams when formation tracking is enabled",
+  () => {
+    it("log in as Coach, submit the Team Sheet for both teams, then reposition and save Starting Formation for both teams", async () => {
+      const loginPage = new LoginPage();
+      const homePage = new HomePage();
+      const scorerPage = new ScorerPage();
+      const basePage = new BasePage();
 
-    allureReporter.addFeature("Coach Flow");
-    allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
-    allureReporter.addSeverity("critical");
+      allureReporter.addFeature("Coach Flow");
+      allureReporter.addStory("Login, Team Sheet, and Match Scoring Flow");
+      allureReporter.addSeverity("critical");
 
-    await step("Create match before launching app", async () => {
-      token = await MatchApiHelper.getToken(
-        LoginData.email,
-        LoginData.password,
-      );
-
-      matchId = await MatchApiHelper.createMatch(token, 15);
-
-      console.log("Created Match ID:", matchId);
-
-      allureReporter.addAttachment(
-        "Created Match ID",
-        String(matchId),
-        "text/plain",
-      );
-    });
-
-    after(async () => {
-      try {
-        if (token && matchId) {
-          await MatchApiHelper.deleteMatch(token, matchId);
-          console.log(`Deleted Match ID: ${matchId}`);
-        }
-      } catch (error) {
-        console.error("Failed to delete match:", error);
-      }
-    });
-
-    await step("Verify welcome screen is visible", async () => {
-      await loginPage.validateLoginBtnIsVisible();
-    });
-
-    await step("Verify welcome screen elements", async () => {
-      await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
-      await loginPage.assertElementDisplayed(
-        loginPage.createAccountOrRegisterProfile,
-      );
-      await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
-      await loginPage.assertElementDisplayed(loginPage.loginButton);
-    });
-
-    await step("Navigate to login screen", async () => {
-      await loginPage.click(loginPage.loginButton);
-    });
-
-    await step("Verify login screen elements", async () => {
-      await loginPage.assertElementDisplayed(loginPage.backButton);
-      await loginPage.assertElementDisplayed(loginPage.loginHeading);
-      await loginPage.assertTextContains(
-        loginPage.loginHeading,
-        LoginData.loginHeading,
-      );
-      await loginPage.assertElementDisplayed(loginPage.rememberPassword);
-      await loginPage.assertElementDisplayed(loginPage.forgotPassword);
-    });
-
-    await step("Enter valid credentials", async () => {
-      await loginPage.addUserName(LoginData.coachEmail);
-      await loginPage.addPassword(LoginData.password);
-    });
-
-    await step("Submit login", async () => {
-      await loginPage.click(loginPage.login);
-    });
-
-    await step(
-      "Validate successful login by checking Home screen",
-      async () => {
-        await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
-        await homePage.assertElementDisplayed(homePage.homeTab);
-        await homePage.assertElementDisplayed(homePage.drawsTab);
-        await homePage.assertElementDisplayed(homePage.laddersTab);
-      },
-    );
-
-    await step("Open a match from the Home screen", async () => {
-      const matchElement = homePage.matchById(matchId.toString());
-      await basePage.scrollUntilElementVisible(matchElement);
-      await homePage.assertElementDisplayed(matchElement);
-      await homePage.click(matchElement);
-      await scorerPage.handleErrorPopup();
-    });
-
-    await step("Validate navigation to coach screen", async () => {
-      await scorerPage.validateCoachScreenElements(matchId.toString());
-    });
-
-    await step("validate coach page options", async () => {
-      await scorerPage.validateTeamSheetOption();
-      await scorerPage.validateStartingFormationOption();
-    });
-
-    await step(
-      "Open team sheet option and validate team sheet elements",
-      async () => {
-        await scorerPage.openTeamSheetOption();
-        await scorerPage.validateHomeTeamSheetElements(
-          TeamsInTeamSheet.HomeTeam,
+      await step("Create match before launching app", async () => {
+        token = await MatchApiHelper.getToken(
+          LoginData.email,
+          LoginData.password,
         );
-      },
-    );
 
-    await step("Select players and their positions for home team", async () => {
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.ClubPlayer1,
-        PlayerPositions.Forward,
+        matchId = await MatchApiHelper.createMatch(token, 15);
+
+        console.log("Created Match ID:", matchId);
+
+        allureReporter.addAttachment(
+          "Created Match ID",
+          String(matchId),
+          "text/plain",
+        );
+      });
+
+      after(async () => {
+        try {
+          if (token && matchId) {
+            await MatchApiHelper.deleteMatch(token, matchId);
+            console.log(`Deleted Match ID: ${matchId}`);
+          }
+        } catch (error) {
+          console.error("Failed to delete match:", error);
+        }
+      });
+
+      await step(
+        "Verify welcome screen and its elements are displayed",
+        async () => {
+          await loginPage.validateLoginBtnIsVisible();
+          await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
+          await loginPage.assertElementDisplayed(
+            loginPage.createAccountOrRegisterProfile,
+          );
+          await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
+          await loginPage.assertElementDisplayed(loginPage.loginButton);
+        },
       );
-      await scorerPage.clickDoneBtn();
-    });
 
-    await step("Select players and their positions for away team", async () => {
-      await scorerPage.click(
-        scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+      await step("Navigate to login screen", async () => {
+        await loginPage.click(loginPage.loginButton);
+      });
+
+      await step("Verify login screen elements", async () => {
+        await loginPage.assertElementDisplayed(loginPage.backButton);
+        await loginPage.assertElementDisplayed(loginPage.loginHeading);
+        await loginPage.assertTextContains(
+          loginPage.loginHeading,
+          LoginData.loginHeading,
+        );
+        await loginPage.assertElementDisplayed(loginPage.rememberPassword);
+        await loginPage.assertElementDisplayed(loginPage.forgotPassword);
+      });
+
+      await step("Enter valid credentials and submit login", async () => {
+        await loginPage.addUserName(LoginData.coachEmail);
+        await loginPage.addPassword(LoginData.password);
+        await loginPage.click(loginPage.login);
+      });
+
+      await step(
+        "Validate successful login by checking Home screen",
+        async () => {
+          await homePage.waitUntilVisibleWithRetry(homePage.homeTab);
+          await homePage.assertElementDisplayed(homePage.homeTab);
+          await homePage.assertElementDisplayed(homePage.drawsTab);
+          await homePage.assertElementDisplayed(homePage.laddersTab);
+        },
       );
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.ClubPlayer2,
-        PlayerPositions.Midfielder,
+
+      await step("Open a match from the Home screen", async () => {
+        const matchElement = homePage.matchById(matchId.toString());
+        await basePage.scrollUntilElementVisible(matchElement);
+        await homePage.assertElementDisplayed(matchElement);
+        await homePage.click(matchElement);
+        await scorerPage.handleErrorPopup();
+      });
+
+      await step("Validate navigation to coach screen", async () => {
+        await scorerPage.validateCoachScreenElements(matchId.toString());
+      });
+
+      await step("validate coach page options", async () => {
+        await scorerPage.validateTeamSheetOption();
+        await scorerPage.validateStartingFormationOption();
+      });
+
+      await step(
+        "Open team sheet option and validate team sheet elements",
+        async () => {
+          await scorerPage.openTeamSheetOption();
+          await scorerPage.validateHomeTeamSheetElements(
+            TeamsInTeamSheet.HomeTeam,
+          );
+        },
       );
-    });
 
-    await step("click Done button after managing team sheets", async () => {
-      await scorerPage.clickDoneBtn();
-    });
-
-    await step("dragging home players in Starting Formation", async () => {
-      await scorerPage.dragPlayer(
-        PlayersInStartingFormation.ClubPlayer1,
-        130,
-        180,
+      await step(
+        "Select player and position for home team, then click Done to save",
+        async () => {
+          await scorerPage.selectPlayerAndPositionOfTeam(
+            PlayerNamesInTeamSheet.ClubPlayer1,
+            PlayerPositions.Forward,
+          );
+          await scorerPage.clickDoneBtn();
+        },
       );
-    });
 
-    await step("dragging away players in Starting Formation", async () => {
-      await scorerPage.click(
-        scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+      await step(
+        "Select player and position for away team, then click Done to save",
+        async () => {
+          await scorerPage.click(
+            scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+          );
+          await scorerPage.selectPlayerAndPositionOfTeam(
+            PlayerNamesInTeamSheet.ClubPlayer2,
+            PlayerPositions.Midfielder,
+          );
+          await scorerPage.clickDoneBtn();
+        },
       );
-      await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer2);
-    });
 
-    await step("save Starting Formation", async () => {
-      await scorerPage.saveStartingFormation();
-      await scorerPage.waitUntilVisibleWithRetry(scorerPage.fieldOption);
-      await scorerPage.clickBackBtn();
+      await step("dragging home players in Starting Formation", async () => {
+        await scorerPage.dragPlayer(
+          PlayersInStartingFormation.ClubPlayer1,
+          130,
+          180,
+        );
+      });
+
+      await step("dragging away players in Starting Formation", async () => {
+        await scorerPage.click(
+          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+        );
+        await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer2);
+      });
+
+      await step("save Starting Formation", async () => {
+        await scorerPage.saveStartingFormation();
+        await scorerPage.waitUntilVisibleWithRetry(
+          scorerPage.fieldOrCourtOption,
+        );
+        await scorerPage.clickBackBtn();
+      });
     });
-  });
-});
+  },
+);

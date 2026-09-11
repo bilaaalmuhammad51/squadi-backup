@@ -15,7 +15,10 @@ describe("Coach - Persona Checklist", () => {
 
   after(async () => {
     try {
-      token = await MatchApiHelper.getToken(LoginData.email, LoginData.password);
+      token = await MatchApiHelper.getToken(
+        LoginData.email,
+        LoginData.password,
+      );
       if (token && matchId) {
         await MatchApiHelper.deleteMatch(token, matchId);
         console.log(`Deleted Match ID: ${matchId}`);

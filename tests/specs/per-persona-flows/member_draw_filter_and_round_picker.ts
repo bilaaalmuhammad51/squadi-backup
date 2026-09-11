@@ -69,15 +69,11 @@ describe("Member - Draw tab filter and round picker", () => {
       await schedulePage.waitUntilVisibleWithRetry(
         schedulePage.drawFilterControl,
       );
-      await schedulePage.assertElementDisplayed(
-        schedulePage.drawFilterControl,
-      );
+      await schedulePage.assertElementDisplayed(schedulePage.drawFilterControl);
     });
 
     await step("Assert the rounds", async () => {
-      await schedulePage.waitUntilVisibleWithRetry(
-        schedulePage.roundHeader(1),
-      );
+      await schedulePage.waitUntilVisibleWithRetry(schedulePage.roundHeader(1));
       await schedulePage.assertElementDisplayed(schedulePage.roundHeader(1));
       await schedulePage.assertElementDisplayed(schedulePage.roundHeader(2));
     });

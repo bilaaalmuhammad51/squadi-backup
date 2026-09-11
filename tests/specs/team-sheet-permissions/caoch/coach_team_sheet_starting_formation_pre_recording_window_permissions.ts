@@ -12,12 +12,13 @@ import {
   TeamsInTeamSheet,
 } from "../../../data/teamSheet.data";
 import { MatchApiHelper } from "../../../utils/matchApi.helper";
+import { hasFeature } from "../../../utils/features";
 
 let matchId: number;
 let token: string;
 
 describe("Coach team sheet pre-recording window permissions", () => {
-  it("log in with valid credentials, open a match, update team sheets by adding players, adjust starting formations by repositioning players for respective team", async () => {
+  it("Coach submits the Team Sheet and repositions Starting Formation for both teams before the recording window opens", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
     const scorerPage = new ScorerPage();
@@ -55,18 +56,18 @@ describe("Coach team sheet pre-recording window permissions", () => {
       }
     });
 
-    await step("Verify welcome screen is visible", async () => {
-      await loginPage.validateLoginBtnIsVisible();
-    });
-
-    await step("Verify welcome screen elements", async () => {
-      await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
-      await loginPage.assertElementDisplayed(
-        loginPage.createAccountOrRegisterProfile,
-      );
-      await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
-      await loginPage.assertElementDisplayed(loginPage.loginButton);
-    });
+    await step(
+      "Verify welcome screen and its elements are displayed",
+      async () => {
+        await loginPage.validateLoginBtnIsVisible();
+        await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
+        await loginPage.assertElementDisplayed(
+          loginPage.createAccountOrRegisterProfile,
+        );
+        await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
+        await loginPage.assertElementDisplayed(loginPage.loginButton);
+      },
+    );
 
     await step("Navigate to login screen", async () => {
       await loginPage.click(loginPage.loginButton);
@@ -83,12 +84,9 @@ describe("Coach team sheet pre-recording window permissions", () => {
       await loginPage.assertElementDisplayed(loginPage.forgotPassword);
     });
 
-    await step("Enter valid credentials", async () => {
+    await step("Enter valid credentials and submit login", async () => {
       await loginPage.addUserName(LoginData.coachEmail);
       await loginPage.addPassword(LoginData.password);
-    });
-
-    await step("Submit login", async () => {
       await loginPage.click(loginPage.login);
     });
 
@@ -116,7 +114,9 @@ describe("Coach team sheet pre-recording window permissions", () => {
 
     await step("validate coach page options", async () => {
       await scorerPage.validateTeamSheetOption();
-      await scorerPage.validateStartingFormationOption();
+      if (hasFeature("startingFormation")) {
+        await scorerPage.validateStartingFormationOption();
+      }
     });
 
     await step(
@@ -134,38 +134,46 @@ describe("Coach team sheet pre-recording window permissions", () => {
         PlayerNamesInTeamSheet.ClubPlayer1,
         PlayerPositions.Forward,
       );
-      await scorerPage.clickDoneBtn();
+      await scorerPage.clickConfirmBtnForSavingTeamSheet();
     });
 
-    await step("Select players and their positions for away team", async () => {
-      await scorerPage.click(
-        scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
-      );
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.ClubPlayer2,
-        PlayerPositions.Midfielder,
-      );
-    });
+    await step(
+      "Select players and their positions for away team, then click Confirm to save",
+      async () => {
+        await scorerPage.click(
+          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+        );
+        await scorerPage.selectPlayerAndPositionOfTeam(
+          PlayerNamesInTeamSheet.ClubPlayer2,
+          PlayerPositions.Forward,
+        );
+        await scorerPage.clickConfirmBtnForSavingTeamSheet();
+      },
+    );
 
-    await step("click Done button after managing team sheets", async () => {
-      await scorerPage.clickDoneBtn();
-    });
+    if (hasFeature("startingFormation")) {
+      await step("dragging home players in Starting Formation", async () => {
+        await scorerPage.dragPlayer(
+          PlayersInStartingFormation.ClubPlayer1,
+          130,
+          180,
+        );
+      });
 
-    await step("dragging home players in Starting Formation", async () => {
-      await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer1, 130, 180);
-    });
+      await step("dragging away players in Starting Formation", async () => {
+        await scorerPage.click(
+          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+        );
+        await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer2);
+      });
 
-    await step("dragging away players in Starting Formation", async () => {
-      await scorerPage.click(
-        scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
-      );
-      await scorerPage.dragPlayer(PlayersInStartingFormation.ClubPlayer2);
-    });
-
-    await step("save Starting Formation", async () => {
-      await scorerPage.saveStartingFormation();
-      await scorerPage.waitUntilVisibleWithRetry(scorerPage.fieldOption);
-      await scorerPage.clickBackBtn();
-    });
+      await step("save Starting Formation", async () => {
+        await scorerPage.saveStartingFormation();
+        await scorerPage.waitUntilVisibleWithRetry(
+          scorerPage.fieldOrCourtOption,
+        );
+        await scorerPage.clickBackBtn();
+      });
+    }
   });
 });

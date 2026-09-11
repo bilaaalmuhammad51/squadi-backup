@@ -96,6 +96,51 @@ export const squadiApp: AppProfile = {
     },
   },
 
+  teamAttendance: {
+    name: "Team Sheet",
+  },
+
+  teamSheetNotAvailableMsg: {
+    message: "Team Sheet is not available yet",
+  },
+
+  matchYesButtonAndroidSelector:
+    '//*[@content-desc="Match ID: {matchId}"]/following-sibling::*[@content-desc="Yes"][1]',
+
+  fieldOption: {
+    label: "Field",
+  },
+
+  pauseOrStopButton: {
+    label: "Pause",
+  },
+
+  resumeOrStartButton: {
+    label: "Resume",
+  },
+
+  reportIncidentTitle: {
+    title: "Report Other Incident",
+  },
+
+  calendarBtn: { selector: '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]/android.widget.Button[2]',},
+
+  backBtnInCalendar: { selector: '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]/android.widget.Button',},
+
+  appNameFinderOptionInMoreTab: { label: "squadi Finder" },
+
+  refereeSlots: {
+    slot1: { android: "~Match referee", ios: "~Match referee" },
+    slot2: {
+      android: "~Assistant Referee 1",
+      ios: "~Assistant Referee 1",
+    },
+    slot3: {
+      android: "~Assistant Referee 2",
+      ios: "~Assistant Referee 2",
+    },
+  },
+
   names: {
     scorerName: "syed shah",
     caochName: "Syed Coach1",
@@ -141,6 +186,10 @@ export const squadiApp: AppProfile = {
     },
   },
 
+  confirmBtnForSavingTeamSheetOrSelection: {
+    confirmTeam: "Confirm",
+  },
+
   register: {
     organisation: "Anas Test State",
     heading: "Create Account or Register Profile",
@@ -162,6 +211,8 @@ export const squadiApp: AppProfile = {
     shop: true,
     incidents: true,
     fieldClosure: true,
+    matchStartConfirmation: true,
+    refereeMustAcceptMatchBeforeScoring: false,
   },
 
   rules: {},

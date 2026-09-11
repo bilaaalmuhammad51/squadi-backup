@@ -11,11 +11,12 @@ import {
   TeamsInTeamSheet,
 } from "../../../data/teamSheet.data";
 import { MatchApiHelper } from "../../../utils/matchApi.helper";
+import { hasFeature } from "../../../utils/features";
 
 let matchId: number;
 
 describe("Referee team sheet recording window permissions", () => {
-  it("log in with valid credentials, open a match, update team sheets by adding players", async () => {
+  it("log in as Referee, confirm the Substitution row is never shown (S10), and submit the Team Sheet for both teams during the recording window", async () => {
     const loginPage = new LoginPage();
     const homePage = new HomePage();
     const scorerPage = new ScorerPage();
@@ -52,18 +53,18 @@ describe("Referee team sheet recording window permissions", () => {
       }
     });
 
-    await step("Verify welcome screen is visible", async () => {
-      await loginPage.validateLoginBtnIsVisible();
-    });
-
-    await step("Verify welcome screen elements", async () => {
-      await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
-      await loginPage.assertElementDisplayed(
-        loginPage.createAccountOrRegisterProfile,
-      );
-      await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
-      await loginPage.assertElementDisplayed(loginPage.loginButton);
-    });
+    await step(
+      "Verify welcome screen and its elements are displayed",
+      async () => {
+        await loginPage.validateLoginBtnIsVisible();
+        await loginPage.assertElementDisplayed(loginPage.welcomeHeading);
+        await loginPage.assertElementDisplayed(
+          loginPage.createAccountOrRegisterProfile,
+        );
+        await loginPage.assertElementDisplayed(loginPage.followTeamOrLeague);
+        await loginPage.assertElementDisplayed(loginPage.loginButton);
+      },
+    );
 
     await step("Navigate to login screen", async () => {
       await loginPage.click(loginPage.loginButton);
@@ -80,12 +81,9 @@ describe("Referee team sheet recording window permissions", () => {
       await loginPage.assertElementDisplayed(loginPage.forgotPassword);
     });
 
-    await step("Enter valid credentials", async () => {
+    await step("Enter valid credentials and submit login", async () => {
       await loginPage.addUserName(LoginData.refereeEmail);
       await loginPage.addPassword(LoginData.password);
-    });
-
-    await step("Submit login", async () => {
       await loginPage.click(loginPage.login);
     });
 
@@ -110,7 +108,7 @@ describe("Referee team sheet recording window permissions", () => {
     });
 
     await step(
-      "Validate navigation to referee screen and it's options",
+      "Validate navigation to Referee screen and confirm Starting Formation row is absent (Referee has no field_positions)",
       async () => {
         await scorerPage.validateRefereeScreenElements(matchId.toString());
       },
@@ -140,26 +138,28 @@ describe("Referee team sheet recording window permissions", () => {
         PlayerNamesInTeamSheet.ClubPlayer1,
         PlayerPositions.Forward,
       );
-      await scorerPage.clickDoneBtn();
-    });
-
-    await step("Select players and their positions for away team", async () => {
-      await scorerPage.click(
-        scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
-      );
-      await scorerPage.selectPlayerAndPositionOfTeam(
-        PlayerNamesInTeamSheet.ClubPlayer2,
-        PlayerPositions.Midfielder,
-      );
-    });
-
-    await step("click Done button after managing team sheets", async () => {
-      await scorerPage.clickDoneBtn();
-      await scorerPage.clickBackBtn();
+      await scorerPage.clickConfirmBtnForSavingTeamSheet();
     });
 
     await step(
-      "Open Game Referees option and validate it's elements",
+      "Select players and their positions for away team, then click Confirm to save",
+      async () => {
+        await scorerPage.click(
+          scorerPage.awayTeamSheetTab(TeamsInTeamSheet.Awayteam),
+        );
+        await scorerPage.selectPlayerAndPositionOfTeam(
+          PlayerNamesInTeamSheet.ClubPlayer2,
+          PlayerPositions.Forward,
+        );
+        await scorerPage.clickConfirmBtnForSavingTeamSheet();
+        if (hasFeature("startingFormation")) {
+          await scorerPage.clickBackBtn();
+        }
+      },
+    );
+
+    await step(
+      "Open Game Referees option and validate its elements",
       async () => {
         await scorerPage.openGameRefereesOption();
         await scorerPage.validateRefereesElements();
@@ -168,7 +168,7 @@ describe("Referee team sheet recording window permissions", () => {
     );
 
     await step("going back and validating Field option", async () => {
-      await scorerPage.waitUntilVisibleWithRetry(scorerPage.fieldOption);
+      await scorerPage.waitUntilVisibleWithRetry(scorerPage.fieldOrCourtOption);
       await scorerPage.clickBackBtn();
     });
   });

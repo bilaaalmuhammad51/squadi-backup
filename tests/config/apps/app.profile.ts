@@ -132,6 +132,10 @@ export interface AppFeatures {
   incidents: boolean;
   /** Field Closure (outdoor-venue closures) in the More tab. */
   fieldClosure: boolean;
+  /** Whether tapping Start on a match shows a Confirm popup before scoring begins. */
+  matchStartConfirmation: boolean;
+  /** Whether the referee must log in and accept (Yes) the match assignment before the scorer can set up the match. */
+  refereeMustAcceptMatchBeforeScoring: boolean;
 }
 
 /** Sport rules that tests assert against - keep them data, not code. */
@@ -190,4 +194,45 @@ export interface AppProfile {
   terminology: AppTerminology;
   features: AppFeatures;
   rules: AppRules;
+  teamAttendance: { name: string };
+  confirmBtnForSavingTeamSheetOrSelection: { confirmTeam: string };
+  teamSheetNotAvailableMsg: { message: string };
+  reportIncidentTitle: { title: string };
+  calendarBtn: { selector: string };
+  backBtnInCalendar: { selector: string };
+  appNameFinderOptionInMoreTab: { label: string };
+  /**
+   * Android locator for the "Yes" button on a match card in Home (accepting a
+   * match/referee assignment). Use the literal placeholder "{matchId}" where
+   * the match id should be interpolated - HomePage.matchYesButton() does the
+   * substitution. The iOS locator is shared across apps for now (see
+   * HomePage.matchYesButton()).
+   */
+  matchYesButtonAndroidSelector: string;
+  /** Label of the match-detail row that opens the field/court screen ("Field" for Squadi, "Court" for Basketball). */
+  fieldOption: { label: string };
+  /** Label of the button that pauses/stops the match clock on the scoring screen ("Pause" for Squadi, "STOP" for Basketball). */
+  pauseOrStopButton: { label: string };
+  /** Label of the button that resumes a paused/stopped match ("Resume" for Squadi, "START" for Basketball - distinct from the initial startBtn's "Start"). */
+  resumeOrStartButton: { label: string };
+  /**
+   * Selectors for the three referee slots on the Assign Referees screen, in
+   * on-screen order (slot1 = first field, slot2 = second, slot3 = third).
+   * Named positionally rather than by role because the apps don't share
+   * role names for these slots: Squadi labels them "Match referee",
+   * "Assistant Referee 1", "Assistant Referee 2"; Basketball labels them
+   * "Referee 1", "Referee 2", "Referee 3".
+   * Squadi renders a separate labelled heading per slot as its own
+   * accessibility element. Basketball has no such heading - the slot name
+   * only appears as the placeholder/hint text on the search field itself,
+   * so it needs an XPath hint match instead of an accessibility id. The two
+   * apps therefore need different locator strategies, not just different
+   * label text, hence full selector strings per app rather than a shared
+   * label.
+   */
+  refereeSlots: {
+    slot1: { android: string; ios: string };
+    slot2: { android: string; ios: string };
+    slot3: { android: string; ios: string };
+  };
 }

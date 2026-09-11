@@ -167,7 +167,6 @@ describe("Scorer - Persona Flows", () => {
       }
     });
 
-
     await step("Open settings menu and validate options", async () => {
       await scorerPage.clickSettingsIcon();
       await scorerPage.validateTeamSheetOption();

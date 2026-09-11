@@ -13,10 +13,13 @@ describe("Manager - Persona Checklist", () => {
     allureReporter.addStory("Calendar Sync and Borrowed Players");
     allureReporter.addSeverity("normal");
 
-    await step("Manager signs in with valid credentials and opens manager options", async () => {
-      await homePage.loginFlow(LoginData.manager1Email, LoginData.password);
-      await loginPage.openMyScheduleAndCalendarSync();
-      await loginPage.openMyTeamAndBorrowedPlayersList();
-    });
+    await step(
+      "Manager signs in with valid credentials and opens manager options",
+      async () => {
+        await homePage.loginFlow(LoginData.manager1Email, LoginData.password);
+        await loginPage.openMyScheduleAndCalendarSync();
+        await loginPage.openMyTeamAndBorrowedPlayersList();
+      },
+    );
   });
 });

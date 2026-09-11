@@ -71,13 +71,13 @@ describe("Guest - Persona Checklist", () => {
       await loginPage.clickChooseLanguageOptionInMoreTab();
     });
 
-    await step("Select English (US)", async () => {
-      await loginPage.selectEnglishUSALanguage();
+    await step("Select Español", async () => {
+      await loginPage.selectSpanishLanguage();
     });
 
     await step("Restore default language", async () => {
-      await loginPage.clickChooseLanguageOptionInMoreTab();
-      await loginPage.selectEnglishLanguage();
+      await loginPage.clickChooseLanguageOptionInSpanishInMoreTab();
+      await loginPage.selectEnglishLanguageFromSpanish();
     });
   });
 });

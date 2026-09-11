@@ -19,17 +19,23 @@ describe("Parent-as-child - Persona Checklist", () => {
       await homePage.loginFlow(LoginData.parentEmail, LoginData.password);
     });
 
-    await step("Switch to Child Profile and validate child banner", async () => {
-      await loginPage.switchProfileToChild();
-      await homePage.assertChildBannerDisplaysOnEachTab();
-    });
+    await step(
+      "Switch to Child Profile and validate child banner",
+      async () => {
+        await loginPage.switchProfileToChild();
+        await homePage.assertChildBannerDisplaysOnEachTab();
+      },
+    );
 
-    await step("Child View Displays Child's Team, Schedule & ID Card", async () => {
-      await homePage.openIDCardFromMoreTab();
-      await homePage.validateIDCardElements(namesOfUsers.childFullName);
-      await homePage.clickBackBtn();
-    });
-    });
+    await step(
+      "Child View Displays Child's Team, Schedule & ID Card",
+      async () => {
+        await homePage.openIDCardFromMoreTab();
+        await homePage.validateIDCardElements(namesOfUsers.childFullName);
+        await homePage.clickBackBtn();
+      },
+    );
+  });
 
   it("TC-P7 - Switch Back to Parent Profile", async () => {
     await step("Switch Back to Parent Profile", async () => {

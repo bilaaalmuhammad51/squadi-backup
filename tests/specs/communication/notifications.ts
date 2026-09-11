@@ -46,15 +46,13 @@ describe("Communication - Notifications", () => {
         );
 
         matchId = await MatchApiHelper.createMatch(token, 30);
+        await homePage.click(homePage.updatesOptionInMoreTab);
         await MatchApiHelper.updateMatchStartTime(token, matchId, 35);
+        await homePage.click(homePage.updatesOptionInMoreTab);
         await MatchApiHelper.updateMatchStartTime(token, matchId, 40);
 
         console.log("Created Match ID for notifications:", matchId);
-        allureReporter.addAttachment(
-          "Match ID",
-          String(matchId),
-          "text/plain",
-        );
+        allureReporter.addAttachment("Match ID", String(matchId), "text/plain");
       },
     );
 
@@ -99,7 +97,8 @@ describe("Communication - Notifications", () => {
         async () =>
           (await notificationsPage.getElementsCount(
             notificationsPage.allNotificationCards,
-          )) === countBefore - 1,
+          )) ===
+          countBefore - 1,
         { timeout: 10000, timeoutMsg: "Notification was not removed" },
       );
     });
